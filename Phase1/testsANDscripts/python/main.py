@@ -9,11 +9,11 @@ def main(argv):
     try:
         opts, args = getopt.getopt(argv, "hi:o:", ["ifile=", "ofile="])
     except getopt.GetoptError:
-        print('main.py -i <inputfile> -o <outputfile>')
+        # print('main.py -i <inputfile> -o <outputfile>')
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print('test.py -i <inputfile> -o <outputfile>')
+            # print('test.py -i <inputfile> -o <outputfile>')
             sys.exit()
         elif opt in ("-i", "--ifile"):
             inputfile = arg
@@ -41,18 +41,18 @@ def main(argv):
 ###################################################
 
 
-debug = False
 tokens = []
-keyword = {"void", "interface", "double", "bool", "string", "class", "int", "null", "this", "extend", "implement",
-           "for",
+keyword = {"void", "interface", "double", "string", "class", "int", "null", "this", "extends", "implements",
+           "for", "bool",
            "while", "if", "else", "return", "break", "new", "NewArray", "Print", "ReadInteger", "ReadLine"}
 
+boolean = {"true", "false"}
+
 grammar = """
-    start : (INT | BOOL | STRING | ID | OPERATOR | DOUBLE | DOUBLE_SCI | INLINE_COMMENT | MULTILINE_COMMENT | BRACKET)*
+    start : (INT | STRING | ID | OPERATOR | DOUBLE | DOUBLE_SCI | INLINE_COMMENT | MULTILINE_COMMENT | BRACKET)*
     DOUBLE.2 : /(\d)+\.(\d)*/
     DOUBLE_SCI.3 : /(\d)+\.(\d)*(E|e)(( )?\+|( )?-)?( )?(\d)+/
     INT :    /0x([a-f]|[A-F]|[0-9])+/ | /[0-9]+/
-    BOOL.2 : "true" | "false"
     STRING : /"(?:[^\\"]|\\.)*"/
     BRACKET : "{" | "}"
     OPERATOR : "+"
@@ -73,47 +73,29 @@ grammar = """
 
 class TestTransformer(Transformer):
     def ID(self, token):
-        if debug:
-            if token in keyword:
-                print(token)
-                tokens.append((token.value,))
-            else:
-                print("T_ID", token)
-                tokens.append(("T_ID", token.value))
-        return token
-
-    def BOOL(self, token):
-        if debug:
-            print("T_BOOLEANLITERAL", token)
-        tokens.append(("T_BOOLEANLITERAL", token.value))
+        if token in keyword:
+            tokens.append((token.value,))
+        elif token in boolean:
+            tokens.append(("T_BOOLEANLITERAL", token.value))
+        else:
+            tokens.append(("T_ID", token.value))
         return token
 
     def double(self, token):
-        if debug:
-            print("T_DOUBLELITERAL", token)
         tokens.append(("T_DOUBLELITERAL", token.value))
-
         return token
 
     DOUBLE = DOUBLE_SCI = double
 
     def INT(self, token):
-        if debug:
-            print("T_INTLITERAL", token)
         tokens.append(("T_INTLITERAL", token.value))
-
         return token
 
     def STRING(self, token):
-        if debug:
-            print("T_STRINGLITERAL", token)
         tokens.append(("T_STRINGLITERAL", token.value))
-
         return token
 
     def default(self, token):
-        if debug:
-            print(token)
         tokens.append((token.value,))
         return token
 
@@ -123,11 +105,13 @@ class TestTransformer(Transformer):
 def get_tokens(code):
     tokens.clear()
     parser = Lark(grammar, parser="lalr", transformer=TestTransformer())
-    result = parser.parse(code)
-    if debug:
-        print(result)
+    parser.parse(code)
     return tokens
 
 
 if __name__ == "__main__":
     main(sys.argv[1:])
+    # print(get_tokens("""
+    # afdaf ofor for void
+    # """))
+    # pass
