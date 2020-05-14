@@ -9,10 +9,6 @@ class T(Transformer):
         return tok.update(value=int(tok))
 
 
-class Tar(Lexer):
-    pass
-
-
 parser = Lark("""
 start: (INT*(IF)*) | dark
 dark : benz bmw
@@ -24,7 +20,7 @@ BMW : "x"
 IF: "if"
 %import common.INT
 %ignore " "
-""", parser="lalr", transformer=T())
+""", parser="lalr")
 
 parser2 = Lark(r"""
         start: _NL? section+
@@ -72,26 +68,51 @@ decaf_grammar = """
 """
 
 test_grammar = """
-    start : (INT | BOOL | STRING | ID | KEYWORD | PUNCTUATION)*
-    INT : /[0-9]+/
+    start : (INT | BOOL | STRING | ID | KEYWORD | PUNCTUATION | DOUBLE)*
+    DOUBLE : /(\d)+\.(\d)*/ 
+    DOUBLESCI.2 : /(\d)+\.(\d)*(E|e)(( )?\+|( )?-)?( )?(\d)+/
+    INT : /[0-9]+/  | /0x([a-f]|[A-F]|[0-9])+/
     BOOL.2 : "true" | "false"
     STRING : /"([a-z]|[A-Z])*"/
     KEYWORD.3 : "void" | "int" | "double"
     PUNCTUATION : "." | ";" | "[" | "]"
-    ID : /([a-z]|[A-Z])+(\d)*/
-    %ignore " " 
+    ID : /([a-z]|[A-Z])((\d)|_|[a-z]|[A-Z]){0,30}/
+    INLINECOMMENT : /\/\/.*/
+    MULTILINECOMMENT : /\/\*(\*(?!\/)|[^*])*\*\//
+    %import common.WS -> WHITESPACE
+    %ignore WHITESPACE
+    
 """
 
 test = '123123 true mmd mmd int '
 
+test_grammar2 = """
+start : a b
+a : c d
+b : d c
+c : IF
+d : THEN
+IF : "if"
+THEN : "then"
+%ignore " " 
+%import common.NEWLINE -> _NL
+"""
+
 
 class TestTransformer(Transformer):
-    def INT(self, token):
-        print("T_INTLITERAL " + token)
+    def navid(self, token):
+        print()
+        print(token)
+        print()
+        return token
+
+    def BOOL(self, token):
+        print(token + "   salam")
         return token
 
 
 test_parser = Lark(test_grammar, parser="lalr", transformer=TestTransformer())
+test_parser2 = Lark(test_grammar2, parser="lalr")
 
 if __name__ == '__main__':
     try:
