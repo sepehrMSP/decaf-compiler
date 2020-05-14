@@ -43,21 +43,17 @@ def main(argv):
 
 debug = False
 tokens = []
+keyword = {"void", "interface", "double", "bool", "string", "class", "int", "null", "this", "extend", "implement",
+           "for",
+           "while", "if", "else", "return", "break", "new", "NewArray", "Print", "ReadInteger", "ReadLine"}
 
 grammar = """
-    start : (INT | BOOL | STRING | ID | KEYWORD | OPERATOR | DOUBLE | DOUBLE_SCI | INLINE_COMMENT | MULTILINE_COMMENT | BRACKET)*
+    start : (INT | BOOL | STRING | ID | OPERATOR | DOUBLE | DOUBLE_SCI | INLINE_COMMENT | MULTILINE_COMMENT | BRACKET)*
     DOUBLE.2 : /(\d)+\.(\d)*/
     DOUBLE_SCI.3 : /(\d)+\.(\d)*(E|e)(( )?\+|( )?-)?( )?(\d)+/
     INT :    /0x([a-f]|[A-F]|[0-9])+/ | /[0-9]+/
     BOOL.2 : "true" | "false"
     STRING : /"(?:[^\\"]|\\.)*"/
-    KEYWORD.3 : "void"
-
-                | "interface" | "double" | "bool" | "string"
-                | "class" | "int" | "null" | "this"
-                | "extends" | "implements"
-                | "for" | "while" | "if" | "else" | "return" | "break"
-                | "new" | "NewArray" | "Print" | "ReadInteger" | "ReadLine"
     BRACKET : "{" | "}"
     OPERATOR : "+"
              | "-" | "*" | "/" | "%"
@@ -78,8 +74,12 @@ grammar = """
 class TestTransformer(Transformer):
     def ID(self, token):
         if debug:
-            print("T_ID", token)
-        tokens.append(("T_ID", token.value))
+            if token in keyword:
+                print(token)
+                tokens.append((token.value,))
+            else:
+                print("T_ID", token)
+                tokens.append(("T_ID", token.value))
         return token
 
     def BOOL(self, token):
@@ -117,7 +117,7 @@ class TestTransformer(Transformer):
         tokens.append((token.value,))
         return token
 
-    BRACKET = KEYWORD = OPERATOR = default
+    BRACKET = OPERATOR = default
 
 
 def get_tokens(code):
