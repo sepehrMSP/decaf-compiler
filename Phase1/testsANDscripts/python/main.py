@@ -105,7 +105,10 @@ class TestTransformer(Transformer):
 def get_tokens(code):
     tokens.clear()
     parser = Lark(grammar, parser="lalr", transformer=TestTransformer())
-    parser.parse(code)
+    try:
+        parser.parse(code)
+    except:
+        tokens.append(('UNDEDIFIEND_TOKEN',))
     return tokens
 
 
