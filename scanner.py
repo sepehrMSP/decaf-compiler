@@ -29,6 +29,8 @@ grammar = """
     MULTILINE_COMMENT : /\/\*(\*(?!\/)|[^*])*\*\//
     %import common.WS -> WHITESPACE
     %ignore WHITESPACE
+    %ignore INLINE_COMMENT
+    %ignore MULTILINE_COMMENT
 
 """
 
@@ -75,7 +77,7 @@ class TestTransformer(Transformer):
         tokens.append((token.value,))
         return token
 
-    BRACKET = KEYWORD = OPERATOR = INLINE_COMMENT = MULTILINE_COMMENT = default
+    BRACKET = KEYWORD = OPERATOR  = default
 
 
 def get_tokens(code):

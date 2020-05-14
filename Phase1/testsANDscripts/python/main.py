@@ -41,28 +41,27 @@ def main(argv):
 ###################################################
 
 
-
 debug = False
 tokens = []
 
 grammar = """
     start : (INT | BOOL | STRING | ID | KEYWORD | OPERATOR | DOUBLE | DOUBLE_SCI | INLINE_COMMENT | MULTILINE_COMMENT | BRACKET)*
-    DOUBLE : /(\d)+\.(\d)*/
-    DOUBLE_SCI.2 : /(\d)+\.(\d)*(E|e)(( )?\+|( )?-)?( )?(\d)+/
-    INT : /[0-9]+/  | /0x([a-f]|[A-F]|[0-9])+/
+    DOUBLE.2 : /(\d)+\.(\d)*/
+    DOUBLE_SCI.3 : /(\d)+\.(\d)*(E|e)(( )?\+|( )?-)?( )?(\d)+/
+    INT :    /0x([a-f]|[A-F]|[0-9])+/ | /[0-9]+/
     BOOL.2 : "true" | "false"
     STRING : /"(?:[^\\"]|\\.)*"/
     KEYWORD.3 : "void"
 
-                | "int" | "double" | "bool" | "string"
-                | "class" | "interface" | "null" | "this"
+                | "interface" | "double" | "bool" | "string"
+                | "class" | "int" | "null" | "this"
                 | "extends" | "implements"
                 | "for" | "while" | "if" | "else" | "return" | "break"
                 | "new" | "NewArray" | "Print" | "ReadInteger" | "ReadLine"
     BRACKET : "{" | "}"
     OPERATOR : "+"
              | "-" | "*" | "/" | "%"
-             | "<" | "<=" | ">" | ">=" | "==" | "=" | "!="
+             | "<=" | "<" | ">=" | ">" | "==" | "=" | "!="
              | "&&" | "||" | "!" 
              | ";" | "," | "."
              | "[]" | "[" | "]" | "(" | ")" 
@@ -71,7 +70,8 @@ grammar = """
     MULTILINE_COMMENT : /\/\*(\*(?!\/)|[^*])*\*\//
     %import common.WS -> WHITESPACE
     %ignore WHITESPACE
-
+    %ignore INLINE_COMMENT
+    %ignore MULTILINE_COMMENT
 """
 
 
@@ -117,7 +117,7 @@ class TestTransformer(Transformer):
         tokens.append((token.value,))
         return token
 
-    BRACKET = KEYWORD = OPERATOR = INLINE_COMMENT = MULTILINE_COMMENT = default
+    BRACKET = KEYWORD = OPERATOR = default
 
 
 def get_tokens(code):
