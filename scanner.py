@@ -1,48 +1,6 @@
-import sys, getopt
-
 from lark import Lark, Transformer
 
-
-def main(argv):
-    inputfile = ''
-    outputfile = ''
-    try:
-        opts, args = getopt.getopt(argv, "hi:o:", ["ifile=", "ofile="])
-    except getopt.GetoptError:
-        print('main.py -i <inputfile> -o <outputfile>')
-        sys.exit(2)
-    for opt, arg in opts:
-        if opt == '-h':
-            print('test.py -i <inputfile> -o <outputfile>')
-            sys.exit()
-        elif opt in ("-i", "--ifile"):
-            inputfile = arg
-        elif opt in ("-o", "--ofile"):
-            outputfile = arg
-
-    with open("tests/" + inputfile, "r") as input_file:
-        # do stuff with input file
-        tokens = get_tokens(input_file.read())
-        pass
-
-    with open("out/" + outputfile, "w") as output_file:
-        # write result to output file. 
-        # for the sake of testing :
-        result_str = ""
-        for token in tokens:
-            if len(token) == 1:
-                result_str += str(token[0])
-            else:
-                result_str += "{} {}".format(token[0], token[1])
-            result_str += "\n"
-        output_file.write(result_str)
-
-
-###################################################
-
-
-
-debug = False
+debug = True
 tokens = []
 
 grammar = """
@@ -126,8 +84,19 @@ def get_tokens(code):
     result = parser.parse(code)
     if debug:
         print(result)
-    return tokens
-
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    get_tokens(
+        """
+        adfasfd
+        //adfa
+        """
+    )
+    result_str = ""
+    for token in tokens:
+        if len(token) == 1:
+            result_str += str(token[0])
+        else:
+            result_str += "{} {}".format(token[0], token[1])
+        result_str += "\n"
+    print(result_str)

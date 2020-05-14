@@ -68,17 +68,28 @@ decaf_grammar = """
 """
 
 test_grammar = """
-    start : (INT | BOOL | STRING | ID | KEYWORD | PUNCTUATION | DOUBLE)*
+    start : (INT | BOOL | STRING | ID | KEYWORD | OPERATOR | DOUBLE | DOUBLE_SCI | INLINE_COMMENT | MULTILINE_COMMENT)*
     DOUBLE : /(\d)+\.(\d)*/ 
-    DOUBLESCI.2 : /(\d)+\.(\d)*(E|e)(( )?\+|( )?-)?( )?(\d)+/
+    DOUBLE_SCI.2 : /(\d)+\.(\d)*(E|e)(( )?\+|( )?-)?( )?(\d)+/
     INT : /[0-9]+/  | /0x([a-f]|[A-F]|[0-9])+/
     BOOL.2 : "true" | "false"
     STRING : /"([a-z]|[A-Z])*"/
-    KEYWORD.3 : "void" | "int" | "double"
-    PUNCTUATION : "." | ";" | "[" | "]"
+    KEYWORD.3 : "void"
+                | " int" | " double" | " bool" | " string"
+                | " class" | " interface" | " null" | " this"
+                | " extends" | " implements"
+                | " for" | " while" | " if" | " else" | " return" | " break"
+                | " new" | " NewArray" | " Print" | " ReadInteger" | "ReadLine"
+
+    OPERATOR : "+"
+            | "-" | "*" | "/" | "%"
+            | "<" | "<=" | ">" | ">=" | "=" | "==" | "!="
+            | "&&" | "||" | "!" 
+            | ";" | "," | "."
+            | "[]" | "[" | "]" | "(" | ")" 
     ID : /([a-z]|[A-Z])((\d)|_|[a-z]|[A-Z]){0,30}/
-    INLINECOMMENT : /\/\/.*/
-    MULTILINECOMMENT : /\/\*(\*(?!\/)|[^*])*\*\//
+    INLINE_COMMENT : /\/\/.*/
+    MULTILINE_COMMENT : /\/\*(\*(?!\/)|[^*])*\*\//
     %import common.WS -> WHITESPACE
     %ignore WHITESPACE
     
