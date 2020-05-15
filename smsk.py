@@ -13,7 +13,7 @@ g = ''' start: t*
          | "class" | "int" | "null" | "this" | "extend" | "implement" | "for" | "while" | "if" | "else" | "return"
          | "break" | "new" | "NewArray" | "Print" | "ReadInteger" | "ReadLine"
         SL_COMMENT: "//" /[^\\n]*/ "\\n"
-        ML_COMMENT: "/*" /(\*(?!\/)|[^*])*/ "*/"
+        ML_COMMENT: "/*" /(\\*(?!\\/)|[^*])*/ "*/"
         %ignore SL_COMMENT
         %ignore ML_COMMENT
         %import common.WS
