@@ -1,4 +1,5 @@
-import sys, getopt
+import getopt
+import sys
 
 from lark import Lark, Transformer
 
@@ -27,7 +28,6 @@ def main(argv):
 
     with open("out/" + outputfile, "w") as output_file:
         # write result to output file. 
-        # for the sake of testing :
         result_str = ""
         for token in tokens:
             if len(token) == 1:
@@ -42,7 +42,7 @@ def main(argv):
 
 
 tokens = []
-keyword = {"void", "interface", "double", "string", "class", "int", "null", "this", "extends", "implements",
+keywords = {"void", "interface", "double", "string", "class", "int", "null", "this", "extends", "implements",
            "for", "bool",
            "while", "if", "else", "return", "break", "new", "NewArray", "Print", "ReadInteger", "ReadLine"}
 
@@ -73,7 +73,7 @@ grammar = """
 
 class TestTransformer(Transformer):
     def ID(self, token):
-        if token in keyword:
+        if token in keywords:
             tokens.append((token.value,))
         elif token in boolean:
             tokens.append(("T_BOOLEANLITERAL", token.value))
@@ -108,13 +108,9 @@ def get_tokens(code):
     try:
         parser.parse(code)
     except:
-        tokens.append(('UNDEDIFIEND_TOKEN',))
+        tokens.append(('UNDEFINED_TOKEN',))
     return tokens
 
 
 if __name__ == "__main__":
     main(sys.argv[1:])
-    # print(get_tokens("""
-    # afdaf ofor for void
-    # """))
-    # pass

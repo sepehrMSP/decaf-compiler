@@ -18,7 +18,7 @@ grammar = """
              | "&&" | "||" | "!" 
              | ";" | "," | "."
              | "[]" | "[" | "]" | "(" | ")" 
-    ID :  /([a-z]|[A-Z])((\d)|_|[a-z]|[A-Z]){0,30}/
+    ID :  /([a-zA-Z])((\d)|[_a-zA-Z]){0,30}/
     INLINE_COMMENT : /\/\/.*/
     MULTILINE_COMMENT : /\/\*(\*(?!\/)|[^*])*\*\//
     %import common.WS -> WHITESPACE
@@ -87,13 +87,7 @@ def get_tokens(code):
 
 
 if __name__ == "__main__":
-    get_tokens(
-        """
-void
-
-
-        """
-    )
+    get_tokens(input())
     result_str = ""
     for token in tokens:
         if len(token) == 1:
