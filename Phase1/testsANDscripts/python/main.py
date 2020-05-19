@@ -49,11 +49,11 @@ boolean = {"true", "false"}
 
 grammar = """
     start : (INT | STRING | ID | OPERATOR | DOUBLE | DOUBLE_SCI | INLINE_COMMENT | MULTILINE_COMMENT | BRACKET)*
-    ID: /([a-zA-Z])([a-zA-Z0-9_]){,30}/
-    INT: /0[xX]([a-fA-F0-9])+/ | /[0-9]+/
+    ID: /[a-zA-Z][a-zA-Z0-9_]{,30}/
+    INT: /0[xX][a-fA-F0-9]+/ | /[0-9]+/
     DOUBLE.2 : /(\\d)+\\.(\\d)*/
-    DOUBLE_SCI.3 : /(\\d)+\\.(\\d)*[Ee]([+-])?(\\d)+/
-    STRING : /"(?:[^\\"]|\\.)*"/
+    DOUBLE_SCI.3 : /(\\d)+\\.(\\d)*[Ee][+-]?(\\d)+/
+    STRING : /"[^"\\n]*"/
     BRACKET : "{" | "}"
     OPERATOR : "+" | "-" | "*" | "/" | "%"
              | "<=" | "<" | ">=" | ">" | "==" | "=" | "!="
