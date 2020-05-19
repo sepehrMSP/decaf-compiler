@@ -42,28 +42,26 @@ def main(argv):
 
 
 tokens = []
-keywords = {"void", "interface", "double", "string", "class", "int", "null", "this", "extends", "implements",
-           "for", "bool",
-           "while", "if", "else", "return", "break", "new", "NewArray", "Print", "ReadInteger", "ReadLine"}
+keywords = {"void", "int", "double", "bool", "string", "class", "interface", "null", "this", "extends", "implements",
+            "for", "while", "if", "else", "return", "break", "new", "NewArray", "Print", "ReadInteger", "ReadLine"}
 
 boolean = {"true", "false"}
 
 grammar = """
     start : (INT | STRING | ID | OPERATOR | DOUBLE | DOUBLE_SCI | INLINE_COMMENT | MULTILINE_COMMENT | BRACKET)*
-    DOUBLE.2 : /(\d)+\.(\d)*/
-    DOUBLE_SCI.3 : /(\d)+\.(\d)*(E|e)(( )?\+|( )?-)?( )?(\d)+/
-    INT :    /0x([a-f]|[A-F]|[0-9])+/ | /[0-9]+/
+    ID: /([a-zA-Z])([a-zA-Z0-9_]){,30}/
+    INT: /0[xX]([a-fA-F0-9])+/ | /[0-9]+/
+    DOUBLE.2 : /(\\d)+\\.(\\d)*/
+    DOUBLE_SCI.3 : /(\\d)+\\.(\\d)*[Ee]([+-])?(\\d)+/
     STRING : /"(?:[^\\"]|\\.)*"/
     BRACKET : "{" | "}"
-    OPERATOR : "+"
-             | "-" | "*" | "/" | "%"
+    OPERATOR : "+" | "-" | "*" | "/" | "%"
              | "<=" | "<" | ">=" | ">" | "==" | "=" | "!="
              | "&&" | "||" | "!" 
              | ";" | "," | "."
              | "[]" | "[" | "]" | "(" | ")" 
-    ID : /([a-z]|[A-Z])((\d)|_|[a-z]|[A-Z]){0,30}/
-    INLINE_COMMENT : /\/\/.*/
-    MULTILINE_COMMENT : /\/\*(\*(?!\/)|[^*])*\*\//
+    INLINE_COMMENT : "//" /[^\\n]*/ "\\n"
+    MULTILINE_COMMENT : "/*" /.*?/ "*/"
     %import common.WS -> WHITESPACE
     %ignore WHITESPACE
     %ignore INLINE_COMMENT
