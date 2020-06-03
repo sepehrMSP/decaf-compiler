@@ -31,9 +31,9 @@ grammar = """
 
 decaf_grammar = """
     start : (decl)+
-    decl : variable_decl | function_decl | class_decl | interface_decl
-    variable_decl : variable";"
-    variable : type ident 
+    decl : variable_decl | function_decl | class_decl | interface_decl
+    variable_decl : variable ";"
+    variable : type IDENT 
     type : INT | DOUBLE | BOOL | STRING | IDENT | type "[""]" 
     function_decl : type IDENT "("formals")" stmt_block  | "void" IDENT "("formals")" stmt_block 
     formals : variable (","variable)* |  
