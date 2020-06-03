@@ -44,14 +44,14 @@ decaf_grammar = """
     stmt_block : "{" (variable_decl)*  (stmt)* "}" 
     stmt :  (expr)? ";" | if_stmt  | while_stmt |  for_stmt | break_stmt   | return_stmt  | print_stmt  | stmt_block 
     if_stmt : "if" "(" expr ")" stmt ("else" stmt)? 
-    while_stmt      : "while" "(" expr ")" stmt 
+    while_stmt : "while" "(" expr ")" stmt 
     for_stmt : "for" "(" (expr)? ";" expr ";" (expr)? ")" stmt 
     return_stmt : "return" (expr)? ";" 
     break_stmt : "break" ";" 
-    print_stmt : "Print" "(" expr (","expr)+ ")" ";" 
+    print_stmt : "Print" "(" expr (","expr)* ")" ";" 
     expr : l_value "=" expr | constant | l_value | "this" | call | "(" expr ")" | expr "+" expr | expr "-" expr 
-                    | expr "*" expr | expr "/" expr |  expr "%" expr | "-" expr | expr "<" expr | expr "<=" expr 
-                    | expr ">" expr | expr ">=" expr | expr "==" expr | expr "!=" expr | expr "&&" expr | expr "||" expr
+                    | expr "*" expr | expr "/" expr |  expr "%" expr | "-" expr | expr "<=" expr | expr "<" expr  
+                    | expr ">=" expr| expr ">" expr |  expr "==" expr | expr "!=" expr | expr "&&" expr | expr "||" expr
                     | "!" expr | "ReadInteger" "(" ")" |   "ReadLine" "(" ")" | "new" IDENT 
                     | "NewArray" "(" expr "," type ")" 
     l_value : IDENT |  expr  "." IDENT | expr "[" expr "]" 
