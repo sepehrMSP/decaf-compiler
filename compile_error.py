@@ -1,3 +1,4 @@
+import lark
 from lark import Lark
 
 grammar = """
@@ -30,8 +31,8 @@ grammar = """
     actuals :  expr (","expr)* |  
     constant : INT | DOUBLE | DOUBLE_SCI | BOOL |  STRING | "null"
 
-    DOUBLE : /(\d)+\.(\d)*/
-    DOUBLE_SCI.2 : /(\d)+\.(\d)*(E|e)(( )?\+|( )?-)?( )?(\d)+/
+    DOUBLE.2 : /(\d)+\.(\d)*/
+    DOUBLE_SCI.3 : /(\d)+\.(\d)*(E|e)(( )?\+|( )?-)?( )?(\d)+/
     INT : /[0-9]+/  | /0x([a-f]|[A-F]|[0-9])+/
     BOOL.2 : "true" | "false"
     STRING : /"(?:[^\\"]|\\.)*"/
@@ -45,13 +46,11 @@ grammar = """
 """
 
 
-def syntax_error(code: str) -> 'str':
+def syntax_error(code: str) -> str:
     """
     check compile errors
-
     Args:
         code (str): code to check for compile error
-
     Returns:
         str:
             return "NO" if there is no compile error.
@@ -59,8 +58,9 @@ def syntax_error(code: str) -> 'str':
     """
     try:
         Lark(grammar, parser="lalr").parse(code)
-    except Exception as e:
+    except lark.exceptions.UnexpectedToken as e:
         print(type(e))
-        return "YES"
+        return "NO"
 
-    return "NO"
+    return "YES"
+

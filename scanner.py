@@ -144,7 +144,24 @@ if __name__ == "__main__":
     #         result_str += "{} {}".format(token[0], token[1])
     #     result_str += "\n"
     # print(result_str)
-    code = input()
+    code = """
+
+int getSomeValue() {
+    return something;
+}
+
+int main() {
+    int a;
+    int b;
+    bool c;
+    double d;
+    d = 1.2E5 * 5. + 1.;
+    c = (a / b < 100) || (!(((a * b) / (a + b)) <= 20) && (a < -10 && b < a || b > 5))
+     || getSomething() % 2 == 42;
+    c = true || false;
+}
+
+ """
     try:
         result = parser.parse(code)
         print("no")
