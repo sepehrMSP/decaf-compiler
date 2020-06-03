@@ -85,13 +85,3 @@ def get_tokens(code: str) -> List[Tuple[str, Union[str, int, float]]]:
         tokens.append(('UNDEFINED_TOKEN',))
     return tokens
 
-if __name__ == '__main__':
-    tokens_grammar = """
-    l_value : "a" | "b"
-    expr : l_value"="expr
-    %import common.WS -> WHITESPACE
-    %ignore WHITESPACE
-    """
-    print(get_tokens("""
-    a = b
-    """))
