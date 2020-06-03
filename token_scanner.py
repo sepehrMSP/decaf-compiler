@@ -1,45 +1,9 @@
-import getopt
-import sys
+"""
+Scanner for tokens
+"""
+from typing import List, Union, Tuple
 
-from lark import Lark, Transformer
-
-
-def main(argv):
-    inputfile = ''
-    outputfile = ''
-    try:
-        opts, args = getopt.getopt(argv, "hi:o:", ["ifile=", "ofile="])
-    except getopt.GetoptError:
-        # print('main.py -i <inputfile> -o <outputfile>')
-        sys.exit(2)
-    for opt, arg in opts:
-        if opt == '-h':
-            # print('test.py -i <inputfile> -o <outputfile>')
-            sys.exit()
-        elif opt in ("-i", "--ifile"):
-            inputfile = arg
-        elif opt in ("-o", "--ofile"):
-            outputfile = arg
-
-    with open("tests/" + inputfile, "r") as input_file:
-        # do stuff with input file
-        tokens = get_tokens(input_file.read())
-        pass
-
-    with open("out/" + outputfile, "w") as output_file:
-        # write result to output file. 
-        result_str = ""
-        for token in tokens:
-            if len(token) == 1:
-                result_str += str(token[0])
-            else:
-                result_str += "{} {}".format(token[0], token[1])
-            result_str += "\n"
-        output_file.write(result_str)
-
-
-###################################################
-
+from lark import Transformer, Lark
 
 tokens = []
 keywords = {"void", "int", "double", "bool", "string", "class", "interface", "null", "this", "extends", "implements",
@@ -47,7 +11,7 @@ keywords = {"void", "int", "double", "bool", "string", "class", "interface", "nu
 
 boolean = {"true", "false"}
 
-grammar = """
+tokens_grammar = """
     start : (INT | STRING | ID | OPERATOR | DOUBLE | DOUBLE_SCI | INLINE_COMMENT | MULTILINE_COMMENT | BRACKET)*
     ID: /[a-zA-Z][a-zA-Z0-9_]{,30}/
     INT: /0[xX][a-fA-F0-9]+/ | /[0-9]+/
@@ -70,6 +34,9 @@ grammar = """
 
 
 class TestTransformer(Transformer):
+    """
+    Transformer to get tokens
+    """
     def ID(self, token):
         if token in keywords:
             tokens.append((token.value,))
@@ -100,15 +67,20 @@ class TestTransformer(Transformer):
     BRACKET = OPERATOR = default
 
 
-def get_tokens(code):
+def get_tokens(code: str) -> List[Tuple[str, Union[str, int, float]]]:
+    """
+    Scan ``code`` and returns tokens
+
+    Args:
+        code (str):
+
+    Returns:
+        list o
+    """
     tokens.clear()
-    parser = Lark(grammar, parser="lalr", transformer=TestTransformer())
+    parser = Lark(tokens_grammar, parser="lalr", transformer=TestTransformer())
     try:
         parser.parse(code)
     except:
         tokens.append(('UNDEFINED_TOKEN',))
     return tokens
-
-
-if __name__ == "__main__":
-    main(sys.argv[1:])
