@@ -48,3 +48,4 @@ done
 echo "Passed : $NUMBER_OF_PASSED"
 echo "Failed : $NUMBER_OF_FAILED"
 
+sleep(5)

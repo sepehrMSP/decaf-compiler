@@ -1,5 +1,5 @@
 import sys, getopt
-from sys import path
+from os import path
 
 
 def main(argv):
