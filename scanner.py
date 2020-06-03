@@ -2,7 +2,8 @@ from lark import Lark, Transformer
 
 debug = True
 tokens = []
-keyword = {"void" , "interface", "double", "bool", "string", "class", "int", "null", "this", "extend", "implement", "for",
+keyword = {"void", "interface", "double", "bool", "string", "class", "int", "null", "this", "extend", "implement",
+           "for",
            "while", "if", "else", "return", "break", "new", "NewArray", "Print", "ReadInteger", "ReadLine"}
 
 grammar = """
@@ -75,6 +76,7 @@ decaf_grammar = """
 
 parser = Lark(decaf_grammar, parser="lalr")
 
+
 class TestTransformer(Transformer):
     def ID(self, token):
         if debug:
@@ -133,12 +135,18 @@ def get_tokens(code):
 
 
 if __name__ == "__main__":
-    get_tokens(input())
-    result_str = ""
-    for token in tokens:
-        if len(token) == 1:
-            result_str += str(token[0])
-        else:
-            result_str += "{} {}".format(token[0], token[1])
-        result_str += "\n"
-    print(result_str)
+    # get_tokens(input())
+    # result_str = ""
+    # for token in tokens:
+    #     if len(token) == 1:
+    #         result_str += str(token[0])
+    #     else:
+    #         result_str += "{} {}".format(token[0], token[1])
+    #     result_str += "\n"
+    # print(result_str)
+    code = input()
+    try:
+        result = parser.parse(code)
+        print("no")
+    except:
+        print("yes")
