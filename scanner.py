@@ -59,14 +59,14 @@ decaf_grammar = """
     actuals :  expr (","expr)* |  
     constant : INT | DOUBLE | DOUBLE_SCI | BOOL |  STRING | "null"
     
-    DOUBLE : /(\d)+\.(\d)*/
-    DOUBLE_SCI.2 : /(\d)+\.(\d)*(E|e)(( )?\+|( )?-)?( )?(\d)+/
-    INT : /[0-9]+/  | /0x([a-f]|[A-F]|[0-9])+/
+    DOUBLE.2 : /(\\d)+\\.(\\d)*/
+    DOUBLE_SCI.2 : /(\\d)+\\.(\\d)*[Ee][+-]?(\\d)+/
+    INT: /0[xX][a-fA-F0-9]+/ | /[0-9]+/
     BOOL.2 : "true" | "false"
-    STRING : /"(?:[^\\"]|\\.)*"/
-    IDENT :  /([a-zA-Z])((\d)|[_a-zA-Z]){0,30}/
-    INLINE_COMMENT : /\/\/.*/
-    MULTILINE_COMMENT : /\/\*(\*(?!\/)|[^*])*\*\//
+    STRING : /"[^"\\n]*"/
+    IDENT: /[a-zA-Z][a-zA-Z0-9_]{,30}/
+    INLINE_COMMENT : "//" /[^\\n]*/ "\\n"
+    MULTILINE_COMMENT : "/*" /.*?/ "*/"
     %import common.WS -> WHITESPACE
     %ignore WHITESPACE
     %ignore INLINE_COMMENT
