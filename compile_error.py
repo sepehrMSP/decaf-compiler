@@ -1,5 +1,6 @@
 import lark
 from lark import Lark
+import re
 
 grammar = """
     start : (decl)+
@@ -36,7 +37,7 @@ grammar = """
     INT : /[0-9]+/  | /0x([a-f]|[A-F]|[0-9])+/
     BOOL.2 : "true" | "false"
     STRING : /"(?:[^\\"]|\\.)*"/
-    IDENT :  /([a-zA-Z])((\d)|[_a-zA-Z]){0,30}/
+    IDENT :  /([a-zA-Z])((\\d)|[_a-zA-Z])*/
     INLINE_COMMENT : /\/\/.*/
     MULTILINE_COMMENT : /\/\*(\*(?!\/)|[^*])*\*\//
     %import common.WS -> WHITESPACE
@@ -57,6 +58,11 @@ def syntax_error(code: str) -> str:
             otherwise returns "YES"
     """
     try:
+        id = '[a-z][a-z0-9_]*'
+        r = re.findall(id, code, flags=re.IGNORECASE)
+        for i in r:
+            if len(i) > 31:
+                return "NO"
         Lark(grammar, parser="lalr").parse(code)
     except lark.exceptions.UnexpectedToken as e:
         print(type(e))
