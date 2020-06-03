@@ -61,7 +61,7 @@ decaf_grammar = """
     constant : INT | DOUBLE | DOUBLE_SCI | BOOL |  STRING | "null"
     
     DOUBLE.2 : /(\\d)+\\.(\\d)*/
-    DOUBLE_SCI.2 : /(\\d)+\\.(\\d)*[Ee][+-]?(\\d)+/
+    DOUBLE_SCI.3 : /(\\d)+\\.(\\d)*[Ee][+-]?(\\d)+/
     INT: /0[xX][a-fA-F0-9]+/ | /[0-9]+/
     BOOL.2 : "true" | "false"
     STRING : /"[^"\\n]*"/
