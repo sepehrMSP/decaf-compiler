@@ -7,7 +7,7 @@ grammar = """
     decl : variable_decl | function_decl | class_decl | interface_decl
     variable_decl : variable ";"
     variable : type IDENT 
-    type : "int" | "double" | "bool" | "string" | IDENT | type "[]"
+    type : TYPE | IDENT | type "[]"
     function_decl : type IDENT "("formals")" stmt_block  | "void" IDENT "("formals")" stmt_block 
     formals : variable (","variable)* |  
     class_decl : "class" IDENT ("extends" IDENT)?  ("implements" IDENT (","IDENT)*)?  "{"(field)*"}" 
@@ -32,14 +32,15 @@ grammar = """
     actuals :  expr (","expr)* |  
     constant : INT | DOUBLE | DOUBLE_SCI | BOOL |  STRING | "null"
 
-    DOUBLE.2 : /(\d)+\.(\d)*/
-    DOUBLE_SCI.3 : /(\d)+\.(\d)*(E|e)(( )?\+|( )?-)?( )?(\d)+/
-    INT : /[0-9]+/  | /0x([a-f]|[A-F]|[0-9])+/
-    BOOL.2 : "true" | "false"
-    STRING : /"(?:[^\\"]|\\.)*"/
-    IDENT :  /([a-zA-Z])((\\d)|[_a-zA-Z])*/
-    INLINE_COMMENT : /\/\/.*/
-    MULTILINE_COMMENT : /\/\*(\*(?!\/)|[^*])*\*\//
+    DOUBLE.2 : /(\\d)+\\.(\\d)*/
+    DOUBLE_SCI.3 : /(\\d)+\\.(\\d)*[Ee][+-]?(\\d)+/
+    INT: /0[xX][a-fA-F0-9]+/ | /[0-9]+/
+    BOOL : /((true)|(false))(xxxxxxxxx)*/
+    TYPE : "int" | "double" | "bool" | "string"
+    STRING : /"[^"\\n]*"/
+    IDENT :  /(?!((true)|(false)|(void)|(int)|(double)|(bool)|(string)|(class)|(interface)|(null)|(this)|(extends)|(implements)|(for)|(while)|(if)|(else)|(return)|(break)|(new)|(NewArray)|(Print)|(ReadInteger)|(ReadLine))([^_a-zA-Z0-9]|$))[a-zA-Z][_a-zA-Z0-9]*/
+    INLINE_COMMENT : "//" /[^\\n]*/ "\\n"
+    MULTILINE_COMMENT : "/*" /.*?/ "*/"
     %import common.WS -> WHITESPACE
     %ignore WHITESPACE
     %ignore INLINE_COMMENT
@@ -69,4 +70,3 @@ def syntax_error(code: str) -> str:
         return "NO"
 
     return "YES"
-

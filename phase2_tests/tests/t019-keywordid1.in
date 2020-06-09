@@ -1,0 +1,24 @@
+class true1 {
+    int a;
+    int b;
+    int trueee;
+
+    void fun() {
+        b = trueee;
+    }
+}
+
+int true2;
+
+void falsee() {
+}
+
+int inti;
+
+double doubleds;
+
+double classImplements;
+
+class stringClass {
+    int b;
+}
