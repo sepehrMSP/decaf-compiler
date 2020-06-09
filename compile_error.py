@@ -35,7 +35,7 @@ grammar = """
     DOUBLE.2 : /(\\d)+\\.(\\d)*/
     DOUBLE_SCI.3 : /(\\d)+\\.(\\d)*[Ee][+-]?(\\d)+/
     INT: /0[xX][a-fA-F0-9]+/ | /[0-9]+/
-    BOOL : /((true)|(false))(xxxxxxxxx)*/
+    BOOL : /((true)|(false))(xabc1235ll)*/
     TYPE : "int" | "double" | "bool" | "string"
     STRING : /"[^"\\n]*"/
     IDENT :  /(?!((true)|(false)|(void)|(int)|(double)|(bool)|(string)|(class)|(interface)|(null)|(this)|(extends)|(implements)|(for)|(while)|(if)|(else)|(return)|(break)|(new)|(NewArray)|(Print)|(ReadInteger)|(ReadLine))([^_a-zA-Z0-9]|$))[a-zA-Z][_a-zA-Z0-9]*/
