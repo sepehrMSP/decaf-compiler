@@ -126,6 +126,31 @@ class SymbolTableMaker(Interpreter):
     symbol_table_obj_counter = 0
     class_counter = 0
     static_function_counter = 0
+    """block stmt counter is a counter just for block statements during building symbol table and it differentiate
+     different block statements scopes. for more details see example below:
+     
+     int a;
+     int b;
+     {
+        int a;
+        int c;
+        {
+            int d;
+        }
+     }
+     {
+        P a;
+     }
+     scopes are in the following order:
+     
+     root/a
+     root/b
+     root/1/a
+     root/1/c
+     root/2/d
+     root/3/a
+     """
+    block_stmt_counter = 0
 
     def decl(self, tree):
         for declaration in tree.children:
@@ -169,9 +194,12 @@ class SymbolTableMaker(Interpreter):
         formals._meta = function
         self.visit(formals)
         stack.append(stack[-1] + "/_local")
+        stack.append(stack[-1] + "/" + str(self.block_stmt_counter))
+        self.block_stmt_counter += 1
         self.visit(stmt_block)
-        stack.pop()
-        stack.pop()
+        stack.pop()  # pop stmt block
+        stack.pop()  # pop _local
+        stack.pop()  # pop formals
 
         if class_type_object:
             class_type_object.functions.append(function)
@@ -192,7 +220,49 @@ class SymbolTableMaker(Interpreter):
             if child.data == 'variable_decl':
                 self.visit(child)
             else:
+                self.visit(child)
                 pass  # todo must complete
+
+    def stmt(self, tree):
+        child = tree.children[0]
+        if child.data == 'if_stmt':
+            self.visit(child)
+        if child.data == 'while_stmt':
+            self.visit(child)
+        if child.data == 'for_stsmt':
+            self.visit(child)
+        if child.data == 'stmt_block':
+            stack.append(stack[-1] + "/" + str(self.block_stmt_counter))
+            self.block_stmt_counter += 1
+            self.visit(child)
+            stack.pop()
+        if child.data == 'break_stmt':  # there is a problem with it !
+            pass
+            # call a function just for break wellformness!it should move back on the stack maybe not in this interpreter
+        if child.data == 'return_stmt':
+            pass
+        if child.data == 'print_stmt':
+            pass
+        if child.data == 'expr':
+            pass
+        # todo these last 4 if statements can be removed but there are here to have more explicit behavior
+
+    def if_stmt(self, tree):
+        expr = tree.children[0]  # todo can be omit
+        stmt = tree.children[1]
+        self.visit(stmt)
+        if len(tree.children) == 3:
+            else_stmt = tree.children[2]
+            self.visit(else_stmt)
+
+    def while_stmt(self, tree):
+        expr = tree.children0[0]  # this can be omit
+        stmt = tree.children0[1]
+        self.visit(stmt)
+
+    def for_stmt(self, tree):
+        stmt = tree.children0[-1]
+        self.visit(stmt)
 
     def class_decl(self, tree):
         ident = tree.children[0]
@@ -253,7 +323,13 @@ int[][][] c;
 int d;
 void cal(int number, double mmd) {
     int c;
+    {
+        int d;
+    }
     c = number;
+}
+double stone(){
+    double f;
 }
 int main() {
     int a;
