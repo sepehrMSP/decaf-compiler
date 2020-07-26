@@ -107,7 +107,7 @@ scopes are in the following way:
     root/Tank/f1/a
     root/Tank/f1/b
     root/Tank/f1/c
-    root/Tank/f1/_local/a
+    root/Tank/f1/_local/{a number!}/a
 """
 symbol_table = {}
 
