@@ -61,26 +61,38 @@ class Type:
         self._meta = None
 
 
-class ClassType(Type):
-    def __init__(self, parent=None):
-        super().__init__()
+class ClassType:
+    def __init__(self, name, parent=None):
+        self.name = name
         self.parent = parent
-        self.functions = None
-        self.fields = None
+        self.variables = []
+        self.functions = []
+        class_type_objects.append(self)
+
+
+class Function:
+    def __init__(self, name=None):
+        self.name = name
+        self.return_type = Type()
+        """formals is list of [variable_name , variable_type] maybe name part will be deleted in future"""
+        self.formals = []
 
 
 class SymbolTableObject:
-    def __init__(self, scope=None, name=None, parent_scope=None, type=Type(), value=None, attribute=[]):
+    def __init__(self, scope=None, name=None, parent_scope=None, attribute=None):
+        if attribute is None:
+            attribute = []
         self.scope = scope
         self.name = name
         self.parent_scope = parent_scope
-        self.type = type
-        self.value = value
+        self.type = Type()
         self.attribute = attribute
         symbol_table_objects.append(self)
 
 
 symbol_table_objects = []
+class_type_objects = []
+function_objects = []
 """ symbol table is a hashmap with keys of (scope,name)
 scope convension is something like directories; for example see below:
 
@@ -99,11 +111,21 @@ scopes are in the following way:
 """
 symbol_table = {}
 
+"""class table is a hashmap of (class name) to classType object index in class_type_objects
+"""
+class_table = {}
+"""function table is a hashmap for static functions(the functions which are not in any classes) of (function name) to 
+function index in function_objects  
+"""
+function_table = {}
+
 stack = ['root']
 
 
 class SymbolTableMaker(Interpreter):
     symbol_table_obj_counter = 0
+    class_counter = 0
+    static_function_counter = 0
 
     def decl(self, tree):
         for declaration in tree.children:
@@ -112,10 +134,13 @@ class SymbolTableMaker(Interpreter):
                 pass
             elif declaration.data == 'function_decl':
                 self.visit(declaration)
-            elif declaration == 'class_decl':
+                pass
+            elif declaration.data == 'class_decl':
+                # self.visit(declaration)
                 pass
 
     def function_decl(self, tree):
+        class_type_object = tree._meta
         if len(tree.children) == 4:
             ident = tree.children[1]
             formals = tree.children[2]
@@ -126,56 +151,100 @@ class SymbolTableMaker(Interpreter):
             stmt_block = tree.children[2]
 
         symbol_table_object = SymbolTableObject(scope=stack[-1], name=ident)
-        symbol_table[(stack[-1], ident,)] = self.symbol_table_obj_counter
+        symbol_table[(stack[-1], ident.value,)] = self.symbol_table_obj_counter
         self.symbol_table_obj_counter += 1
+
+        function = Function(name=ident.value)
 
         if type(tree.children[0]) == lark.tree.Tree:
             object_type = tree.children[0]
             object_type._meta = symbol_table_object
             self.visit(object_type)
+            function.return_type = symbol_table_object.type
         else:
-            symbol_table_object.type = 'void'
+            symbol_table_object.type.name = 'void'
+            function.return_type.name = 'void'
 
         stack.append(stack[-1] + "/" + ident)
+        formals._meta = function
         self.visit(formals)
         stack.append(stack[-1] + "/_local")
         self.visit(stmt_block)
         stack.pop()
         stack.pop()
 
+        if class_type_object:
+            class_type_object.functions.append(function)
+        else:
+            function_table[function.name] = self.static_function_counter
+            function_objects.append(function)
+            self.static_function_counter += 1
+
     def formals(self, tree):
+        function = tree._meta
         if tree.children:
             for variable in tree.children:
+                variable._meta = function
                 self.visit(variable)
 
     def stmt_block(self, tree):
-        print(tree.children)
         for child in tree.children:
             if child.data == 'variable_decl':
                 self.visit(child)
             else:
-                pass
+                pass  # todo must complete
+
+    def class_decl(self, tree):
+        ident = tree.children[0]
+        class_type_object = ClassType(name=ident)
+        class_table[ident.value] = self.class_counter
+
+        symbol_table_object = SymbolTableObject(scope=stack[-1], name=ident)
+        symbol_table[(stack[-1], ident.value,)] = self.symbol_table_obj_counter
+        self.symbol_table_obj_counter += 1
+
+        if type(tree.children[1]) == lark.lexer.Token:
+            pass  # it is for inheritance we scape it for now
+        else:
+            stack.append(stack[-1] + "/" + ident)
+            for field in tree.children[1:-1]:
+                field._meta = class_type_object
+                self.visit(field)
+
+    def field(self, tree):
+        tree.children[0]._meta = tree._meta
+        self.visit(tree.children[0])
 
     def variable_decl(self, tree):
+        tree.children[0]._meta = tree._meta
         self.visit(tree.children[0])
 
     def variable(self, tree):
         object_type = tree.children[0]
         name = tree.children[1].value
-        symbol_table_obj = SymbolTableObject(scope=stack[-1], name=name)
+
+        symbol_table_object = SymbolTableObject(scope=stack[-1], name=name)
         symbol_table[(stack[-1], name,)] = self.symbol_table_obj_counter
         self.symbol_table_obj_counter += 1
-        object_type._meta = symbol_table_obj
+
+        object_type._meta = symbol_table_object
         self.visit(object_type)
+        if type(tree._meta) == ClassType:
+            class_type_object = tree._meta
+            class_type_object.variables.append([name, symbol_table_object.type])
+        if type(tree._meta) == Function:
+            function = tree._meta
+            function.formals.append([name, symbol_table_object.type])
+            # note that here we can omit name from append but we assume it now for probable future use cases
 
     def type(self, tree):
         if type(tree.children[0]) == lark.lexer.Token:
-            obj = tree._meta
-            obj.type.name = tree.children[0].value
+            symbol_table_object = tree._meta
+            symbol_table_object.type.name = tree.children[0].value
         else:
-            obj = tree._meta
-            obj.type.dimension += 1
-            tree.children[0]._meta = obj
+            symbol_table_object = tree._meta
+            symbol_table_object.type.dimension += 1
+            tree.children[0]._meta = tree._meta
             self.visit(tree.children[0])
 
 
@@ -198,6 +267,44 @@ int main() {
 }
 
 """
+
+class_text = """
+
+class Person {
+    string name;
+    int age;
+
+    void setName(string new_name) {
+        name = new_name;
+    }
+
+    void setAge(int new_age) {
+        age = new_age;
+    }
+
+    void print() {
+        Print("Name: ", name, " Age: ", age);
+    }
+
+}
+
+int main() {
+    Person p;
+
+    string name;
+    int age;
+
+    name = ReadLine();
+    age = ReadInteger();
+
+    p = new Person;
+    p.setName(name);
+    p.setAge(age);
+
+    p.print();
+}
+
+"""
 if __name__ == '__main__':
     parser = Lark(grammar, parser="lalr")
     parse_tree = parser.parse(text)
@@ -205,4 +312,9 @@ if __name__ == '__main__':
     print('****************************')
     print(stack)
     print(symbol_table)
-    print(symbol_table_objects[0].type)
+
+    # for checking classes
+    # print(class_table)
+    # a = class_type_objects[0].functions
+    # print(a[0].name, a[0].formals[0][1].name, a[1].name, a[1].return_type.name)
+    print(function_objects[1].return_type.name)
