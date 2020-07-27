@@ -218,17 +218,47 @@ class CodeGenerator(Interpreter):
         self.expr_types.pop()
         self.expr_types.append(Types.BOOL)
 
-    # def print(self, tree):
-    #     self.visit_children(tree)
-    #     for child in tree.children:
-    #         print(child)
-    #     pass
+    def print(self, tree):
+        first = False
+        tmp = tree.children[0]
+        for child in tmp.children:
+            # print(child)
+            # continue
+            if not first:
+                # todo print shit mit
+                pass
+            first = True
+
+            self.visit(child)
+            t = self.expr_types[-1]
+            print('.text')
+            if t == Types.DOUBLE:
+                pass
+                # print("""
+                #     li $v0, 2
+                #     l.d $f12, 0($sp)
+                #     addi $sp, $sp, 8
+                #     syscall
+                # """)
+            elif t == Types.INT:
+                print("""
+                    li $v0, 1
+                    lw $a0, 0($sp)
+                    addi $sp, $sp, 4
+                    syscall
+                """)
+            elif t == Types.STRING:
+
+                pass
+            elif t == Types.BOOL:
+                pass
 
     def const_int(self, tree):
         print('.text')
         print('\tli $t0,', tree.children[0].value)
         print('\tsub $sp, $sp, 4')
         print('\tsw $t0, 0($sp)\n')
+        self.expr_types.append(Types.INT)
 
     def const_double(self, tree):
         a = ''
@@ -242,12 +272,14 @@ class CodeGenerator(Interpreter):
         print('\tli.d $f0, {}'.format(dval))
         print('\tsub $sp, $sp, 8')
         print('\ts.d $f0, 0($sp)\n')
+        self.expr_types.append(Types.DOUBLE)
 
     def const_bool(self, tree):
         print('.text')
         print('\tli $t0,', int(tree.children[0].value == 'true'))
         print('\tsub $sp, $sp, 4')
         print('\tsw $t0, 0($sp)\n')
+        self.expr_types.append(Types.BOOL)
 
     def const_str(self, tree):
         print('.data')
@@ -257,6 +289,7 @@ class CodeGenerator(Interpreter):
         print('\tsub $sp, $sp, 4')
         print('\tsw $t0, 0($sp)\n')
         self.str_const += 1
+        self.expr_types.append(Types.STRING)
 
 
 decaf = """
@@ -313,9 +346,7 @@ int main() {
 
 decaf = """
 int main() {
-    b = NewArray(5, double);
-    a = ReadInteger();
-    Print(5, "6");
+    Print(ReadInteger(), 6);
 }
 """
 
