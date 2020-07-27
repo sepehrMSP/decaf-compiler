@@ -16,7 +16,7 @@ grammar = """
     interface_decl : "interface" IDENT "{"(prototype)*"}" 
     prototype : type IDENT "(" formals ")" ";" | "void" IDENT "(" formals ")" ";" 
     stmt_block : "{" (variable_decl)*  (stmt)* "}" 
-    stmt :  (expr)? ";" | if_stmt  | while_stmt |  for_stmt | break_stmt   | return_stmt  | print_stmt -> print  | stmt_block 
+    stmt :  (expr)? ";" | if_stmt  | while_stmt |  for_stmt | break_stmt | return_stmt | print_stmt -> print | stmt_block 
     if_stmt : "if" "(" expr ")" stmt ("else" stmt)? 
     while_stmt : "while" "(" expr ")" stmt 
     for_stmt : "for" "(" (expr)? ";" expr ";" (expr)? ")" stmt 
@@ -24,7 +24,7 @@ grammar = """
     break_stmt : "break" ";" 
     print_stmt : "Print" "(" expr (","expr)* ")" ";"
     expr : l_value "=" expr | constant | l_value | "this" | call | "(" expr ")" | expr "+" expr -> add | expr "-" expr -> sub
-                    | expr "*" expr -> mul | expr "/" expr -> div |  expr "%" expr | "-" expr | expr "<=" expr | expr "<" expr  
+                    | expr "*" expr -> mul | expr "/" expr -> div |  expr "%" expr -> mod | "-" expr | expr "<=" expr | expr "<" expr  
                     | expr ">=" expr| expr ">" expr |  expr "==" expr | expr "!=" expr | expr "&&" expr | expr "||" expr
                     | "!" expr -> not_expr | "ReadInteger" "(" ")" -> read_integer |   "ReadLine" "(" ")" -> read_line | "new" IDENT 
                     | "NewArray" "(" expr "," type ")" -> new_array

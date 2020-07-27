@@ -20,6 +20,7 @@ class Types:
     STRING = 'string'
     DOUBLE = 'double'
 
+
 class CodeGenerator(Interpreter):
     current_scope = 'root'
     block_stmt_counter = 0
@@ -75,23 +76,25 @@ class CodeGenerator(Interpreter):
         child = tree.children[0]
         if child.data == 'if_stmt':
             self.visit(child)
-        if child.data == 'while_stmt':
+        elif child.data == 'while_stmt':
             self.visit(child)
-        if child.data == 'for_stsmt':
+        elif child.data == 'for_stsmt':
             self.visit(child)
-        if child.data == 'stmt_block':
+        elif child.data == 'stmt_block':
             self.current_scope += "/" + str(self.block_stmt_counter)
             self.block_stmt_counter += 1
             self.visit(child)
             pop_scope(self.current_scope)
-        if child.data == 'break_stmt':  # there is a problem with it !
+        elif child.data == 'break_stmt':  # there is a problem with it !
             pass
             # call a function just for break wellformness!it should move back on the stack maybe not in this interpreter
-        if child.data == 'return_stmt':
+        elif child.data == 'return_stmt':
             pass
-        if child.data == 'print_stmt':
+        elif child.data == 'print_stmt':
             pass
-        if child.data == 'expr':
+        elif child.data == 'expr':
+            self.visit(child)
+        else:
             self.visit(child)
         # todo these last 4 if statements can be removed but there are here to have more explicit behavior
 
@@ -150,60 +153,53 @@ class CodeGenerator(Interpreter):
         """
         line address in stack
         """
-        print("""
-            li $v0, 9 # build buffer for first  string
-            li $a0, 256 # max length * 2
-            syscall
-            addi $t7, $v0, 0 # s0 address of first element
-            sub $sp, $sp, 4
-            sw $v0, 0($sp)
-            li $a1, 256 # get first string from inpt
-            addi $a0, $t7, 0
-            li $v0, 8
-            syscall
-        """)
+        print(""".text
+    li $a0, 256         #Maximum string length
+    li $v0, 9           #sbrk
+    syscall
+    sub $sp, $sp, 4
+    sw $v0, 0($sp)
+    move $a0, $v0
+    li $a1, 256         #Maximum string length (incl. null)
+    li $v0, 8           #read_string
+    syscall             #ReadLine()
+""")
         self.expr_types.append(Types.STRING)
 
     def read_integer(self, tree):
-        print("""
-            li $v0, 5 #get a from input
-            syscall
-            sub $sp, $sp, 4
-            sw $v0, 0($sp)
-        """)
+        print(""".text
+    li $v0, 5           #read_integer
+    syscall             #ReadInteger()
+    sub $sp, $sp, 4
+    sw $v0, 0($sp)
+""")
         self.expr_types.append(Types.INT)
 
     def new_array(self, tree):
         self.visit_children(tree)
-        print("""
-                lw $t0, 0($sp)
-                addi $sp, $sp, 4
-                add $t0, $t0, $t0
-                add $t0, $t0, $t0 # *4
-                {double}
-                li $v0, 9
-                addi $a0, $t0, 0
-                syscall
-                sub $sp, $sp, 4
-                sw $v0, 0($sp)
-        """.format(
-            double="add $t0, $t0, $t0 # *8" if self.expr_types[-1] == Types.DOUBLE else ''
-        )
-        )
+        print(""".text
+    lw $a0, 0($sp)
+    addi $sp, $sp, 4
+    sll $a0, $a0, {shamt}
+    li $v0, 9           #sbrk
+    syscall
+    sub $sp, $sp, 4
+    sw $v0, 0($sp)
+""".format(shamt="3" if self.expr_types[-1] == Types.DOUBLE else '2'))
         self.expr_types.append('array_{}'.format(self.expr_types.pop()))
 
     def not_expr(self, tree):
         self.visit_children(tree)
-        print("""
-            lw $t0, 0($sp)
-            addi $sp, $sp, 4
-            li $v0, 0
-            beq $t0, 0, not_
-                li $v0, 1
-            not_:
-            sub  $sp, $sp, 4
-            sw $v0, 0($sp)
-        """)
+        print(""".text
+    lw $t0, 0($sp)
+    addi $sp, $sp, 4
+    li $t1, 0
+    beq $t0, 0, not_
+        li $t1, 1
+not_:
+    sub  $sp, $sp, 4
+    sw $t1, 0($sp)
+""")
         self.expr_types.pop()
         self.expr_types.append(Types.BOOL)
 
@@ -213,15 +209,14 @@ class CodeGenerator(Interpreter):
     #         print(child)
     #     pass
 
-
     def const_int(self, tree):
         print('.text')
-        print('\tli $t0,', tree.children[0].value)
+        print('\tli $t0,', tree.children[0].value.lower())
         print('\tsub $sp, $sp, 4')
         print('\tsw $t0, 0($sp)\n')
+        self.expr_types.append(Types.INT)
 
     def const_double(self, tree):
-        a = ''
         dval = tree.children[0].value.lower()
         if dval[-1] == '.':
             dval += '0'
@@ -232,12 +227,14 @@ class CodeGenerator(Interpreter):
         print('\tli.d $f0, {}'.format(dval))
         print('\tsub $sp, $sp, 8')
         print('\ts.d $f0, 0($sp)\n')
+        self.expr_types.append(Types.DOUBLE)
 
     def const_bool(self, tree):
         print('.text')
         print('\tli $t0,', int(tree.children[0].value == 'true'))
         print('\tsub $sp, $sp, 4')
         print('\tsw $t0, 0($sp)\n')
+        self.expr_types.append(Types.BOOL)
 
     def const_str(self, tree):
         print('.data')
@@ -247,6 +244,16 @@ class CodeGenerator(Interpreter):
         print('\tsub $sp, $sp, 4')
         print('\tsw $t0, 0($sp)\n')
         self.str_const += 1
+        self.expr_types.append(Types.STRING)
+
+    def add(self, tree):
+        self.visit_children(tree)
+        print('.text')
+        print('\tlw $t0, 0($sp)')
+        print('\tlw $t1, 4($sp)')
+        print('\tadd $t2, $t1, $t0')
+        print('\tsw $t2, 4($sp)')
+        print('\taddi $sp, $sp, 4\n')
 
 
 decaf = """
@@ -274,19 +281,9 @@ int main() {
     string name;
     int age;
     
-    5.;
+    (3);
     
-    333.E-4;
-    
-    true;
-    
-    false;
-    
-    "hellllloooo";
-    "hiiiiiss";
-    "hoolluu";
-    
-    (5);
+    4 + 5;
 
     name = ReadLine();
     age = ReadInteger();
@@ -301,13 +298,13 @@ int main() {
 }
 """
 
-decaf = """
-int main() {
-    b = NewArray(5, double);
-    a = ReadInteger();
-    Print(5, "6");
-}
-"""
+# decaf = """
+# int main() {
+#     b = NewArray(5, double);
+#     a = ReadInteger();
+#     Print(5, "6");
+# }
+# """
 
 if __name__ == '__main__':
     parser = Lark(grammar, parser="lalr")
