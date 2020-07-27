@@ -101,6 +101,29 @@ class CodeGenerator(Interpreter):
     def type(self, tree):
         pass
 
+    def read_line(self, tree):
+        """
+        line address in stack
+        """
+        print("""
+            .data
+                str: .space 256
+            .text
+                li $v0, 8
+                la $a0, str
+                li $a1, 256
+                syscall
+                sub $sp, $sp, 4
+                sw $a0, 0($sp)
+        """)
+
+    def read_integer(self, tree):
+        print("""
+            li $v0, 5 #get a from input
+            syscall
+            sub $sp, $sp, 4
+            sw $v0, 0($sp)
+        """)
 
 if __name__ == '__main__':
     pass
