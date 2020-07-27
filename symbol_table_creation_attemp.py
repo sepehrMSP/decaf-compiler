@@ -23,15 +23,15 @@ grammar = """
     return_stmt : "return" (expr)? ";" 
     break_stmt : "break" ";" 
     print_stmt : "Print" "(" expr (","expr)* ")" ";" 
-    expr : l_value "=" expr | constant | l_value | "this" | call | "(" expr ")" | expr "+" expr | expr "-" expr 
-                    | expr "*" expr | expr "/" expr |  expr "%" expr | "-" expr | expr "<=" expr | expr "<" expr  
+    expr : l_value "=" expr | constant | l_value | "this" | call | "(" expr ")" | expr "+" expr -> add | expr "-" expr -> sub
+                    | expr "*" expr -> mul | expr "/" expr -> div |  expr "%" expr | "-" expr | expr "<=" expr | expr "<" expr  
                     | expr ">=" expr| expr ">" expr |  expr "==" expr | expr "!=" expr | expr "&&" expr | expr "||" expr
-                    | "!" expr | "ReadInteger" "(" ")" -> read_integer |   "ReadLine" "(" ")" ->read_line | "new" IDENT 
+                    | "!" expr | "ReadInteger" "(" ")" -> read_integer |   "ReadLine" "(" ")" -> read_line | "new" IDENT 
                     | "NewArray" "(" expr "," type ")" 
     l_value : IDENT |  expr  "." IDENT | expr "[" expr "]" 
     call : IDENT  "(" actuals ")" |  expr  "."  IDENT  "(" actuals ")" 
     actuals :  expr (","expr)* |  
-    constant : INT | DOUBLE | DOUBLE_SCI | BOOL |  STRING | "null"
+    constant : INT -> const_int | DOUBLE -> const_double | DOUBLE_SCI -> const_double | BOOL -> const_bool |  STRING -> const_str | "null"
 
     DOUBLE.2 : /(\\d)+\\.(\\d)*/
     DOUBLE_SCI.3 : /(\\d)+\\.(\\d)*[Ee][+-]?(\\d)+/

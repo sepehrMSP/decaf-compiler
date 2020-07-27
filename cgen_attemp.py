@@ -15,6 +15,7 @@ def pop_scope(scope):
 class CodeGenerator(Interpreter):
     current_scope = 'root'
     block_stmt_counter = 0
+    str_const = 0
 
     def start(self, tree):
         self.visit_children(tree)
@@ -34,20 +35,26 @@ class CodeGenerator(Interpreter):
             formals = tree.children[1]
             stmt_block = tree.children[2]
 
+        if ident == 'main':
+            print('main:\n')
+
         self.current_scope += "/" + ident.value
         self.visit(formals)
         self.current_scope += "/_local"
         self.current_scope += "/" + str(self.block_stmt_counter)
         self.block_stmt_counter += 1
-        self.visit_children(tree)
+        self.visit(stmt_block)
         pop_scope(self.current_scope)  # pop stmt block
         pop_scope(self.current_scope)  # pop _local
         pop_scope(self.current_scope)  # pop formals
 
+        if ident == 'main':
+            print('.text')
+            print('\tli $v0, 10         #exit')
+            print('\tsyscall')
+
     def formals(self, tree):
         self.visit_children(tree)
-
-    #     pass
 
     def stmt_block(self, tree):
         self.visit_children(tree)
@@ -74,22 +81,16 @@ class CodeGenerator(Interpreter):
             pass
         if child.data == 'expr':
             self.visit(child)
-            pass
         # todo these last 4 if statements can be removed but there are here to have more explicit behavior
 
     def if_stmt(self, tree):
         self.visit_children(tree)
 
-    #     pass
-
     def while_stmt(self, tree):
         self.visit_children(tree)
 
-    #     pass
-
     def for_stmt(self, tree):
         self.visit_children(tree)
-        pass
 
     # probably we wont need this part in cgen
     def class_decl(self, tree):
@@ -105,36 +106,30 @@ class CodeGenerator(Interpreter):
     def field(self, tree):
         self.visit_children(tree)
 
-        pass
-
     def variable_decl(self, tree):
         if '/__class__' in self.current_scope:
             return
         variable = tree.children[0]
         var_type = variable.children[0]
-        if type(var_type.children[0]) == lark.lexer.Token:
-            var_type = var_type.children[0].value
-            if var_type not in ['int', 'double', 'bool']:
-                return
+        if type(var_type.children[0]) != lark.lexer.Token:
+            return
+        var_type = var_type.children[0].value
+        if var_type not in ['int', 'double', 'bool', 'string']:
+            return
         size = 4
         if var_type == 'double':
             size = 8
+        elif var_type == 'string':
+            size = 256
         name = variable.children[1]
         print('.data')
-        print(self.current_scope.replace('/', '_') + '_' + name + ': .space ' + str(size))
+        print(self.current_scope.replace('/', '_') + '_' + name + ': .space ' + str(size) + '\n')
 
     def variable(self, tree):
         self.visit_children(tree)
 
-    #     pass
-
     def type(self, tree):
         self.visit_children(tree)
-
-    def expr(self, tree):
-        self.visit_children(tree)
-
-        # print('heyyy')
 
     def expr(self, tree):
         self.visit_children(tree)
@@ -143,26 +138,60 @@ class CodeGenerator(Interpreter):
         """
         line address in stack
         """
-        print("""
-            li $v0 9 # build buffer for first  string
-            li $a0 256 # max length * 2
-            syscall
-            addi $t7, $v0, 0 # s0 address of first element
-            li $a1 256 # get first string from inpt
-            addi $a0, $t7, 0
-            li $v0 8
-            syscall
-            sub $sp, $sp, 4
-            sw $a0, 0($sp)
-        """)
+        print(""".text
+    li $a0, 256         #String length
+    li $v0, 9           #sbrk
+    syscall             #Allocate space for string
+    sub $sp, $sp, 4
+    sw $v0, 0($sp)      
+    ori $a0, $v0, 0
+    li $a1 256          #String length
+    li $v0, 8           #read_string
+    syscall             #ReadLine()
+""")
 
     def read_integer(self, tree):
-        print("""
-            li $v0, 5 #get a from input
-            syscall
-            sub $sp, $sp, 4
-            sw $v0, 0($sp)
-        """)
+        print(""".text
+    li $v0, 5           #read_integer
+    syscall             #ReadInteger()
+    sub $sp, $sp, 4
+    sw $v0, 0($sp)
+""")
+
+    def const_int(self, tree):
+        print('.text')
+        print('\tli $t0,', tree.children[0].value)
+        print('\tsub $sp, $sp, 4')
+        print('\tsw $t0, 0($sp)\n')
+
+    def const_double(self, tree):
+        a = ''
+        dval = tree.children[0].value.lower()
+        if dval[-1] == '.':
+            dval += '0'
+        if '.e' in dval:
+            index = dval.find('.e') + 1
+            dval = dval[:index] + '0' + dval[index:]
+        print('.text')
+        print('\tli.d $f0, {}'.format(dval))
+        print('\tsub $sp, $sp, 8')
+        print('\ts.d $f0, 0($sp)\n')
+
+    def const_bool(self, tree):
+        print('.text')
+        print('\tli $t0,', int(tree.children[0].value == 'true'))
+        print('\tsub $sp, $sp, 4')
+        print('\tsw $t0, 0($sp)\n')
+
+    def const_str(self, tree):
+        print('.data')
+        print('__const_str__{}: .asciiz {}\n'.format(self.str_const, tree.children[0].value))
+        print('.text')
+        print('\tla $t0,', '__const_str__{}'.format(self.str_const))
+        print('\tsub $sp, $sp, 4')
+        print('\tsw $t0, 0($sp)\n')
+        self.str_const += 1
+
 
 decaf = """
 class Person {
@@ -188,6 +217,20 @@ int main() {
 
     string name;
     int age;
+    
+    5.;
+    
+    333.E-4;
+    
+    true;
+    
+    false;
+    
+    "hellllloooo";
+    "hiiiiiss";
+    "hoolluu";
+    
+    (5);
 
     name = ReadLine();
     age = ReadInteger();
