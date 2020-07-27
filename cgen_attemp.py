@@ -151,6 +151,7 @@ class CodeGenerator(Interpreter):
         line address in stack
         """
         print("""
+        .text
             li $v0, 9 # build buffer for first  string
             li $a0, 256 # max length * 2
             syscall
@@ -166,6 +167,7 @@ class CodeGenerator(Interpreter):
 
     def read_integer(self, tree):
         print("""
+        .text
             li $v0, 5 #get a from input
             syscall
             sub $sp, $sp, 4
@@ -176,16 +178,17 @@ class CodeGenerator(Interpreter):
     def new_array(self, tree):
         self.visit_children(tree)
         print("""
-                lw $t0, 0($sp)
-                addi $sp, $sp, 4
-                add $t0, $t0, $t0
-                add $t0, $t0, $t0 # *4
-                {double}
-                li $v0, 9
-                addi $a0, $t0, 0
-                syscall
-                sub $sp, $sp, 4
-                sw $v0, 0($sp)
+        .text
+            lw $t0, 0($sp)
+            addi $sp, $sp, 4
+            add $t0, $t0, $t0
+            add $t0, $t0, $t0 # *4
+            {double}
+            li $v0, 9
+            addi $a0, $t0, 0
+            syscall
+            sub $sp, $sp, 4
+            sw $v0, 0($sp)
         """.format(
             double="add $t0, $t0, $t0 # *8" if self.expr_types[-1] == Types.DOUBLE else ''
         )
@@ -195,6 +198,7 @@ class CodeGenerator(Interpreter):
     def not_expr(self, tree):
         self.visit_children(tree)
         print("""
+        .text
             lw $t0, 0($sp)
             addi $sp, $sp, 4
             li $v0, 0
