@@ -21,10 +21,16 @@ class Types:
     DOUBLE = 'double'
 
 
+def cnt():
+    CodeGenerator.LableCnt += 1
+    return CodeGenerator.LableCnt
+
+
 class CodeGenerator(Interpreter):
     current_scope = 'root'
     block_stmt_counter = 0
     str_const = 0
+    LableCnt = 0
 
     def __init__(self):
         super().__init__()
@@ -194,20 +200,49 @@ class CodeGenerator(Interpreter):
     lw $t0, 0($sp)
     addi $sp, $sp, 4
     li $t1, 0
-    beq $t0, 0, not_
+    beq $t0, 0, not_{0}
         li $t1, 1
-not_:
+not_{0}:
     sub  $sp, $sp, 4
     sw $t1, 0($sp)
-""")
+""".format(cnt()))
         self.expr_types.pop()
         self.expr_types.append(Types.BOOL)
 
-    # def print(self, tree):
-    #     self.visit_children(tree)
-    #     for child in tree.children:
-    #         print(child)
-    #     pass
+    def print(self, tree):
+        first = False
+        tmp = tree.children[0]
+        for child in tmp.children:
+            # print(child)
+            # continue
+            if not first:
+                # todo print shit mit
+                pass
+            first = True
+
+            self.visit(child)
+            t = self.expr_types[-1]
+            print('.text')
+            if t == Types.DOUBLE:
+                pass
+                # print("""
+                #     li $v0, 2
+                #     l.d $f12, 0($sp)
+                #     addi $sp, $sp, 8
+                #     syscall
+                # """)
+            elif t == Types.INT:
+                print("""
+                    li $v0, 1
+                    lw $a0, 0($sp)
+                    addi $sp, $sp, 4
+                    syscall
+                """)
+            elif t == Types.STRING:
+
+                pass
+            elif t == Types.BOOL:
+                pass
 
     def const_int(self, tree):
         print('.text')
@@ -300,9 +335,7 @@ int main() {
 
 # decaf = """
 # int main() {
-#     b = NewArray(5, double);
-#     a = ReadInteger();
-#     Print(5, "6");
+#     Print(ReadInteger(), 6);
 # }
 # """
 
