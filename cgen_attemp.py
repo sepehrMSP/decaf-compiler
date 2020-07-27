@@ -20,10 +20,17 @@ class Types:
     STRING = 'string'
     DOUBLE = 'double'
 
+
+def cnt():
+    CodeGenerator.LableCnt += 1
+    return CodeGenerator.LableCnt
+
+
 class CodeGenerator(Interpreter):
     current_scope = 'root'
     block_stmt_counter = 0
     str_const = 0
+    LableCnt = 0
 
     def __init__(self):
         super().__init__()
@@ -204,10 +211,10 @@ class CodeGenerator(Interpreter):
             li $v0, 0
             beq $t0, 0, not_
                 li $v0, 1
-            not_:
+            not_{}:
             sub  $sp, $sp, 4
             sw $v0, 0($sp)
-        """)
+        """.format(cnt()))
         self.expr_types.pop()
         self.expr_types.append(Types.BOOL)
 
@@ -216,7 +223,6 @@ class CodeGenerator(Interpreter):
     #     for child in tree.children:
     #         print(child)
     #     pass
-
 
     def const_int(self, tree):
         print('.text')
