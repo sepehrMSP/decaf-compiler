@@ -232,12 +232,12 @@ not_{0}:
                 #     syscall
                 # """)
             elif t == Types.INT:
-                print("""
-                    li $v0, 1
-                    lw $a0, 0($sp)
-                    addi $sp, $sp, 4
-                    syscall
-                """)
+                print(""".text
+    li $v0, 1           #print_integer
+    lw $a0, 0($sp)
+    addi $sp, $sp, 4
+    syscall
+""")
             elif t == Types.STRING:
 
                 pass
@@ -320,8 +320,10 @@ int main() {
     
     4 + 5;
 
-    name = ReadLine();
-    age = ReadInteger();
+    // name = ReadLine();
+    // age = ReadInteger();
+    
+    Print(ReadInteger(), 6);
     
     arr = NewArray(5, int);
 
