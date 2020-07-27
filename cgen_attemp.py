@@ -2,7 +2,7 @@ import lark
 from lark import Lark
 from lark.visitors import Interpreter
 from symbol_table_creation_attemp import symbol_table_objects, parse_tree, class_type_objects, function_objects, \
-    class_table, function_table
+    class_table, function_table, grammar, SymbolTableMaker
 
 
 def pop_scope(scope):
@@ -13,11 +13,16 @@ def pop_scope(scope):
 
 
 class CodeGenerator(Interpreter):
-    current_scope = 'root/'
+    current_scope = 'root'
     block_stmt_counter = 0
 
+    def start(self, tree):
+        self.visit_children(tree)
+
     def decl(self, tree):
-        pass
+        for decl in tree.children:
+            if decl.data == 'variable_decl' or decl.data == 'function_decl':
+                self.visit(decl)
 
     def function_decl(self, tree):
         if len(tree.children) == 4:
@@ -34,7 +39,7 @@ class CodeGenerator(Interpreter):
         self.current_scope += "/_local"
         self.current_scope += "/" + str(self.block_stmt_counter)
         self.block_stmt_counter += 1
-        self.visit(stmt_block)
+        self.visit_children(tree)
         pop_scope(self.current_scope)  # pop stmt block
         pop_scope(self.current_scope)  # pop _local
         pop_scope(self.current_scope)  # pop formals
@@ -43,7 +48,7 @@ class CodeGenerator(Interpreter):
         pass
 
     def stmt_block(self, tree):
-        pass
+        self.visit_children(tree)
 
     def stmt(self, tree):
         child = tree.children[0]
@@ -85,7 +90,7 @@ class CodeGenerator(Interpreter):
         if type(tree.children[1]) == lark.lexer.Token:
             pass  # it is for inheritance we scape it for now
         else:
-            self.current_scope += "/" + ident.value
+            self.current_scope += "/__class__" + ident.value
             for field in tree.children[1:-1]:
                 self.visit(field)
 
@@ -93,7 +98,20 @@ class CodeGenerator(Interpreter):
         pass
 
     def variable_decl(self, tree):
-        pass
+        if '/__class__' in self.current_scope:
+            return
+        variable = tree.children[0]
+        var_type = variable.children[0]
+        if type(var_type.children[0]) == lark.lexer.Token:
+            var_type = var_type.children[0].value
+            if var_type not in ['int', 'double', 'bool']:
+                return
+        size = 4
+        if var_type == 'double':
+            size = 8
+        name = variable.children[1]
+        print('.data')
+        print(self.current_scope.replace('/', '_') + '_' + name + ': .space ' + str(size))
 
     def variable(self, tree):
         pass
@@ -102,5 +120,45 @@ class CodeGenerator(Interpreter):
         pass
 
 
+decaf = """
+class Person {
+    string name;
+    int age;
+
+    void setName(string new_name) {
+        name = new_name;
+    }
+
+    void setAge(int new_age) {
+        age = new_age;
+    }
+
+    void print() {
+        Print("Name: ", name, " Age: ", age);
+    }
+
+}
+
+int main() {
+    Person p;
+
+    string name;
+    int age;
+
+    name = ReadLine();
+    age = ReadInteger();
+
+    p = new Person;
+    p.setName(name);
+    p.setAge(age);
+
+    p.print();
+}
+"""
+
 if __name__ == '__main__':
+    parser = Lark(grammar, parser="lalr")
+    parse_tree = parser.parse(decaf)
+    SymbolTableMaker().visit(parse_tree)
+    CodeGenerator().visit(parse_tree)
     pass
