@@ -71,6 +71,7 @@ class CodeGenerator(Interpreter):
         if child.data == 'print_stmt':
             pass
         if child.data == 'expr':
+            self.visit(child)
             pass
         # todo these last 4 if statements can be removed but there are here to have more explicit behavior
 
@@ -118,6 +119,9 @@ class CodeGenerator(Interpreter):
 
     def type(self, tree):
         pass
+
+    def expr(self, tree):
+        self.visit_children(tree)
 
     def read_line(self, tree):
         """
