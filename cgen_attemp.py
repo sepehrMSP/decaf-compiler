@@ -1,3 +1,5 @@
+import enum
+
 import lark
 from lark import Lark
 from lark.visitors import Interpreter
@@ -12,10 +14,20 @@ def pop_scope(scope):
     return parent_scope
 
 
+class Types:
+    BOOL = 'bool'
+    INT = 'int'
+    STRING = 'string'
+    DOUBLE = 'double'
+
 class CodeGenerator(Interpreter):
     current_scope = 'root'
     block_stmt_counter = 0
     str_const = 0
+
+    def __init__(self):
+        super().__init__()
+        self.expr_types = []
 
     def start(self, tree):
         self.visit_children(tree)
@@ -138,25 +150,69 @@ class CodeGenerator(Interpreter):
         """
         line address in stack
         """
-        print(""".text
-    li $a0, 256         #String length
-    li $v0, 9           #sbrk
-    syscall             #Allocate space for string
-    sub $sp, $sp, 4
-    sw $v0, 0($sp)      
-    ori $a0, $v0, 0
-    li $a1 256          #String length
-    li $v0, 8           #read_string
-    syscall             #ReadLine()
-""")
+        print("""
+            li $v0, 9 # build buffer for first  string
+            li $a0, 256 # max length * 2
+            syscall
+            addi $t7, $v0, 0 # s0 address of first element
+            sub $sp, $sp, 4
+            sw $v0, 0($sp)
+            li $a1, 256 # get first string from inpt
+            addi $a0, $t7, 0
+            li $v0, 8
+            syscall
+        """)
+        self.expr_types.append(Types.STRING)
 
     def read_integer(self, tree):
-        print(""".text
-    li $v0, 5           #read_integer
-    syscall             #ReadInteger()
-    sub $sp, $sp, 4
-    sw $v0, 0($sp)
-""")
+        print("""
+            li $v0, 5 #get a from input
+            syscall
+            sub $sp, $sp, 4
+            sw $v0, 0($sp)
+        """)
+        self.expr_types.append(Types.INT)
+
+    def new_array(self, tree):
+        self.visit_children(tree)
+        print("""
+                lw $t0, 0($sp)
+                addi $sp, $sp, 4
+                add $t0, $t0, $t0
+                add $t0, $t0, $t0 # *4
+                {double}
+                li $v0, 9
+                addi $a0, $t0, 0
+                syscall
+                sub $sp, $sp, 4
+                sw $v0, 0($sp)
+        """.format(
+            double="add $t0, $t0, $t0 # *8" if self.expr_types[-1] == Types.DOUBLE else ''
+        )
+        )
+        self.expr_types.append('array_{}'.format(self.expr_types.pop()))
+
+    def not_expr(self, tree):
+        self.visit_children(tree)
+        print("""
+            lw $t0, 0($sp)
+            addi $sp, $sp, 4
+            li $v0, 0
+            beq $t0, 0, not_
+                li $v0, 1
+            not_:
+            sub  $sp, $sp, 4
+            sw $v0, 0($sp)
+        """)
+        self.expr_types.pop()
+        self.expr_types.append(Types.BOOL)
+
+    # def print(self, tree):
+    #     self.visit_children(tree)
+    #     for child in tree.children:
+    #         print(child)
+    #     pass
+
 
     def const_int(self, tree):
         print('.text')
@@ -234,12 +290,22 @@ int main() {
 
     name = ReadLine();
     age = ReadInteger();
+    
+    arr = NewArray(5, int);
 
     p = new Person;
     p.setName(name);
     p.setAge(age);
 
     p.print();
+}
+"""
+
+decaf = """
+int main() {
+    b = NewArray(5, double);
+    a = ReadInteger();
+    Print(5, "6");
 }
 """
 
