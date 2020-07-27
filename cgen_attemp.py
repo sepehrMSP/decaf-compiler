@@ -1,6 +1,8 @@
 import lark
 from lark import Lark
 from lark.visitors import Interpreter
+from symbol_table_creation_attemp import symbol_table_objects, parse_tree, class_type_objects, function_objects, \
+    class_table, function_table
 
 
 def pop_scope(scope):
@@ -11,7 +13,7 @@ def pop_scope(scope):
 
 
 class CodeGenerator(Interpreter):
-    current_scope = 'root/mmd/ll/aa/ad'
+    current_scope = 'root/'
     block_stmt_counter = 0
 
     def decl(self, tree):

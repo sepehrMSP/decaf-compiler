@@ -381,16 +381,15 @@ int main() {
 }
 
 """
-if __name__ == '__main__':
-    parser = Lark(grammar, parser="lalr")
-    parse_tree = parser.parse(text)
-    SymbolTableMaker().visit(parse_tree)
-    print('****************************')
-    print(stack)
-    print(symbol_table)
+# if __name__ == '__main__':
+parser = Lark(grammar, parser="lalr")
+parse_tree = parser.parse(text)
+SymbolTableMaker().visit(parse_tree)
+# print('****************************')
+# print(stack)
+# print(symbol_table)
 
-    # for checking classes
-    # print(class_table)
-    # a = class_type_objects[0].functions
-    # print(a[0].name, a[0].formals[0][1].name, a[1].name, a[1].return_type.name)
-    print(function_objects[1].return_type.name)
+# for checking classes
+# print(class_table)
+# a = class_type_objects[0].functions
+# print(a[0].name, a[0].formals[0][1].name, a[1].name, a[1].return_type.name)
