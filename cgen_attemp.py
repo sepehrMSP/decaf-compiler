@@ -55,7 +55,14 @@ class CodeGenerator(Interpreter):
             stmt_block = tree.children[2]
 
         if ident == 'main':
-            print('main:\n')
+            print(
+                '.data\n'
+                '   true: .asciiz "true"\n'
+                '   false: .asciiz "false"\n'
+            )
+            print('.text\n'
+                  'li $sp, 0x1002FFF8\n'
+                  'main:\n')
 
         self.current_scope += "/" + ident.value
         self.visit(formals)
@@ -199,9 +206,9 @@ class CodeGenerator(Interpreter):
         print(""".text
     lw $t0, 0($sp)
     addi $sp, $sp, 4
-    li $t1, 0
+    li $t1, 1
     beq $t0, 0, not_{0}
-        li $t1, 1
+        li $t1, 0
 not_{0}:
     sub  $sp, $sp, 4
     sw $t1, 0($sp)
@@ -210,39 +217,50 @@ not_{0}:
         self.expr_types.append(Types.BOOL)
 
     def print(self, tree):
-        first = False
-        tmp = tree.children[0]
-        for child in tmp.children:
-            # print(child)
-            # continue
-            if not first:
-                # todo print shit mit
-                pass
-            first = True
-
+        for child in tree.children[0].children:
             self.visit(child)
             t = self.expr_types[-1]
             print('.text')
             if t == Types.DOUBLE:
                 pass
-                # print("""
-                #     li $v0, 2
-                #     l.d $f12, 0($sp)
-                #     addi $sp, $sp, 8
-                #     syscall
-                # """)
+                print("""
+l.d $f12, 0($sp)
+addi $sp, $sp, 8
+li $v0, 3
+syscall
+                """)
             elif t == Types.INT:
                 print(""".text
-    li $v0, 1           #print_integer
+    li $v0, 1
     lw $a0, 0($sp)
     addi $sp, $sp, 4
     syscall
 """)
             elif t == Types.STRING:
-
+                print("""
+li $v0, 4
+lw $a0, 0($sp)
+addi $sp, $sp, 4
+syscall                
+                """)
                 pass
             elif t == Types.BOOL:
-                pass
+                print(
+                    """
+lw $a0, 0($sp)
+addi $sp, $sp, 4
+beq $a0, 0, zero_{cnt}
+li $v0, 4
+la $a0, true
+syscall
+j ezero_{cnt}
+zero_{cnt}:
+    li $v0, 4
+    la $a0, false
+    syscall
+ezero_{cnt}:
+""".format(cnt=cnt())
+                )
 
     def const_int(self, tree):
         print('.text')
@@ -335,11 +353,11 @@ int main() {
 }
 """
 
-# decaf = """
-# int main() {
-#     Print(ReadInteger(), 6);
-# }
-# """
+decaf = """
+int main() {
+        Print(ReadInteger(), !0, !true, 2.2, "yes_finally");
+}
+"""
 
 if __name__ == '__main__':
     parser = Lark(grammar, parser="lalr")
