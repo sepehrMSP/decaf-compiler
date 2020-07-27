@@ -144,15 +144,16 @@ class CodeGenerator(Interpreter):
         line address in stack
         """
         print("""
-            .data
-                str: .space 256
-            .text
-                li $v0, 8
-                la $a0, str
-                li $a1, 256
-                syscall
-                sub $sp, $sp, 4
-                sw $a0, 0($sp)
+            li $v0 9 # build buffer for first  string
+            li $a0 256 # max length * 2
+            syscall
+            addi $t7, $v0, 0 # s0 address of first element
+            li $a1 256 # get first string from inpt
+            addi $a0, $t7, 0
+            li $v0 8
+            syscall
+            sub $sp, $sp, 4
+            sw $a0, 0($sp)
         """)
 
     def read_integer(self, tree):
