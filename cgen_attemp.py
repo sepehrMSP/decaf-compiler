@@ -45,7 +45,9 @@ class CodeGenerator(Interpreter):
         pop_scope(self.current_scope)  # pop formals
 
     def formals(self, tree):
-        pass
+        self.visit_children(tree)
+
+    #     pass
 
     def stmt_block(self, tree):
         self.visit_children(tree)
@@ -76,12 +78,17 @@ class CodeGenerator(Interpreter):
         # todo these last 4 if statements can be removed but there are here to have more explicit behavior
 
     def if_stmt(self, tree):
-        pass
+        self.visit_children(tree)
+
+    #     pass
 
     def while_stmt(self, tree):
-        pass
+        self.visit_children(tree)
+
+    #     pass
 
     def for_stmt(self, tree):
+        self.visit_children(tree)
         pass
 
     # probably we wont need this part in cgen
@@ -96,6 +103,8 @@ class CodeGenerator(Interpreter):
                 self.visit(field)
 
     def field(self, tree):
+        self.visit_children(tree)
+
         pass
 
     def variable_decl(self, tree):
@@ -115,10 +124,17 @@ class CodeGenerator(Interpreter):
         print(self.current_scope.replace('/', '_') + '_' + name + ': .space ' + str(size))
 
     def variable(self, tree):
-        pass
+        self.visit_children(tree)
+
+    #     pass
 
     def type(self, tree):
-        pass
+        self.visit_children(tree)
+
+    def expr(self, tree):
+        self.visit_children(tree)
+
+        # print('heyyy')
 
     def expr(self, tree):
         self.visit_children(tree)

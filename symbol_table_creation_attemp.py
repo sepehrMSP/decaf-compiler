@@ -26,7 +26,7 @@ grammar = """
     expr : l_value "=" expr | constant | l_value | "this" | call | "(" expr ")" | expr "+" expr | expr "-" expr 
                     | expr "*" expr | expr "/" expr |  expr "%" expr | "-" expr | expr "<=" expr | expr "<" expr  
                     | expr ">=" expr| expr ">" expr |  expr "==" expr | expr "!=" expr | expr "&&" expr | expr "||" expr
-                    | "!" expr | "ReadInteger" "(" ")" |   "ReadLine" "(" ")" | "new" IDENT 
+                    | "!" expr | "ReadInteger" "(" ")" -> read_integer |   "ReadLine" "(" ")" ->read_line | "new" IDENT 
                     | "NewArray" "(" expr "," type ")" 
     l_value : IDENT |  expr  "." IDENT | expr "[" expr "]" 
     call : IDENT  "(" actuals ")" |  expr  "."  IDENT  "(" actuals ")" 
