@@ -35,7 +35,7 @@ class CodeGenerator(Interpreter):
     def __init__(self):
         super().__init__()
         self.expr_types = []
-        self.stmt_id = []
+        self.stmt_labels = []
 
     def start(self, tree):
         return ''.join(self.visit_children(tree))
@@ -94,7 +94,7 @@ class CodeGenerator(Interpreter):
         code += 'start_stmt_{}:\n'.format(stmt_id)
         code += ''.join(self.visit_children(tree))
         code += 'end_stmt_{}:\n'.format(stmt_id)
-        self.stmt_id.append(stmt_id)
+        self.stmt_labels.append(stmt_id)
         return code
 
     def stmt(self, tree):
@@ -132,7 +132,7 @@ class CodeGenerator(Interpreter):
 
         if add_stmt:
             code += 'end_stmt_{}:\n'.format(stmt_id)
-            self.stmt_id.append(stmt_id)
+            self.stmt_labels.append(stmt_id)
         return code
 
     def if_stmt(self, tree):
@@ -151,7 +151,7 @@ lw $a0, 0($sp)
 addi $sp, $sp, 4
 beq $a0, 0, end_stmt_{then}
 j  start_stmt_{then}
-            """.format(then=self.stmt_id[-1])
+            """.format(then=self.stmt_labels[-1])
             code += then_code
         else:
             code += """
@@ -159,11 +159,11 @@ j  start_stmt_{then}
 lw $a0, 0($sp)
 addi $sp, $sp, 4
 beq $a0, 0, start_stmt_{els}
-            """.format(els=self.stmt_id[-1])
+            """.format(els=self.stmt_labels[-1])
             code += then_code
             code += """
 j end_stmt_{els}
-            """.format(els=self.stmt_id[-1])
+            """.format(els=self.stmt_labels[-1])
             code += else_code
         return code
 
@@ -183,7 +183,7 @@ beq $a0, 0, end_stmt_{while_end}
 j start_stmt_{while_start}
         """.format(while_start=while_id)
         code += "end_stmt_{}:\n".format(while_id)
-        self.stmt_id.append(while_id)
+        self.stmt_labels.append(while_id)
         return code
 
     def for_stmt(self, tree):
