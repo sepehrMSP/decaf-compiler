@@ -216,6 +216,16 @@ not_{0}:
         self.expr_types.pop()
         self.expr_types.append(Types.BOOL)
 
+    def neg(self, tree):
+        self.visit_children(tree)
+        print("""
+lw $a0, 0($sp)
+addi $sp, $sp, 4
+sub $a0, $zero, $a0
+sub $sp, $sp, 4
+sw $a0, 0($sp)
+        """)
+
     def print(self, tree):
         for child in tree.children[0].children:
             self.visit(child)
@@ -356,6 +366,12 @@ int main() {
 decaf = """
 int main() {
         Print(ReadInteger(), !0, !true, 2.2, "yes_finally");
+}
+"""
+
+decaf = """
+int main() {
+    Print(-5, -2.9);
 }
 """
 
