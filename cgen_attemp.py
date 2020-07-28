@@ -1,10 +1,10 @@
-import enum
-
 import lark
 from lark import Lark
 from lark.visitors import Interpreter
-from symbol_table_creation_attemp import symbol_table_objects, parse_tree, class_type_objects, function_objects, \
-    class_table, function_table, grammar, SymbolTableMaker, symbol_table
+
+from symbol_table_creation_attemp import symbol_table
+from symbol_table_creation_attemp import symbol_table_objects, function_objects, \
+    function_table, grammar, SymbolTableMaker
 
 
 def pop_scope(scope):
@@ -22,20 +22,20 @@ class Types:
 
 
 def cnt():
-    CodeGenerator.LableCnt += 1
-    return CodeGenerator.LableCnt
+    CodeGenerator.LabelCnt += 1
+    return CodeGenerator.LabelCnt
 
 
 class CodeGenerator(Interpreter):
     current_scope = 'root'
     block_stmt_counter = 0
     str_const = 0
-    LableCnt = 0
+    LabelCnt = 0
 
     def __init__(self):
         super().__init__()
         self.expr_types = []
-        self.stmt_id = []
+        self.stmt_labels = []
 
     def start(self, tree):
         return ''.join(self.visit_children(tree))
@@ -96,6 +96,7 @@ class CodeGenerator(Interpreter):
     def stmt_block(self, tree):
         code = ''
         stmt_id = cnt()
+        store_len = len(self.stmt_labels)
         code += 'start_stmt_{}:\n'.format(stmt_id)
         for child in tree.children:
             if child.data == 'variable_decl':
@@ -130,13 +131,14 @@ class CodeGenerator(Interpreter):
 
         # code += ''.join(self.visit_children(tree))
         code += '\tend_stmt_{}:\n'.format(stmt_id)
-        self.stmt_id.append(stmt_id)
+        self.stmt_labels = self.stmt_labels[:store_len]
+        self.stmt_labels.append(stmt_id)
         return code
         # todo must review by Sir Sadegh
 
     def stmt(self, tree):
         child = tree.children[0]
-
+        store_len = len(self.stmt_labels)
         code = ''
         add_stmt = True if child.data not in ('while_stmt',) else False
         if add_stmt:
@@ -174,7 +176,8 @@ class CodeGenerator(Interpreter):
 
         if add_stmt:
             code += 'end_stmt_{}:\n'.format(stmt_id)
-            self.stmt_id.append(stmt_id)
+            self.stmt_labels = self.stmt_labels[:store_len]
+            self.stmt_labels.append(stmt_id)
         return code
 
     def if_stmt(self, tree):
@@ -190,34 +193,35 @@ class CodeGenerator(Interpreter):
             code += """
 .text 
 lw $a0, 0($sp)
-addi $sp, $sp, 4
+addi $sp, $sp, 8
 beq $a0, 0, end_stmt_{then}
 j  start_stmt_{then}
-            """.format(then=self.stmt_id[-1])
+            """.format(then=self.stmt_labels[-1])
             code += then_code
         else:
             code += """
 .text
 lw $a0, 0($sp)
-addi $sp, $sp, 4
+addi $sp, $sp, 8
 beq $a0, 0, start_stmt_{els}
-            """.format(els=self.stmt_id[-1])
+            """.format(els=self.stmt_labels[-1])
             code += then_code
             code += """
 j end_stmt_{els}
-            """.format(els=self.stmt_id[-1])
+            """.format(els=self.stmt_labels[-1])
             code += else_code
         return code
 
     def while_stmt(self, tree):
         while_id = cnt()
+        store_len = len(self.stmt_labels)
         code = '.text\n'
         code += "start_stmt_{}:\n".format(while_id)
         code += self.visit(tree.children[0])
         stmt_code = self.visit(tree.children[1])
         code += """
 lw $a0, 0($sp)
-addi $sp, $sp, 4
+addi $sp, $sp, 8
 beq $a0, 0, end_stmt_{while_end}
         """.format(while_end=while_id)
         code += stmt_code
@@ -225,10 +229,14 @@ beq $a0, 0, end_stmt_{while_end}
 j start_stmt_{while_start}
         """.format(while_start=while_id)
         code += "end_stmt_{}:\n".format(while_id)
-        self.stmt_id.append(while_id)
+        self.stmt_labels = self.stmt_labels[:store_len]
+        self.stmt_labels.append(while_id)
         return code
 
     def for_stmt(self, tree):
+        return ''.join(self.visit_children(tree))
+
+    def actuals(self, tree):
         return ''.join(self.visit_children(tree))
 
     # probably we wont need this part in cgen
@@ -277,6 +285,27 @@ j start_stmt_{while_start}
     def expr(self, tree):
         return ''.join(self.visit_children(tree))
 
+    def expr1(self, tree):
+        return ''.join(self.visit_children(tree))
+
+    def expr2(self, tree):
+        return ''.join(self.visit_children(tree))
+
+    def expr3(self, tree):
+        return ''.join(self.visit_children(tree))
+
+    def expr4(self, tree):
+        return ''.join(self.visit_children(tree))
+
+    def expr5(self, tree):
+        return ''.join(self.visit_children(tree))
+
+    def expr6(self, tree):
+        return ''.join(self.visit_children(tree))
+
+    def expr7(self, tree):
+        return ''.join(self.visit_children(tree))
+
     def read_line(self, tree):
         """
         line address in stack
@@ -286,7 +315,7 @@ j start_stmt_{while_start}
     li $a0, 256         #Maximum string length
     li $v0, 9           #sbrk
     syscall
-    sub $sp, $sp, 4
+    sub $sp, $sp, 8
     sw $v0, 0($sp)
     move $a0, $v0
     li $a1, 256         #Maximum string length (incl. null)
@@ -300,7 +329,7 @@ j start_stmt_{while_start}
         code = """.text
     li $v0, 5           #read_integer
     syscall             #ReadInteger()
-    sub $sp, $sp, 4
+    sub $sp, $sp, 8
     sw $v0, 0($sp)
 """
         self.expr_types.append(Types.INT)
@@ -308,14 +337,14 @@ j start_stmt_{while_start}
 
     def new_array(self, tree):
         code = ''
-        code = + ''.join(self.visit_children(tree))
+        code += ''.join(self.visit_children(tree))
         code += """.text
     lw $a0, 0($sp)
-    addi $sp, $sp, 4
+    addi $sp, $sp, 8
     sll $a0, $a0, {shamt}
     li $v0, 9           #sbrk
     syscall
-    sub $sp, $sp, 4
+    sub $sp, $sp, 8
     sw $v0, 0($sp)
 """.format(shamt="3" if self.expr_types[-1] == Types.DOUBLE else '2')
         self.expr_types.append('array_{}'.format(self.expr_types.pop()))
@@ -326,12 +355,12 @@ j start_stmt_{while_start}
         code += ''.join(self.visit_children(tree))
         code += """.text
     lw $t0, 0($sp)
-    addi $sp, $sp, 4
+    addi $sp, $sp, 8
     li $t1, 1
     beq $t0, 0, not_{0}
         li $t1, 0
 not_{0}:
-    sub  $sp, $sp, 4
+    sub  $sp, $sp, 8
     sw $t1, 0($sp)
 """.format(cnt())
         self.expr_types.pop()
@@ -343,9 +372,9 @@ not_{0}:
         code += ''.join(self.visit_children(tree))
         code += """
 lw $a0, 0($sp)
-addi $sp, $sp, 4
+addi $sp, $sp, 8
 sub $a0, $zero, $a0
-sub $sp, $sp, 4
+sub $sp, $sp, 8
 sw $a0, 0($sp)
         """
         return code
@@ -378,14 +407,14 @@ syscall
                 code += """.text
     li $v0, 1
     lw $a0, 0($sp)
-    addi $sp, $sp, 4
+    addi $sp, $sp, 8
     syscall
 """
             elif t == Types.STRING:
                 code += """
 li $v0, 4
 lw $a0, 0($sp)
-addi $sp, $sp, 4
+addi $sp, $sp, 8
 syscall                
                 """
                 pass
@@ -393,7 +422,7 @@ syscall
                 code += (
                     """
 lw $a0, 0($sp)
-addi $sp, $sp, 4
+addi $sp, $sp, 8
 beq $a0, 0, zero_{cnt}
 li $v0, 4
 la $a0, true
@@ -412,7 +441,7 @@ ezero_{cnt}:
         code = ''
         code += '.text\n'
         code += '\tli $t0, {}\n'.format(tree.children[0].value.lower())
-        code += '\tsub $sp, $sp, 4\n'
+        code += '\tsub $sp, $sp, 8\n'
         code += '\tsw $t0, 0($sp)\n'
         self.expr_types.append(Types.INT)
         return code
@@ -436,7 +465,7 @@ ezero_{cnt}:
         code = ''
         code += '.text\n'
         code += '\tli $t0, {}\n'.format(int(tree.children[0].value == 'true'))
-        code += '\tsub $sp, $sp, 4\n'
+        code += '\tsub $sp, $sp, 8\n'
         code += '\tsw $t0, 0($sp)\n'
         self.expr_types.append(Types.BOOL)
         return code
@@ -448,7 +477,7 @@ ezero_{cnt}:
         code += '.text\n'
         code += '\tla $t0,'
         code += '__const_str__{}\n'.format(self.str_const)
-        code += '\tsub $sp, $sp, 4\n'
+        code += '\tsub $sp, $sp, 8\n'
         code += '\tsw $t0, 0($sp)\n'
         self.str_const += 1
         self.expr_types.append(Types.STRING)
@@ -459,10 +488,10 @@ ezero_{cnt}:
         code += ''.join(self.visit_children(tree))
         code += '.text\n'
         code += '\tlw $t0, 0($sp)\n'
-        code += '\tlw $t1, 4($sp)\n'
+        code += '\tlw $t1, 8($sp)\n'
         code += '\tadd $t2, $t1, $t0\n'
-        code += '\tsw $t2, 4($sp)\n'
-        code += '\taddi $sp, $sp, 4\n'
+        code += '\tsw $t2, 8($sp)\n'
+        code += '\taddi $sp, $sp, 8\n'
 
         return code
 
@@ -526,6 +555,164 @@ ezero_{cnt}:
                 code += '\tsw   $t0, 0($t1)\n'
         return code
 
+    def sub(self, tree):
+        self.visit_children(tree)
+        print('.text')
+        print('\tlw $t0, 0($sp)')
+        print('\tlw $t1, 8($sp)')
+        print('\tsub $t2, $t1, $t0')
+        print('\tsw $t2, 8($sp)')
+        print('\taddi $sp, $sp, 8\n')
+        typ = self.expr_types[-1]
+        self.expr_types.pop()
+        self.expr_types.pop()
+        self.expr_types.append(typ)
+
+    def neg(self, tree):
+        self.visit_children(tree)
+        print('.text')
+        print('\tlw $t0, 0($sp)')
+        print('\tli $t1, 0')
+        print('\tsub $t2, $t1, $t0')
+        print('\tsw $t2, 0($sp)\n')
+
+    def mul(self, tree):
+        self.visit_children(tree)
+        print('.text')
+        print('\tlw $t0, 0($sp)')
+        print('\tlw $t1, 8($sp)')
+        print('\tmul $t2, $t1, $t0')
+        print('\tsw $t2, 8($sp)')
+        print('\taddi $sp, $sp, 8\n')
+        typ = self.expr_types[-1]
+        self.expr_types.pop()
+        self.expr_types.pop()
+        self.expr_types.append(typ)
+
+    def div(self, tree):
+        self.visit_children(tree)
+        print('.text')
+        print('\tlw $t0, 0($sp)')
+        print('\tlw $t1, 8($sp)')
+        print('\tdiv $t1, $t0')
+        print('\tmflo $t2')
+        print('\tsw $t2, 8($sp)')
+        print('\taddi $sp, $sp, 8\n')
+        typ = self.expr_types[-1]
+        self.expr_types.pop()
+        self.expr_types.pop()
+        self.expr_types.append(typ)
+
+    def mod(self, tree):
+        self.visit_children(tree)
+        print('.text')
+        print('\tlw $t0, 0($sp)')
+        print('\tlw $t1, 8($sp)')
+        print('\tdiv $t1, $t0')
+        print('\tmfhi $t2')
+        print('\tsw $t2, 8($sp)')
+        print('\taddi $sp, $sp, 8\n')
+        typ = self.expr_types[-1]
+        self.expr_types.pop()
+        self.expr_types.pop()
+        self.expr_types.append(typ)
+
+    def le(self, tree):
+        self.visit_children(tree)
+        print('.text')
+        print('\tlw $t0, 0($sp)')
+        print('\tlw $t1, 8($sp)')
+        print('\tsle $t2, $t1, $t0')
+        print('\tsw $t2, 8($sp)')
+        print('\taddi $sp, $sp, 8\n')
+        self.expr_types.pop()
+        self.expr_types.pop()
+        self.expr_types.append(Types.BOOL)
+
+    def lt(self, tree):
+        self.visit_children(tree)
+        print('.text')
+        print('\tlw $t0, 0($sp)')
+        print('\tlw $t1, 8($sp)')
+        print('\tslt $t2, $t1, $t0')
+        print('\tsw $t2, 8($sp)')
+        print('\taddi $sp, $sp, 8\n')
+        self.expr_types.pop()
+        self.expr_types.pop()
+        self.expr_types.append(Types.BOOL)
+
+    def ge(self, tree):
+        self.visit_children(tree)
+        print('.text')
+        print('\tlw $t0, 0($sp)')
+        print('\tlw $t1, 8($sp)')
+        print('\tsge $t2, $t1, $t0')
+        print('\tsw $t2, 8($sp)')
+        print('\taddi $sp, $sp, 8\n')
+        self.expr_types.pop()
+        self.expr_types.pop()
+        self.expr_types.append(Types.BOOL)
+
+    def gt(self, tree):
+        self.visit_children(tree)
+        print('.text')
+        print('\tlw $t0, 0($sp)')
+        print('\tlw $t1, 8($sp)')
+        print('\tsgt $t2, $t1, $t0')
+        print('\tsw $t2, 8($sp)')
+        print('\taddi $sp, $sp, 8\n')
+        self.expr_types.pop()
+        self.expr_types.pop()
+        self.expr_types.append(Types.BOOL)
+
+    def eq(self, tree):
+        self.visit_children(tree)
+        print('.text')
+        print('\tlw $t0, 0($sp)')
+        print('\tlw $t1, 8($sp)')
+        print('\tseq $t2, $t1, $t0')
+        print('\tsw $t2, 8($sp)')
+        print('\taddi $sp, $sp, 8\n')
+        self.expr_types.pop()
+        self.expr_types.pop()
+        self.expr_types.append(Types.BOOL)
+
+    def ne(self, tree):
+        self.visit_children(tree)
+        print('.text')
+        print('\tlw $t0, 0($sp)')
+        print('\tlw $t1, 8($sp)')
+        print('\tsne $t2, $t1, $t0')
+        print('\tsw $t2, 8($sp)')
+        print('\taddi $sp, $sp, 8\n')
+        self.expr_types.pop()
+        self.expr_types.pop()
+        self.expr_types.append(Types.BOOL)
+
+    def and_bool(self, tree):
+        self.visit_children(tree)
+        print('.text')
+        print('\tlw $t0, 0($sp)')
+        print('\tlw $t1, 8($sp)')
+        print('\tand $t2, $t1, $t0')
+        print('\tsw $t2, 8($sp)')
+        print('\taddi $sp, $sp, 8\n')
+        self.expr_types.pop()
+        self.expr_types.pop()
+        self.expr_types.append(Types.BOOL)
+
+    def or_bool(self, tree):
+        self.visit_children(tree)
+        print('.text')
+        print('\tlw $t0, 0($sp)')
+        print('\tlw $t1, 8($sp)')
+        print('\tor $t2, $t1, $t0')
+        print('\tsw $t2, 8($sp)')
+        print('\taddi $sp, $sp, 8\n')
+        self.expr_types.pop()
+        self.expr_types.pop()
+        self.expr_types.append(Types.BOOL)
+
 
 decaf = """
 class Person {
@@ -555,6 +742,8 @@ int main() {
     (3);
     
     4 + 5;
+    
+    !((-4 < 5) && (true || (3 != 5)));
  
     // name = ReadLine();
     // age = ReadInteger();
@@ -579,7 +768,7 @@ int main() {
 
 decaf = """
 int main() {
-    while (true){
+    while (false){
         Print("oj");
     }
 

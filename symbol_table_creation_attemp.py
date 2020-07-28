@@ -23,13 +23,16 @@ grammar = """
     return_stmt : "return" (expr)? ";" 
     break_stmt : "break" ";" 
     print_stmt : "Print" "(" expr (","expr)* ")" ";"
-    expr : l_value "=" expr | constant | l_value | "this" | call | "(" expr ")" | expr "+" expr -> add | expr "-" expr -> sub
-                    | expr "*" expr -> mul | expr "/" expr -> div |  expr "%" expr -> mod | "-" expr -> neg | expr "<=" expr | expr "<" expr  
-                    | expr ">=" expr| expr ">" expr |  expr "==" expr | expr "!=" expr | expr "&&" expr | expr "||" expr
-                    | "!" expr -> not_expr | "ReadInteger" "(" ")" -> read_integer |   "ReadLine" "(" ")" -> read_line | "new" IDENT 
-                    | "NewArray" "(" expr "," type ")" -> new_array
-    l_value : IDENT |  expr  "." IDENT | expr "[" expr "]" 
-    call : IDENT  "(" actuals ")" |  expr  "."  IDENT  "(" actuals ")" 
+    expr : expr1 "||" expr -> bool_or | expr1
+    expr1 : expr2 "&&" expr1 -> bool_and | expr2
+    expr2 : expr3 "==" expr2 -> eq | expr3 "!=" expr2 -> ne | expr3
+    expr3 : expr4 "<" expr3 -> lt | expr4 "<=" expr3 -> le | expr4 ">" expr3 -> gt | expr4 ">=" expr3 -> ge | expr4
+    expr4 : expr5 "+" expr4 -> add | expr5 "-" expr4 -> sub | expr5
+    expr5 : expr6 "*" expr5 -> mul | expr6 "/" expr5 -> div | expr6 "%" expr5 -> mod | expr6
+    expr6 : "-" expr6 -> neg | "!" expr6 -> not_expr | expr7
+    expr7 : constant | "this" | "ReadInteger" "(" ")" -> read_integer | "ReadLine" "(" ")" -> read_line | "new" IDENT | "NewArray" "(" expr "," type ")" -> new_array | "(" expr ")" | l_value | call | l_value "=" expr
+    l_value : IDENT |  expr7 "." IDENT | expr7 "[" expr "]" 
+    call : IDENT  "(" actuals ")" |  expr7  "."  IDENT  "(" actuals ")" 
     actuals :  expr (","expr)* |  
     constant : INT -> const_int | DOUBLE -> const_double | DOUBLE_SCI -> const_double | BOOL -> const_bool |  STRING -> const_str | "null"
 
