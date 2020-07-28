@@ -24,7 +24,7 @@ grammar = """
     break_stmt : "break" ";" 
     print_stmt : "Print" "(" expr (","expr)* ")" ";"
     expr : l_value "=" expr | constant | l_value | "this" | call | "(" expr ")" | expr "+" expr -> add | expr "-" expr -> sub
-                    | expr "*" expr -> mul | expr "/" expr -> div |  expr "%" expr -> mod | "-" expr | expr "<=" expr | expr "<" expr  
+                    | expr "*" expr -> mul | expr "/" expr -> div |  expr "%" expr -> mod | "-" expr -> neg | expr "<=" expr | expr "<" expr  
                     | expr ">=" expr| expr ">" expr |  expr "==" expr | expr "!=" expr | expr "&&" expr | expr "||" expr
                     | "!" expr -> not_expr | "ReadInteger" "(" ")" -> read_integer |   "ReadLine" "(" ")" -> read_line | "new" IDENT 
                     | "NewArray" "(" expr "," type ")" -> new_array
@@ -256,8 +256,8 @@ class SymbolTableMaker(Interpreter):
             self.visit(else_stmt)
 
     def while_stmt(self, tree):
-        expr = tree.children0[0]  # this can be omit
-        stmt = tree.children0[1]
+        expr = tree.children[0]  # this can be omit
+        stmt = tree.children[1]
         self.visit(stmt)
 
     def for_stmt(self, tree):
