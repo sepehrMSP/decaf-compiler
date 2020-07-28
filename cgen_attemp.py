@@ -22,15 +22,15 @@ class Types:
 
 
 def cnt():
-    CodeGenerator.LableCnt += 1
-    return CodeGenerator.LableCnt
+    CodeGenerator.LabelCnt += 1
+    return CodeGenerator.LabelCnt
 
 
 class CodeGenerator(Interpreter):
     current_scope = 'root'
     block_stmt_counter = 0
     str_const = 0
-    LableCnt = 0
+    LabelCnt = 0
 
     def __init__(self):
         super().__init__()
