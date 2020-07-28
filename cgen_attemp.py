@@ -91,15 +91,17 @@ class CodeGenerator(Interpreter):
     def stmt_block(self, tree):
         code = ''
         stmt_id = cnt()
+        store_len = len(self.stmt_labels)
         code += 'start_stmt_{}:\n'.format(stmt_id)
         code += ''.join(self.visit_children(tree))
         code += 'end_stmt_{}:\n'.format(stmt_id)
+        self.stmt_labels = self.stmt_labels[:store_len]
         self.stmt_labels.append(stmt_id)
         return code
 
     def stmt(self, tree):
         child = tree.children[0]
-
+        store_len = len(self.stmt_labels)
         code = ''
         add_stmt = True if child.data not in ('while_stmt', ) else False
         if add_stmt:
@@ -132,6 +134,7 @@ class CodeGenerator(Interpreter):
 
         if add_stmt:
             code += 'end_stmt_{}:\n'.format(stmt_id)
+            self.stmt_labels = self.stmt_labels[:store_len]
             self.stmt_labels.append(stmt_id)
         return code
 
@@ -169,6 +172,7 @@ j end_stmt_{els}
 
     def while_stmt(self, tree):
         while_id = cnt()
+        store_len = len(self.stmt_labels)
         code = '.text\n'
         code += "start_stmt_{}:\n".format(while_id)
         code += self.visit(tree.children[0])
@@ -183,6 +187,7 @@ beq $a0, 0, end_stmt_{while_end}
 j start_stmt_{while_start}
         """.format(while_start=while_id)
         code += "end_stmt_{}:\n".format(while_id)
+        self.stmt_labels = self.stmt_labels[:store_len]
         self.stmt_labels.append(while_id)
         return code
 
@@ -239,25 +244,25 @@ j start_stmt_{while_start}
         return ''.join(self.visit_children(tree))
 
     def expr1(self, tree):
-        self.visit_children(tree)
+        return ''.join(self.visit_children(tree))
 
     def expr2(self, tree):
-        self.visit_children(tree)
+        return ''.join(self.visit_children(tree))
 
     def expr3(self, tree):
-        self.visit_children(tree)
+        return ''.join(self.visit_children(tree))
 
     def expr4(self, tree):
-        self.visit_children(tree)
+        return ''.join(self.visit_children(tree))
 
     def expr5(self, tree):
-        self.visit_children(tree)
+        return ''.join(self.visit_children(tree))
 
     def expr6(self, tree):
-        self.visit_children(tree)
+        return ''.join(self.visit_children(tree))
 
     def expr7(self, tree):
-        self.visit_children(tree)
+        return ''.join(self.visit_children(tree))
 
     def read_line(self, tree):
         """
@@ -661,7 +666,7 @@ int main() {
 
 decaf = """
 int main() {
-    while (true){
+    while (false){
         Print("oj");
     }
 
