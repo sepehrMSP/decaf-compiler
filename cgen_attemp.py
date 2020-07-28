@@ -266,7 +266,7 @@ j start_stmt_{while_start}
 
     def new_array(self, tree):
         code = ''
-        code ++ ''.join(self.visit_children(tree))
+        code += ''.join(self.visit_children(tree))
         code += """.text
     lw $a0, 0($sp)
     addi $sp, $sp, 4
@@ -514,3 +514,10 @@ if __name__ == '__main__':
     SymbolTableMaker().visit(parse_tree)
     print(CodeGenerator().visit(parse_tree))
     pass
+
+
+
+
+
+
+
