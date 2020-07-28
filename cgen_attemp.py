@@ -3,7 +3,7 @@ import enum
 import lark
 from lark import Lark
 from lark.visitors import Interpreter
-from symbol_table_creation_attemp import symbol_table_objects, parse_tree, class_type_objects, function_objects, \
+from symbol_table_creation_attemp import symbol_table_objects, class_type_objects, function_objects, \
     class_table, function_table, grammar, SymbolTableMaker
 
 
@@ -113,6 +113,9 @@ class CodeGenerator(Interpreter):
     def for_stmt(self, tree):
         self.visit_children(tree)
 
+    def actuals(self, tree):
+        self.visit_children(tree)
+
     # probably we wont need this part in cgen
     def class_decl(self, tree):
         ident = tree.children[0]
@@ -153,6 +156,27 @@ class CodeGenerator(Interpreter):
         self.visit_children(tree)
 
     def expr(self, tree):
+        self.visit_children(tree)
+
+    def expr1(self, tree):
+        self.visit_children(tree)
+
+    def expr2(self, tree):
+        self.visit_children(tree)
+
+    def expr3(self, tree):
+        self.visit_children(tree)
+
+    def expr4(self, tree):
+        self.visit_children(tree)
+
+    def expr5(self, tree):
+        self.visit_children(tree)
+
+    def expr6(self, tree):
+        self.visit_children(tree)
+
+    def expr7(self, tree):
         self.visit_children(tree)
 
     def read_line(self, tree):
@@ -200,7 +224,7 @@ class CodeGenerator(Interpreter):
     lw $t0, 0($sp)
     addi $sp, $sp, 4
     li $t1, 0
-    beq $t0, 0, not_{0}
+    bne $t0, 0, not_{0}
         li $t1, 1
 not_{0}:
     sub  $sp, $sp, 4
@@ -222,7 +246,7 @@ not_{0}:
 
             self.visit(child)
             t = self.expr_types[-1]
-            print('.text')
+            # print('.text')
             if t == Types.DOUBLE:
                 pass
                 # print("""
@@ -289,6 +313,168 @@ not_{0}:
         print('\tadd $t2, $t1, $t0')
         print('\tsw $t2, 4($sp)')
         print('\taddi $sp, $sp, 4\n')
+        typ = self.expr_types[-1]
+        self.expr_types.pop()
+        self.expr_types.pop()
+        self.expr_types.append(typ)
+
+    def sub(self, tree):
+        self.visit_children(tree)
+        print('.text')
+        print('\tlw $t0, 0($sp)')
+        print('\tlw $t1, 4($sp)')
+        print('\tsub $t2, $t1, $t0')
+        print('\tsw $t2, 4($sp)')
+        print('\taddi $sp, $sp, 4\n')
+        typ = self.expr_types[-1]
+        self.expr_types.pop()
+        self.expr_types.pop()
+        self.expr_types.append(typ)
+
+    def neg(self, tree):
+        self.visit_children(tree)
+        print('.text')
+        print('\tlw $t0, 0($sp)')
+        print('\tli $t1, 0')
+        print('\tsub $t2, $t1, $t0')
+        print('\tsw $t2, 0($sp)\n')
+
+    def mul(self, tree):
+        self.visit_children(tree)
+        print('.text')
+        print('\tlw $t0, 0($sp)')
+        print('\tlw $t1, 4($sp)')
+        print('\tmul $t2, $t1, $t0')
+        print('\tsw $t2, 4($sp)')
+        print('\taddi $sp, $sp, 4\n')
+        typ = self.expr_types[-1]
+        self.expr_types.pop()
+        self.expr_types.pop()
+        self.expr_types.append(typ)
+
+    def div(self, tree):
+        self.visit_children(tree)
+        print('.text')
+        print('\tlw $t0, 0($sp)')
+        print('\tlw $t1, 4($sp)')
+        print('\tdiv $t1, $t0')
+        print('\tmflo $t2')
+        print('\tsw $t2, 4($sp)')
+        print('\taddi $sp, $sp, 4\n')
+        typ = self.expr_types[-1]
+        self.expr_types.pop()
+        self.expr_types.pop()
+        self.expr_types.append(typ)
+
+    def mod(self, tree):
+        self.visit_children(tree)
+        print('.text')
+        print('\tlw $t0, 0($sp)')
+        print('\tlw $t1, 4($sp)')
+        print('\tdiv $t1, $t0')
+        print('\tmfhi $t2')
+        print('\tsw $t2, 4($sp)')
+        print('\taddi $sp, $sp, 4\n')
+        typ = self.expr_types[-1]
+        self.expr_types.pop()
+        self.expr_types.pop()
+        self.expr_types.append(typ)
+
+    def le(self, tree):
+        self.visit_children(tree)
+        print('.text')
+        print('\tlw $t0, 0($sp)')
+        print('\tlw $t1, 4($sp)')
+        print('\tsle $t2, $t1, $t0')
+        print('\tsw $t2, 4($sp)')
+        print('\taddi $sp, $sp, 4\n')
+        self.expr_types.pop()
+        self.expr_types.pop()
+        self.expr_types.append(Types.BOOL)
+
+    def lt(self, tree):
+        self.visit_children(tree)
+        print('.text')
+        print('\tlw $t0, 0($sp)')
+        print('\tlw $t1, 4($sp)')
+        print('\tslt $t2, $t1, $t0')
+        print('\tsw $t2, 4($sp)')
+        print('\taddi $sp, $sp, 4\n')
+        self.expr_types.pop()
+        self.expr_types.pop()
+        self.expr_types.append(Types.BOOL)
+
+    def ge(self, tree):
+        self.visit_children(tree)
+        print('.text')
+        print('\tlw $t0, 0($sp)')
+        print('\tlw $t1, 4($sp)')
+        print('\tsge $t2, $t1, $t0')
+        print('\tsw $t2, 4($sp)')
+        print('\taddi $sp, $sp, 4\n')
+        self.expr_types.pop()
+        self.expr_types.pop()
+        self.expr_types.append(Types.BOOL)
+
+    def gt(self, tree):
+        self.visit_children(tree)
+        print('.text')
+        print('\tlw $t0, 0($sp)')
+        print('\tlw $t1, 4($sp)')
+        print('\tsgt $t2, $t1, $t0')
+        print('\tsw $t2, 4($sp)')
+        print('\taddi $sp, $sp, 4\n')
+        self.expr_types.pop()
+        self.expr_types.pop()
+        self.expr_types.append(Types.BOOL)
+
+    def eq(self, tree):
+        self.visit_children(tree)
+        print('.text')
+        print('\tlw $t0, 0($sp)')
+        print('\tlw $t1, 4($sp)')
+        print('\tseq $t2, $t1, $t0')
+        print('\tsw $t2, 4($sp)')
+        print('\taddi $sp, $sp, 4\n')
+        self.expr_types.pop()
+        self.expr_types.pop()
+        self.expr_types.append(Types.BOOL)
+
+    def ne(self, tree):
+        self.visit_children(tree)
+        print('.text')
+        print('\tlw $t0, 0($sp)')
+        print('\tlw $t1, 4($sp)')
+        print('\tsne $t2, $t1, $t0')
+        print('\tsw $t2, 4($sp)')
+        print('\taddi $sp, $sp, 4\n')
+        self.expr_types.pop()
+        self.expr_types.pop()
+        self.expr_types.append(Types.BOOL)
+
+    def and_bool(self, tree):
+        self.visit_children(tree)
+        print('.text')
+        print('\tlw $t0, 0($sp)')
+        print('\tlw $t1, 4($sp)')
+        print('\tand $t2, $t1, $t0')
+        print('\tsw $t2, 4($sp)')
+        print('\taddi $sp, $sp, 4\n')
+        self.expr_types.pop()
+        self.expr_types.pop()
+        self.expr_types.append(Types.BOOL)
+
+    def or_bool(self, tree):
+        self.visit_children(tree)
+        print('.text')
+        print('\tlw $t0, 0($sp)')
+        print('\tlw $t1, 4($sp)')
+        print('\tor $t2, $t1, $t0')
+        print('\tsw $t2, 4($sp)')
+        print('\taddi $sp, $sp, 4\n')
+        self.expr_types.pop()
+        self.expr_types.pop()
+        self.expr_types.append(Types.BOOL)
 
 
 decaf = """
@@ -297,11 +483,13 @@ class Person {
     int age;
 
     void setName(string new_name) {
-        name = new_name;
+        // name = new_name;
+        name;
     }
 
     void setAge(int new_age) {
-        age = new_age;
+        // age = new_age;
+        age;
     }
 
     void print() {
@@ -315,16 +503,15 @@ int main() {
 
     string name;
     int age;
-    
-    (3);
-    
-    4 + 5;
+    f(1, 2, 4 % 3);
 
-    // name = ReadLine();
-    // age = ReadInteger();
+    name = ReadLine();
+    age = ReadInteger();
     
+    !((-4 < 5) && (true || (3 != 5)));
+
     Print(ReadInteger(), 6);
-    
+
     arr = NewArray(5, int);
 
     p = new Person;
