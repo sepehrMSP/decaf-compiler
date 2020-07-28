@@ -80,9 +80,9 @@ class CodeGenerator(Interpreter):
         pop_scope(self.current_scope)  # pop formals
 
         if ident == 'main':
-            code += ('.text\n')
-            code += ('\tli $v0, 10         #exit\n')
-            code += ('\tsyscall\n')
+            code += '.text\n'
+            code += '\tli $v0, 10         #exit\n'
+            code += '\tsyscall\n'
         return code
 
     def formals(self, tree):
@@ -91,9 +91,9 @@ class CodeGenerator(Interpreter):
     def stmt_block(self, tree):
         code = ''
         stmt_id = cnt()
-        code += ('start_stmt_{}:\n'.format(stmt_id))
+        code += 'start_stmt_{}:\n'.format(stmt_id)
         code += ''.join(self.visit_children(tree))
-        code += ('end_stmt_{}:\n'.format(stmt_id))
+        code += 'end_stmt_{}:\n'.format(stmt_id)
         self.stmt_id.append(stmt_id)
         return code
 
@@ -126,7 +126,7 @@ class CodeGenerator(Interpreter):
             code += self.visit(child)
         # todo these last 4 if statements can be removed but there are here to have more explicit behavior
 
-        code += ('end_stmt_{}:\n'.format(stmt_id))
+        code += 'end_stmt_{}:\n'.format(stmt_id)
         self.stmt_id.append(stmt_id)
         return code
 
@@ -140,12 +140,12 @@ class CodeGenerator(Interpreter):
         then_code = self.visit(tree.children[1])
         else_code = '' if len(tree.children) == 2 else self.visit(tree.children[2])
         if len(tree.children) == 2:
-            code += ("""
+            code += """
 lw $a0, 0($sp)
 addi $sp, $sp, 4
 beq $a0, 0, end_stmt_{then}
 j  start_stmt_{then}
-            """.format(then=self.stmt_id[-1]))
+            """.format(then=self.stmt_id[-1])
             code += then_code
         else:
             code += """
@@ -199,8 +199,8 @@ j end_stmt_{els}
         elif var_type == 'string':
             size = 256
         name = variable.children[1]
-        code += ('.data\n')
-        code += (self.current_scope.replace('/', '_') + '_' + name + ': .space ' + str(size) + '\n')
+        code += '.data\n'
+        code += self.current_scope.replace('/', '_') + '_' + name + ': .space ' + str(size) + '\n'
         return code
 
     def variable(self, tree):
@@ -217,7 +217,7 @@ j end_stmt_{els}
         line address in stack
         """
         code = ''
-        code += (""".text
+        code += """.text
     li $a0, 256         #Maximum string length
     li $v0, 9           #sbrk
     syscall
@@ -227,23 +227,24 @@ j end_stmt_{els}
     li $a1, 256         #Maximum string length (incl. null)
     li $v0, 8           #read_string
     syscall             #ReadLine()
-""")
+"""
         self.expr_types.append(Types.STRING)
         return code
 
     def read_integer(self, tree):
-        code = (""".text
+        code = """.text
     li $v0, 5           #read_integer
     syscall             #ReadInteger()
     sub $sp, $sp, 4
     sw $v0, 0($sp)
-""")
+"""
         self.expr_types.append(Types.INT)
         return code
 
     def new_array(self, tree):
-        self.visit_children(tree)
-        print(""".text
+        code = ''
+        code ++ ''.join(self.visit_children(tree))
+        code += """.text
     lw $a0, 0($sp)
     addi $sp, $sp, 4
     sll $a0, $a0, {shamt}
@@ -251,13 +252,14 @@ j end_stmt_{els}
     syscall
     sub $sp, $sp, 4
     sw $v0, 0($sp)
-""".format(shamt="3" if self.expr_types[-1] == Types.DOUBLE else '2'))
+""".format(shamt="3" if self.expr_types[-1] == Types.DOUBLE else '2')
         self.expr_types.append('array_{}'.format(self.expr_types.pop()))
+        return code
 
     def not_expr(self, tree):
         code = ''
         code += ''.join(self.visit_children(tree))
-        code += (""".text
+        code += """.text
     lw $t0, 0($sp)
     addi $sp, $sp, 4
     li $t1, 1
@@ -266,7 +268,7 @@ j end_stmt_{els}
 not_{0}:
     sub  $sp, $sp, 4
     sw $t1, 0($sp)
-""".format(cnt()))
+""".format(cnt())
         self.expr_types.pop()
         self.expr_types.append(Types.BOOL)
         return code
@@ -274,13 +276,13 @@ not_{0}:
     def neg(self, tree):
         code = ''
         code += ''.join(self.visit_children(tree))
-        code += ("""
+        code += """
 lw $a0, 0($sp)
 addi $sp, $sp, 4
 sub $a0, $zero, $a0
 sub $sp, $sp, 4
 sw $a0, 0($sp)
-        """)
+        """
         return code
 
     def print(self, tree):
@@ -288,9 +290,9 @@ sw $a0, 0($sp)
         for child in tree.children[0].children:
             code += self.visit(child)
             t = self.expr_types[-1]
-            code += ('.text\n')
+            code += '.text\n'
             if t == Types.DOUBLE:
-                code += ("""
+                code += """
 l.d $f12, 0($sp)
 addi $sp, $sp, 8
 l.d $f2, const10000
@@ -300,7 +302,7 @@ cvt.d.w $f12, $f12
 div.d $f12, $f12, $f2
 li $v0, 3
 syscall                
-                """)
+                """
             #                 print("""
             # l.d $f12, 0($sp)
             # addi $sp, $sp, 8
@@ -308,19 +310,19 @@ syscall
             # syscall
             #                 """)
             elif t == Types.INT:
-                code += (""".text
+                code += """.text
     li $v0, 1
     lw $a0, 0($sp)
     addi $sp, $sp, 4
     syscall
-""")
+"""
             elif t == Types.STRING:
-                code += ("""
+                code += """
 li $v0, 4
 lw $a0, 0($sp)
 addi $sp, $sp, 4
 syscall                
-                """)
+                """
                 pass
             elif t == Types.BOOL:
                 code += (
@@ -343,10 +345,10 @@ ezero_{cnt}:
 
     def const_int(self, tree):
         code = ''
-        code += ('.text\n')
-        code += ('\tli $t0, {}\n'.format(tree.children[0].value.lower()))
-        code += ('\tsub $sp, $sp, 4\n')
-        code += ('\tsw $t0, 0($sp)\n')
+        code += '.text\n'
+        code += '\tli $t0, {}\n'.format(tree.children[0].value.lower())
+        code += '\tsub $sp, $sp, 4\n'
+        code += '\tsw $t0, 0($sp)\n'
         self.expr_types.append(Types.INT)
         return code
 
@@ -358,31 +360,31 @@ ezero_{cnt}:
         if '.e' in dval:
             index = dval.find('.e') + 1
             dval = dval[:index] + '0' + dval[index:]
-        code += ('.text\n')
-        code += ('\tli.d $f0, {}\n'.format(dval))
-        code += ('\tsub $sp, $sp, 8\n')
-        code += ('\ts.d $f0, 0($sp)\n')
+        code += '.text\n'
+        code += '\tli.d $f0, {}\n'.format(dval)
+        code += '\tsub $sp, $sp, 8\n'
+        code += '\ts.d $f0, 0($sp)\n'
         self.expr_types.append(Types.DOUBLE)
         return code
 
     def const_bool(self, tree):
         code = ''
-        code += ('.text\n')
-        code += ('\tli $t0, {}\n'.format(int(tree.children[0].value == 'true')))
-        code += ('\tsub $sp, $sp, 4\n')
-        code += ('\tsw $t0, 0($sp)\n')
+        code += '.text\n'
+        code += '\tli $t0, {}\n'.format(int(tree.children[0].value == 'true'))
+        code += '\tsub $sp, $sp, 4\n'
+        code += '\tsw $t0, 0($sp)\n'
         self.expr_types.append(Types.BOOL)
         return code
 
     def const_str(self, tree):
         code = ''
-        code += ('.data\n')
-        code += ('__const_str__{}: .asciiz {}\n'.format(self.str_const, tree.children[0].value))
-        code += ('.text\n')
+        code += '.data\n'
+        code += '__const_str__{}: .asciiz {}\n'.format(self.str_const, tree.children[0].value)
+        code += '.text\n'
         code += '\tla $t0,'
         code += '__const_str__{}\n'.format(self.str_const)
-        code += ('\tsub $sp, $sp, 4\n')
-        code += ('\tsw $t0, 0($sp)\n')
+        code += '\tsub $sp, $sp, 4\n'
+        code += '\tsw $t0, 0($sp)\n'
         self.str_const += 1
         self.expr_types.append(Types.STRING)
         return code
@@ -390,12 +392,12 @@ ezero_{cnt}:
     def add(self, tree):
         code = ''
         code += ''.join(self.visit_children(tree))
-        code += ('.text\n')
-        code += ('\tlw $t0, 0($sp)\n')
-        code += ('\tlw $t1, 4($sp)\n')
-        code += ('\tadd $t2, $t1, $t0\n')
-        code += ('\tsw $t2, 4($sp)\n')
-        code += ('\taddi $sp, $sp, 4\n')
+        code += '.text\n'
+        code += '\tlw $t0, 0($sp)\n'
+        code += '\tlw $t1, 4($sp)\n'
+        code += '\tadd $t2, $t1, $t0\n'
+        code += '\tsw $t2, 4($sp)\n'
+        code += '\taddi $sp, $sp, 4\n'
 
         return code
 
