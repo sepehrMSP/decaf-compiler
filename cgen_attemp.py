@@ -151,7 +151,7 @@ class CodeGenerator(Interpreter):
             code += """
 .text 
 lw $a0, 0($sp)
-addi $sp, $sp, 4
+addi $sp, $sp, 8
 beq $a0, 0, end_stmt_{then}
 j  start_stmt_{then}
             """.format(then=self.stmt_labels[-1])
@@ -160,7 +160,7 @@ j  start_stmt_{then}
             code += """
 .text
 lw $a0, 0($sp)
-addi $sp, $sp, 4
+addi $sp, $sp, 8
 beq $a0, 0, start_stmt_{els}
             """.format(els=self.stmt_labels[-1])
             code += then_code
@@ -179,7 +179,7 @@ j end_stmt_{els}
         stmt_code = self.visit(tree.children[1])
         code += """
 lw $a0, 0($sp)
-addi $sp, $sp, 4
+addi $sp, $sp, 8
 beq $a0, 0, end_stmt_{while_end}
         """.format(while_end=while_id)
         code += stmt_code
@@ -273,7 +273,7 @@ j start_stmt_{while_start}
     li $a0, 256         #Maximum string length
     li $v0, 9           #sbrk
     syscall
-    sub $sp, $sp, 4
+    sub $sp, $sp, 8
     sw $v0, 0($sp)
     move $a0, $v0
     li $a1, 256         #Maximum string length (incl. null)
@@ -287,7 +287,7 @@ j start_stmt_{while_start}
         code = """.text
     li $v0, 5           #read_integer
     syscall             #ReadInteger()
-    sub $sp, $sp, 4
+    sub $sp, $sp, 8
     sw $v0, 0($sp)
 """
         self.expr_types.append(Types.INT)
@@ -298,11 +298,11 @@ j start_stmt_{while_start}
         code += ''.join(self.visit_children(tree))
         code += """.text
     lw $a0, 0($sp)
-    addi $sp, $sp, 4
+    addi $sp, $sp, 8
     sll $a0, $a0, {shamt}
     li $v0, 9           #sbrk
     syscall
-    sub $sp, $sp, 4
+    sub $sp, $sp, 8
     sw $v0, 0($sp)
 """.format(shamt="3" if self.expr_types[-1] == Types.DOUBLE else '2')
         self.expr_types.append('array_{}'.format(self.expr_types.pop()))
@@ -313,12 +313,12 @@ j start_stmt_{while_start}
         code += ''.join(self.visit_children(tree))
         code += """.text
     lw $t0, 0($sp)
-    addi $sp, $sp, 4
+    addi $sp, $sp, 8
     li $t1, 1
     beq $t0, 0, not_{0}
         li $t1, 0
 not_{0}:
-    sub  $sp, $sp, 4
+    sub  $sp, $sp, 8
     sw $t1, 0($sp)
 """.format(cnt())
         self.expr_types.pop()
@@ -330,9 +330,9 @@ not_{0}:
         code += ''.join(self.visit_children(tree))
         code += """
 lw $a0, 0($sp)
-addi $sp, $sp, 4
+addi $sp, $sp, 8
 sub $a0, $zero, $a0
-sub $sp, $sp, 4
+sub $sp, $sp, 8
 sw $a0, 0($sp)
         """
         return code
@@ -365,14 +365,14 @@ syscall
                 code += """.text
     li $v0, 1
     lw $a0, 0($sp)
-    addi $sp, $sp, 4
+    addi $sp, $sp, 8
     syscall
 """
             elif t == Types.STRING:
                 code += """
 li $v0, 4
 lw $a0, 0($sp)
-addi $sp, $sp, 4
+addi $sp, $sp, 8
 syscall                
                 """
                 pass
@@ -380,7 +380,7 @@ syscall
                 code += (
                     """
 lw $a0, 0($sp)
-addi $sp, $sp, 4
+addi $sp, $sp, 8
 beq $a0, 0, zero_{cnt}
 li $v0, 4
 la $a0, true
@@ -399,7 +399,7 @@ ezero_{cnt}:
         code = ''
         code += '.text\n'
         code += '\tli $t0, {}\n'.format(tree.children[0].value.lower())
-        code += '\tsub $sp, $sp, 4\n'
+        code += '\tsub $sp, $sp, 8\n'
         code += '\tsw $t0, 0($sp)\n'
         self.expr_types.append(Types.INT)
         return code
@@ -423,7 +423,7 @@ ezero_{cnt}:
         code = ''
         code += '.text\n'
         code += '\tli $t0, {}\n'.format(int(tree.children[0].value == 'true'))
-        code += '\tsub $sp, $sp, 4\n'
+        code += '\tsub $sp, $sp, 8\n'
         code += '\tsw $t0, 0($sp)\n'
         self.expr_types.append(Types.BOOL)
         return code
@@ -435,7 +435,7 @@ ezero_{cnt}:
         code += '.text\n'
         code += '\tla $t0,'
         code += '__const_str__{}\n'.format(self.str_const)
-        code += '\tsub $sp, $sp, 4\n'
+        code += '\tsub $sp, $sp, 8\n'
         code += '\tsw $t0, 0($sp)\n'
         self.str_const += 1
         self.expr_types.append(Types.STRING)
@@ -446,10 +446,10 @@ ezero_{cnt}:
         code += ''.join(self.visit_children(tree))
         code += '.text\n'
         code += '\tlw $t0, 0($sp)\n'
-        code += '\tlw $t1, 4($sp)\n'
+        code += '\tlw $t1, 8($sp)\n'
         code += '\tadd $t2, $t1, $t0\n'
-        code += '\tsw $t2, 4($sp)\n'
-        code += '\taddi $sp, $sp, 4\n'
+        code += '\tsw $t2, 8($sp)\n'
+        code += '\taddi $sp, $sp, 8\n'
 
         return code
 
@@ -457,10 +457,10 @@ ezero_{cnt}:
         self.visit_children(tree)
         print('.text')
         print('\tlw $t0, 0($sp)')
-        print('\tlw $t1, 4($sp)')
+        print('\tlw $t1, 8($sp)')
         print('\tsub $t2, $t1, $t0')
-        print('\tsw $t2, 4($sp)')
-        print('\taddi $sp, $sp, 4\n')
+        print('\tsw $t2, 8($sp)')
+        print('\taddi $sp, $sp, 8\n')
         typ = self.expr_types[-1]
         self.expr_types.pop()
         self.expr_types.pop()
@@ -478,10 +478,10 @@ ezero_{cnt}:
         self.visit_children(tree)
         print('.text')
         print('\tlw $t0, 0($sp)')
-        print('\tlw $t1, 4($sp)')
+        print('\tlw $t1, 8($sp)')
         print('\tmul $t2, $t1, $t0')
-        print('\tsw $t2, 4($sp)')
-        print('\taddi $sp, $sp, 4\n')
+        print('\tsw $t2, 8($sp)')
+        print('\taddi $sp, $sp, 8\n')
         typ = self.expr_types[-1]
         self.expr_types.pop()
         self.expr_types.pop()
@@ -491,11 +491,11 @@ ezero_{cnt}:
         self.visit_children(tree)
         print('.text')
         print('\tlw $t0, 0($sp)')
-        print('\tlw $t1, 4($sp)')
+        print('\tlw $t1, 8($sp)')
         print('\tdiv $t1, $t0')
         print('\tmflo $t2')
-        print('\tsw $t2, 4($sp)')
-        print('\taddi $sp, $sp, 4\n')
+        print('\tsw $t2, 8($sp)')
+        print('\taddi $sp, $sp, 8\n')
         typ = self.expr_types[-1]
         self.expr_types.pop()
         self.expr_types.pop()
@@ -505,11 +505,11 @@ ezero_{cnt}:
         self.visit_children(tree)
         print('.text')
         print('\tlw $t0, 0($sp)')
-        print('\tlw $t1, 4($sp)')
+        print('\tlw $t1, 8($sp)')
         print('\tdiv $t1, $t0')
         print('\tmfhi $t2')
-        print('\tsw $t2, 4($sp)')
-        print('\taddi $sp, $sp, 4\n')
+        print('\tsw $t2, 8($sp)')
+        print('\taddi $sp, $sp, 8\n')
         typ = self.expr_types[-1]
         self.expr_types.pop()
         self.expr_types.pop()
@@ -519,10 +519,10 @@ ezero_{cnt}:
         self.visit_children(tree)
         print('.text')
         print('\tlw $t0, 0($sp)')
-        print('\tlw $t1, 4($sp)')
+        print('\tlw $t1, 8($sp)')
         print('\tsle $t2, $t1, $t0')
-        print('\tsw $t2, 4($sp)')
-        print('\taddi $sp, $sp, 4\n')
+        print('\tsw $t2, 8($sp)')
+        print('\taddi $sp, $sp, 8\n')
         self.expr_types.pop()
         self.expr_types.pop()
         self.expr_types.append(Types.BOOL)
@@ -531,10 +531,10 @@ ezero_{cnt}:
         self.visit_children(tree)
         print('.text')
         print('\tlw $t0, 0($sp)')
-        print('\tlw $t1, 4($sp)')
+        print('\tlw $t1, 8($sp)')
         print('\tslt $t2, $t1, $t0')
-        print('\tsw $t2, 4($sp)')
-        print('\taddi $sp, $sp, 4\n')
+        print('\tsw $t2, 8($sp)')
+        print('\taddi $sp, $sp, 8\n')
         self.expr_types.pop()
         self.expr_types.pop()
         self.expr_types.append(Types.BOOL)
@@ -543,10 +543,10 @@ ezero_{cnt}:
         self.visit_children(tree)
         print('.text')
         print('\tlw $t0, 0($sp)')
-        print('\tlw $t1, 4($sp)')
+        print('\tlw $t1, 8($sp)')
         print('\tsge $t2, $t1, $t0')
-        print('\tsw $t2, 4($sp)')
-        print('\taddi $sp, $sp, 4\n')
+        print('\tsw $t2, 8($sp)')
+        print('\taddi $sp, $sp, 8\n')
         self.expr_types.pop()
         self.expr_types.pop()
         self.expr_types.append(Types.BOOL)
@@ -555,10 +555,10 @@ ezero_{cnt}:
         self.visit_children(tree)
         print('.text')
         print('\tlw $t0, 0($sp)')
-        print('\tlw $t1, 4($sp)')
+        print('\tlw $t1, 8($sp)')
         print('\tsgt $t2, $t1, $t0')
-        print('\tsw $t2, 4($sp)')
-        print('\taddi $sp, $sp, 4\n')
+        print('\tsw $t2, 8($sp)')
+        print('\taddi $sp, $sp, 8\n')
         self.expr_types.pop()
         self.expr_types.pop()
         self.expr_types.append(Types.BOOL)
@@ -567,10 +567,10 @@ ezero_{cnt}:
         self.visit_children(tree)
         print('.text')
         print('\tlw $t0, 0($sp)')
-        print('\tlw $t1, 4($sp)')
+        print('\tlw $t1, 8($sp)')
         print('\tseq $t2, $t1, $t0')
-        print('\tsw $t2, 4($sp)')
-        print('\taddi $sp, $sp, 4\n')
+        print('\tsw $t2, 8($sp)')
+        print('\taddi $sp, $sp, 8\n')
         self.expr_types.pop()
         self.expr_types.pop()
         self.expr_types.append(Types.BOOL)
@@ -579,10 +579,10 @@ ezero_{cnt}:
         self.visit_children(tree)
         print('.text')
         print('\tlw $t0, 0($sp)')
-        print('\tlw $t1, 4($sp)')
+        print('\tlw $t1, 8($sp)')
         print('\tsne $t2, $t1, $t0')
-        print('\tsw $t2, 4($sp)')
-        print('\taddi $sp, $sp, 4\n')
+        print('\tsw $t2, 8($sp)')
+        print('\taddi $sp, $sp, 8\n')
         self.expr_types.pop()
         self.expr_types.pop()
         self.expr_types.append(Types.BOOL)
@@ -591,10 +591,10 @@ ezero_{cnt}:
         self.visit_children(tree)
         print('.text')
         print('\tlw $t0, 0($sp)')
-        print('\tlw $t1, 4($sp)')
+        print('\tlw $t1, 8($sp)')
         print('\tand $t2, $t1, $t0')
-        print('\tsw $t2, 4($sp)')
-        print('\taddi $sp, $sp, 4\n')
+        print('\tsw $t2, 8($sp)')
+        print('\taddi $sp, $sp, 8\n')
         self.expr_types.pop()
         self.expr_types.pop()
         self.expr_types.append(Types.BOOL)
@@ -603,10 +603,10 @@ ezero_{cnt}:
         self.visit_children(tree)
         print('.text')
         print('\tlw $t0, 0($sp)')
-        print('\tlw $t1, 4($sp)')
+        print('\tlw $t1, 8($sp)')
         print('\tor $t2, $t1, $t0')
-        print('\tsw $t2, 4($sp)')
-        print('\taddi $sp, $sp, 4\n')
+        print('\tsw $t2, 8($sp)')
+        print('\taddi $sp, $sp, 8\n')
         self.expr_types.pop()
         self.expr_types.pop()
         self.expr_types.append(Types.BOOL)
