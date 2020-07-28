@@ -98,10 +98,14 @@ class CodeGenerator(Interpreter):
         return code
 
     def stmt(self, tree):
-        stmt_id = cnt()
-        code = ''
-        code += ('start_stmt_{}:\n'.format(stmt_id))
         child = tree.children[0]
+
+        code = ''
+        add_stmt = True if child.data not in ('while_stmt', ) else False
+        if add_stmt:
+            stmt_id = cnt()
+            code += ('start_stmt_{}:\n'.format(stmt_id))
+
         if child.data == 'if_stmt':
             code += self.visit(child)
         elif child.data == 'while_stmt':
@@ -126,8 +130,9 @@ class CodeGenerator(Interpreter):
             code += self.visit(child)
         # todo these last 4 if statements can be removed but there are here to have more explicit behavior
 
-        code += 'end_stmt_{}:\n'.format(stmt_id)
-        self.stmt_id.append(stmt_id)
+        if add_stmt:
+            code += 'end_stmt_{}:\n'.format(stmt_id)
+            self.stmt_id.append(stmt_id)
         return code
 
     def if_stmt(self, tree):
@@ -141,6 +146,7 @@ class CodeGenerator(Interpreter):
         else_code = '' if len(tree.children) == 2 else self.visit(tree.children[2])
         if len(tree.children) == 2:
             code += """
+.text 
 lw $a0, 0($sp)
 addi $sp, $sp, 4
 beq $a0, 0, end_stmt_{then}
@@ -149,6 +155,7 @@ j  start_stmt_{then}
             code += then_code
         else:
             code += """
+.text
 lw $a0, 0($sp)
 addi $sp, $sp, 4
 beq $a0, 0, start_stmt_{els}
@@ -161,7 +168,23 @@ j end_stmt_{els}
         return code
 
     def while_stmt(self, tree):
-        return ''.join(self.visit_children(tree))
+        while_id = cnt()
+        code = '.text\n'
+        code += "start_stmt_{}:\n".format(while_id)
+        code += self.visit(tree.children[0])
+        stmt_code = self.visit(tree.children[1])
+        code += """
+lw $a0, 0($sp)
+addi $sp, $sp, 4
+beq $a0, 0, end_stmt_{while_end}
+        """.format(while_end=while_id)
+        code += stmt_code
+        code += """
+j start_stmt_{while_start}
+        """.format(while_start=while_id)
+        code += "end_stmt_{}:\n".format(while_id)
+        self.stmt_id.append(while_id)
+        return code
 
     def for_stmt(self, tree):
         return ''.join(self.visit_children(tree))
@@ -454,10 +477,18 @@ int main() {
 
 decaf = """
 int main() {
+    while (true){
+        Print("oj");
+    }
+
     if (true){
         Print("ok1");
     }else{
         Print("wrong1");
+    }
+    
+    if(true){
+    }else{
     }
     if (false){
         Print("wrong2");

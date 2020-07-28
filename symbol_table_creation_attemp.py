@@ -256,8 +256,8 @@ class SymbolTableMaker(Interpreter):
             self.visit(else_stmt)
 
     def while_stmt(self, tree):
-        expr = tree.children0[0]  # this can be omit
-        stmt = tree.children0[1]
+        expr = tree.children[0]  # this can be omit
+        stmt = tree.children[1]
         self.visit(stmt)
 
     def for_stmt(self, tree):
