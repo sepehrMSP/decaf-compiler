@@ -72,8 +72,6 @@ class CodeGenerator(Interpreter):
         else:
             code += '{}:\n'.format(ident)
 
-
-
         self.current_scope += "/" + ident.value
         code += self.visit(formals)
         self.current_scope += "/_local"
@@ -184,8 +182,6 @@ class CodeGenerator(Interpreter):
         # return ''.join(self.visit_children(tree))
 
         code = ''
-        print(tree.children)
-        print(len(tree.children))
         code += self.visit(tree.children[0])
         then_code = self.visit(tree.children[1])
         else_code = '' if len(tree.children) == 2 else self.visit(tree.children[2])
@@ -338,15 +334,20 @@ j start_stmt_{while_start}
     def new_array(self, tree):
         code = ''
         code += ''.join(self.visit_children(tree))
+        shamt = 2
+        tp = tree.children[1].children[0]
+        if tp == lark.lexer.Token:
+            if tp.value == Types.DOUBLE:
+                shamt = 3
         code += """.text
-    lw $a0, 0($sp)
-    addi $sp, $sp, 8
-    sll $a0, $a0, {shamt}
-    li $v0, 9           #sbrk
-    syscall
-    sub $sp, $sp, 8
-    sw $v0, 0($sp)
-""".format(shamt="3" if self.expr_types[-1] == Types.DOUBLE else '2')
+lw $a0, 0($sp)
+addi $sp, $sp, 8
+sll $a0, $a0, {shamt}
+li $v0, 9           #sbrk
+syscall
+sub $sp, $sp, 8
+sw $v0, 0($sp)
+""".format(shamt=shamt)
         self.expr_types.append('array_{}'.format(self.expr_types.pop()))
         return code
 
