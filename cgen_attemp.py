@@ -151,7 +151,7 @@ lw $a0, 0($sp)
 addi $sp, $sp, 4
 beq $a0, 0, end_stmt_{then}
 j  start_stmt_{then}
-            """.format(then=self.stmt_id[-1])
+""".format(then=self.stmt_id[-1])
             code += then_code
         else:
             code += """
@@ -159,11 +159,11 @@ j  start_stmt_{then}
 lw $a0, 0($sp)
 addi $sp, $sp, 4
 beq $a0, 0, start_stmt_{els}
-            """.format(els=self.stmt_id[-1])
+""".format(els=self.stmt_id[-1])
             code += then_code
             code += """
 j end_stmt_{els}
-            """.format(els=self.stmt_id[-1])
+""".format(els=self.stmt_id[-1])
             code += else_code
         return code
 
@@ -177,11 +177,11 @@ j end_stmt_{els}
 lw $a0, 0($sp)
 addi $sp, $sp, 4
 beq $a0, 0, end_stmt_{while_end}
-        """.format(while_end=while_id)
+""".format(while_end=while_id)
         code += stmt_code
         code += """
 j start_stmt_{while_start}
-        """.format(while_start=while_id)
+""".format(while_start=while_id)
         code += "end_stmt_{}:\n".format(while_id)
         self.stmt_id.append(while_id)
         return code
@@ -239,25 +239,25 @@ j start_stmt_{while_start}
         return ''.join(self.visit_children(tree))
 
     def expr1(self, tree):
-        self.visit_children(tree)
+        return ''.join(self.visit_children(tree))
 
     def expr2(self, tree):
-        self.visit_children(tree)
+        return ''.join(self.visit_children(tree))
 
     def expr3(self, tree):
-        self.visit_children(tree)
+        return ''.join(self.visit_children(tree))
 
     def expr4(self, tree):
-        self.visit_children(tree)
+        return ''.join(self.visit_children(tree))
 
     def expr5(self, tree):
-        self.visit_children(tree)
+        return ''.join(self.visit_children(tree))
 
     def expr6(self, tree):
-        self.visit_children(tree)
+        return ''.join(self.visit_children(tree))
 
     def expr7(self, tree):
-        self.visit_children(tree)
+        return ''.join(self.visit_children(tree))
 
     def read_line(self, tree):
         """
@@ -329,7 +329,7 @@ addi $sp, $sp, 4
 sub $a0, $zero, $a0
 sub $sp, $sp, 4
 sw $a0, 0($sp)
-        """
+"""
         return code
 
     def print(self, tree):
@@ -460,14 +460,6 @@ ezero_{cnt}:
         self.expr_types.pop()
         self.expr_types.pop()
         self.expr_types.append(typ)
-
-    def neg(self, tree):
-        self.visit_children(tree)
-        print('.text')
-        print('\tlw $t0, 0($sp)')
-        print('\tli $t1, 0')
-        print('\tsub $t2, $t1, $t0')
-        print('\tsw $t2, 0($sp)\n')
 
     def mul(self, tree):
         self.visit_children(tree)
