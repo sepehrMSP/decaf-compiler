@@ -31,6 +31,8 @@ class CodeGenerator(Interpreter):
     block_stmt_counter = 0
     str_const = 0
     LabelCnt = 0
+    stack_local_params = []
+    stack_local_params_count = []
 
     def __init__(self):
         super().__init__()
@@ -68,11 +70,8 @@ class CodeGenerator(Interpreter):
             code += ('.text\n'
                      'li $sp, 0x1002FFF8\n'
                      'main:\n')
-
         else:
             code += '{}:\n'.format(ident)
-
-
 
         self.current_scope += "/" + ident.value
         code += self.visit(formals)
@@ -101,8 +100,11 @@ class CodeGenerator(Interpreter):
         for child in tree.children:
             if child.data == 'variable_decl':
                 code += self.visit(child)
+                self.stack_local_params_count[-1] += 1
                 variable_name = child.children[0].children[1].value
                 variable_type = symbol_table_objects[symbol_table[(self.current_scope, variable_name)]].type
+                self.stack_local_params.append(
+                    [self.current_scope + "/" + variable_name, variable_type])  # todo must review
                 if variable_type.name == 'double':
                     code += '\tl.d  $f0, {}\n'.format((self.current_scope + "/" + variable_name).replace("/", "_"))
                     code += '\taddi $sp, $sp, -8\n'
@@ -117,19 +119,20 @@ class CodeGenerator(Interpreter):
         # pop declared variables in this scope
         for child in reversed(tree.children):
             if child.data == 'variable_decl':
+                self.stack_local_params_count[-1] -= 1
                 variable_name = child.children[0].children[1].value
                 variable_type = symbol_table_objects[symbol_table[(self.current_scope, variable_name)]].type
+                self.stack_local_params.pop()  # todo must review
                 if variable_type.name == 'double':
-                    code += '\tl.d $f0, 0($sp)$\n'
+                    code += '\tl.d  $f0, 0($sp)\n'
                     code += '\taddi $sp, $sp, 8\n'
-                    code += '\ts.d $f0 {}'.format((self.current_scope + "/" + variable_name).replace("/", "_"))
+                    code += '\ts.d  $f0, {}'.format((self.current_scope + "/" + variable_name).replace("/", "_"))
                 else:
                     code += '\tlw   $t1, 0($sp)\n'
                     code += '\taddi $sp, $sp, 8\n'
                     code += '\tla   $t0, {}\n'.format((self.current_scope + "/" + variable_name).replace("/", "_"))
                     code += '\tsw   $t1, 0($t0)\n'
 
-        # code += ''.join(self.visit_children(tree))
         code += '\tend_stmt_{}:\n'.format(stmt_id)
         self.stmt_labels = self.stmt_labels[:store_len]
         self.stmt_labels.append(stmt_id)
@@ -158,14 +161,23 @@ class CodeGenerator(Interpreter):
             pop_scope(self.current_scope)
         elif child.data == 'break_stmt':  # there is a problem with it !
             pass
-            # call a function just for break wellformness!it should move back on the stack maybe not in this interpreter
         elif child.data == 'return_stmt':
             # todo put return expr to v0 ro v1 or a floating point register
-            code += '\taddi $sp, $sp, -8\n'
-            code += '\tsw   $ra, 0($sp)\n'
-            code += '\tjr $ra\n'
-            code += '\tlw   $ra, 0($sp)\n'
-            code += '\taddi $sp, $sp, 8\n'
+            local_var_count_of_this_scope = self.stack_local_params_count[-1]
+            for local_var in reversed(self.stack_local_params[-local_var_count_of_this_scope:]):
+                local_var_name = local_var[0]
+                local_var_type = local_var[1]
+                if local_var_type.name == 'double':
+                    code += '\tl.d  $f0, 0($sp)\n'
+                    code += '\taddi $sp, $sp, 8\n'
+                    code += '\ts.d  $f0, {}\n'.format(local_var_name.replace("/", "_"))
+                else:
+                    code += '\tlw   $t0, 0($sp)\n'
+                    code += '\taddi $sp, $sp, 8\n'
+                    code += '\tsw   $t0, {}\n'.format(local_var_name.replace("/", "_"))
+            self.stack_local_params = self.stack_local_params[:-local_var_count_of_this_scope]
+            self.stack_local_params_count.pop()
+            code += '\tjr   $ra\n'
         elif child.data == 'print_stmt':
             pass
         elif child.data == 'expr':
@@ -501,6 +513,7 @@ ezero_{cnt}:
             # todo must be done
             pass
         if len(tree.children) == 2:
+            self.stack_local_params_count.append(0)
             ident = tree.children[0]
             actuals = tree.children[1]
             name = ident.value
@@ -513,7 +526,7 @@ ezero_{cnt}:
         function_scope = 'root/' + function_name
         actual_counter = 0
         function = function_objects[function_table[function_name]]
-        # push formal parameters
+        # push formal parameter
         for formal in function.formals:
             formal_name = (function_scope + "/" + formal[0]).replace("/", "_")
             if formal.type.name == 'double':
@@ -521,8 +534,7 @@ ezero_{cnt}:
                 code += '\taddi $sp, $sp, -8\n'
                 code += '\ts.d  $f0, 0($sp)\n'
             else:
-                code += '\tla   $t0, {}\n'.format(formal_name)
-                code += '\tlw   $t1, 0($t0)\n'
+                code += '\tlw   $t1, {}\n'.format(formal_name)
                 code += '\taddi $sp, $sp, -8\n'
                 code += '\tsw   $t1, 0($sp)\n'
 
@@ -532,27 +544,31 @@ ezero_{cnt}:
             formal_name = function.formals[actual_counter][0]
             formal_type = function.formals[actual_counter][1].name
             if formal_type == 'double':
-                # todo set a fix floating point for result of expr
-                pass
+                code += '\tl.d $f0, 0($sp)\n'
+                code += '\ts.d $f0, {}\n'.format(formal_name)
+                code += '\taddi $sp, $sp, 8\n'
             else:
-                code += '\tla $t0, {}\n'.format(formal_name)
-                code += '\tsw $v0, 0($t0)'
+                code += '\tlw   $v0, 0($sp)\n'
+                code += '\tsw   $v0, {}\n'.format(formal_name)
+                code += '\taddi $sp, $sp, 8\n'
             actual_counter += 1
 
+        code += '\taddi $sp, $sp, -8\n'
+        code += '\tsw   $ra, 0($sp)\n'
         code += '\tjal {}\n'.format(function_name)
+        code += '\tlw   $ra, 0($sp)\n'
+        code += '\taddi $sp, $sp, 8\n'
         # pop formal parameters
         for formal in reversed(function.formals):
             formal_name = (function_scope + "/" + formal[0]).replace("/", "_")
             if formal.type.name == 'double':
-                code += '\tl.d $f0, 0($sp)$\n'
+                code += '\tl.d  $f0, 0($sp)\n'
                 code += '\taddi $sp, $sp, 8\n'
-                code += '\ts.d $f0 {}'.format(formal_name)
-                # todo must review
+                code += '\ts.d  $f0, {}'.format(formal_name)
             else:
                 code += '\tlw   $t0, 0($sp)\n'
                 code += '\taddi $sp, $sp, 8\n'
-                code += '\tla   $t1, {}\n'.format(formal_name)
-                code += '\tsw   $t0, 0($t1)\n'
+                code += '\tsw   $t0, {}\n'.format(formal_name)
         return code
 
     def sub(self, tree):
@@ -805,3 +821,49 @@ if __name__ == '__main__':
     SymbolTableMaker().visit(parse_tree)
     print(CodeGenerator().visit(parse_tree))
     pass
+
+"""
+fib(int a, int b){
+    int c;
+    if a == 1;
+        b = b- 1
+        c = 3
+        :return
+        //pop 
+    else:
+        c = 0
+        fib(a-1, b)
+        print(c) c= 3 !!!!
+}
+"""
+"""
+power(i){
+    int x ;
+    x = -5;
+    x = i;
+    if (i > 0) {
+        int i;
+        power(i-1)
+    }
+    if i == 0:
+        :return
+    print(x)
+    :return
+}
+
+power(3) //jal
+
+power/i = 2
+power/local/x = 2
+power/local/1/i
+
+stack_mips[?,ra,?|,3,ra,3]
+stack_local_params =[x,x,x,i] //when enter a statement push per each declaration
+                                //
+stack_local_params_cnt =[1,1,2,0] //when new call push 
+                                //when new statement +1
+console:
+1
+2
+
+"""
