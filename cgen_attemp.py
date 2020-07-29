@@ -23,7 +23,7 @@ class Types:
 
 def cnt():
     CodeGenerator.LabelCnt += 1
-    return CodeGenerator.LabelCntbreak
+    return CodeGenerator.LabelCnt
 
 
 class CodeGenerator(Interpreter):
@@ -64,6 +64,7 @@ class CodeGenerator(Interpreter):
                 '   true: .asciiz "true"\n'
                 '   false: .asciiz "false"\n'
                 '	const10000: .double 10000.0\n'
+                '   nw: .asciiz "\\n"\n'
             )
             code += ('.text\n'
                      'li $sp, 0x1002FFF8\n'
@@ -300,8 +301,10 @@ j start_stmt_{while_start}
         return ''.join(self.visit_children(tree))
 
     def expr7(self, tree):
-        return ''
-        return ''.join(self.visit_children(tree))
+        child_codes = self.visit_children(tree)
+        if len(child_codes) == 0:
+            return ''
+        return ''.join(child_codes)
 
     def read_line(self, tree):
         """
@@ -438,6 +441,12 @@ zero_{cnt}:
 ezero_{cnt}:
 """.format(cnt=cnt())
                 )
+        # '\n' at the end of print
+        code += """
+li $v0, 4 #print new line
+la $a0, nw
+syscall        
+        """
         return code
 
     def const_int(self, tree):
@@ -803,13 +812,67 @@ if (true){
 
 decaf = """
 int main(){
-    a = b + c * d;
+    Print("input your name:");
+    Print(ReadLine());
+    Print("ok bruh now input your age : ->\\n", ReadInteger(), "good age? answer is ", true);
+
+    if (ReadInteger()){
+        Print("ok1 simple if");
+    }
+
+    if (ReadInteger()){
+        Print("wrong");
+    }else {
+        Print("eyval else ham doroste");
+    }
+
+    if (ReadInteger()){
+        if(false){
+            Print("wrong");
+        }else{
+            Print(1);
+        }
+        if (true){
+            Print(2);
+        }
+
+        if (true){
+            Print(3);
+            if (false){
+                Print("wrong");
+            }else{
+                Print(4);
+                if (false){
+                    Print("wrong");
+                }else{
+                    Print(5);
+                    if (ReadInteger()){
+                        Print(true);
+                    }else{
+                        Print(false);
+                    }
+                }
+            }
+        }else{
+            Print("wrong");
+        }
+    }else{
+        if(false){
+            Print("wrong");
+        }else{
+            Print("wrong");
+        }
+
+        if (true){
+            Print("wrong");
+        }
+    }
 }
 """
 if __name__ == '__main__':
     parser = Lark(grammar, parser="lalr")
     parse_tree = parser.parse(decaf)
-    print(parse_tree.pretty())
+    # print(parse_tree.pretty())
     SymbolTableMaker().visit(parse_tree)
     print(CodeGenerator().visit(parse_tree))
     pass
