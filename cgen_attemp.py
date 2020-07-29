@@ -336,9 +336,10 @@ j start_stmt_{while_start}
         code += ''.join(self.visit_children(tree))
         shamt = 2
         tp = tree.children[1].children[0]
-        if tp == lark.lexer.Token:
+        if type(tp) == lark.lexer.Token:
             if tp.value == Types.DOUBLE:
                 shamt = 3
+
         code += """.text
 lw $a0, 0($sp)
 addi $sp, $sp, 8
@@ -800,6 +801,11 @@ if (true){
     }
     """
 
+decaf = """
+int main(){
+    NewArray(5, );
+}
+"""
 if __name__ == '__main__':
     parser = Lark(grammar, parser="lalr")
     parse_tree = parser.parse(decaf)
