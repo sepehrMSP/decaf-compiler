@@ -23,7 +23,7 @@ class Types:
 
 def cnt():
     CodeGenerator.LabelCnt += 1
-    return CodeGenerator.LabelCnt
+    return CodeGenerator.LabelCntbreak
 
 
 class CodeGenerator(Interpreter):
@@ -300,6 +300,7 @@ j start_stmt_{while_start}
         return ''.join(self.visit_children(tree))
 
     def expr7(self, tree):
+        return ''
         return ''.join(self.visit_children(tree))
 
     def read_line(self, tree):
@@ -308,25 +309,25 @@ j start_stmt_{while_start}
         """
         code = ''
         code += """.text
-    li $a0, 256         #Maximum string length
-    li $v0, 9           #sbrk
-    syscall
-    sub $sp, $sp, 8
-    sw $v0, 0($sp)
-    move $a0, $v0
-    li $a1, 256         #Maximum string length (incl. null)
-    li $v0, 8           #read_string
-    syscall             #ReadLine()
+li $a0, 256         #Maximum string length
+li $v0, 9           #sbrk
+syscall
+sub $sp, $sp, 8
+sw $v0, 0($sp)
+move $a0, $v0
+li $a1, 256         #Maximum string length (incl. null)
+li $v0, 8           #read_string
+syscall             #ReadLine()
 """
         self.expr_types.append(Types.STRING)
         return code
 
     def read_integer(self, tree):
         code = """.text
-    li $v0, 5           #read_integer
-    syscall             #ReadInteger()
-    sub $sp, $sp, 8
-    sw $v0, 0($sp)
+li $v0, 5           #read_integer
+syscall             #ReadInteger()
+sub $sp, $sp, 8
+sw $v0, 0($sp)
 """
         self.expr_types.append(Types.INT)
         return code
@@ -715,7 +716,6 @@ ezero_{cnt}:
         self.expr_types.pop()
         self.expr_types.append(Types.BOOL)
 
-
 decaf = """
 class Person {
     string name;
@@ -803,12 +803,13 @@ if (true){
 
 decaf = """
 int main(){
-    NewArray(5, );
+    a = b + c * d;
 }
 """
 if __name__ == '__main__':
     parser = Lark(grammar, parser="lalr")
     parse_tree = parser.parse(decaf)
+    print(parse_tree.pretty())
     SymbolTableMaker().visit(parse_tree)
     print(CodeGenerator().visit(parse_tree))
     pass
