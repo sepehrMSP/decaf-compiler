@@ -78,7 +78,8 @@ class CodeGenerator(Interpreter):
                 '.data\n'
                 '   true: .asciiz "true"\n'
                 '   false: .asciiz "false"\n'
-                '   const10000: .double 10000.0\n'
+                '	const10000: .double 10000.0\n'
+                '   nw: .asciiz "\\n"\n'
             )
             code += ('.text\n'
                      'main:\n')
@@ -196,8 +197,6 @@ class CodeGenerator(Interpreter):
         # return ''.join(self.visit_children(tree))
 
         code = ''
-        print(tree.children)
-        print(len(tree.children))
         code += self.visit(tree.children[0])
         then_code = self.visit(tree.children[1])
         else_code = '' if len(tree.children) == 2 else self.visit(tree.children[2])
@@ -246,9 +245,6 @@ j start_stmt_{while_start}
         return code
 
     def for_stmt(self, tree):
-        return ''.join(self.visit_children(tree))
-
-    def actuals(self, tree):
         return ''.join(self.visit_children(tree))
 
     # probably we wont need this part in cgen
@@ -316,7 +312,10 @@ j start_stmt_{while_start}
         return ''.join(self.visit_children(tree))
 
     def expr7(self, tree):
-        return ''.join(self.visit_children(tree))
+        child_codes = self.visit_children(tree)
+        if len(child_codes) == 0:
+            return ''
+        return ''.join(child_codes)
 
     def read_line(self, tree):
         """
@@ -350,6 +349,12 @@ j start_stmt_{while_start}
     def new_array(self, tree):
         code = ''
         code += ''.join(self.visit_children(tree))
+        shamt = 2
+        tp = tree.children[1].children[0]
+        if type(tp) == lark.lexer.Token:
+            if tp.value == Types.DOUBLE:
+                shamt = 3
+
         code += """.text
     lw $a0, 0($sp)
     addi $sp, $sp, 8
@@ -358,7 +363,7 @@ j start_stmt_{while_start}
     syscall
     sub $sp, $sp, 8
     sw $v0, 0($sp)
-""".format(shamt="3" if self.expr_types[-1] == Types.DOUBLE else '2')
+""".format(shamt=shamt)
         self.expr_types.append('array_{}'.format(self.expr_types.pop()))
         return code
 
@@ -446,7 +451,14 @@ not_{0}:
     la $a0, false
     syscall
 ezero_{cnt}:\n
-""".format(cnt=cnt()))
+""".format(cnt=cnt())
+                )
+        # '\n' at the end of print
+        code += """
+    li $v0, 4 #print new line
+    la $a0, nw
+    syscall\n
+"""
         return code
 
     def const_int(self, tree):
@@ -865,7 +877,6 @@ ezero_{cnt}:\n
         # TODO what type should it push onto the stack?
         return code
 
-
 decaf = """
 class Person {
     string name;
@@ -944,18 +955,71 @@ int main() {
 }
 """
 
-"""
-
-if (true){
-    }else{
-    }
-    """
-
 decaf = r"""// I Guds namn
 int main() {
     Print(-3.14 / 2.00);
     Print("\n", 4 * -4 / 3);
     null;
+}
+"""
+
+decaf = """
+int main(){
+    Print("input your name:");
+    Print(ReadLine());
+    Print("ok bruh now input your age : ->\\n", ReadInteger(), "good age? answer is ", true);
+
+    if (ReadInteger()){
+        Print("ok1 simple if");
+    }
+
+    if (ReadInteger()){
+        Print("wrong");
+    }else {
+        Print("eyval else ham doroste");
+    }
+
+    if (ReadInteger()){
+        if(false){
+            Print("wrong");
+        }else{
+            Print(1);
+        }
+        if (true){
+            Print(2);
+        }
+
+        if (true){
+            Print(3);
+            if (false){
+                Print("wrong");
+            }else{
+                Print(4);
+                if (false){
+                    Print("wrong");
+                }else{
+                    Print(5);
+                    if (ReadInteger()){
+                        Print(true);
+                    }else{
+                        Print(false);
+                    }
+                }
+            }
+        }else{
+            Print("wrong");
+        }
+    }else{
+        if(false){
+            Print("wrong");
+        }else{
+            Print("wrong");
+        }
+
+        if (true){
+            Print("wrong");
+        }
+    }
 }
 """
 

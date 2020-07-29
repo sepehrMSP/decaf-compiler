@@ -1,7 +1,7 @@
 #!/bin/bash
-mkdir -p out
-mkdir -p report
-cd ./tests
+mkdir -p "out"
+mkdir -p "report"
+cd "./tests"
 prefix="t" ;
 dirlist=(`ls ${prefix}*.d`) ;
 OUTPUT_DIRECTORY="out/"
@@ -41,16 +41,11 @@ do
 		    echo "---- test failed !"
 		echo
 		fi
-    	fi 
+    	fi
     else
         echo "Code did not execute successfuly!"
         ((NUMBER_OF_FAILED++))
     fi
-
-
-
 done
-
 echo "Passed : $NUMBER_OF_PASSED"
 echo "Failed : $NUMBER_OF_FAILED"
-

@@ -52,6 +52,7 @@ grammar = """
 """
 
 
+
 class Type:
     def __init__(self, name=None, meta=None):
         self.name = name
@@ -62,6 +63,11 @@ class Type:
         self.name = None
         self.dimension = 0
         self._meta = None
+
+    def __eq__(self, other):
+        if self.name == other.name and self.dimension == other.dimension:
+            return True
+        return False
 
 
 class ClassType:
