@@ -31,7 +31,19 @@ class CodeGenerator(Interpreter):
     block_stmt_counter = 0
     str_const = 0
     LabelCnt = 0
+    """we need a way to store which local_variable do we have in our current scope so that in case of recursive
+    call save the prior values of local_vars. protocol of this stack is in the following order:
+    - in the entering of a stmt_block we push every variable_decl consist of [full scope name, type]
+    - in the exiting of a stmt_block we pop last N elements which N is the number of variable_decl in that stmt_block
+    - before return which is equivalent to 'jr $ra', we pop last N elements which N is number of variable_decl we have
+        seen until now"""
     stack_local_params = []
+    """this stack save number of variable_decl we have seen until now. protocol of this stack is in the following order:
+    - last element ++1 when entering a new stmt_block for each variable_decl
+    - last element --N when exiting a stmt_block which N is the number of variable_decl in that stmt_block
+    - before every function call which is equivalent to 'jal f_label', we append 0 to stack
+    - before every return which is equivalent to 'jr $ra', we pop last element of stack   
+    """
     stack_local_params_count = []
 
     def __init__(self):
@@ -822,20 +834,7 @@ if __name__ == '__main__':
     print(CodeGenerator().visit(parse_tree))
     pass
 
-"""
-fib(int a, int b){
-    int c;
-    if a == 1;
-        b = b- 1
-        c = 3
-        :return
-        //pop 
-    else:
-        c = 0
-        fib(a-1, b)
-        print(c) c= 3 !!!!
-}
-"""
+
 """
 power(i){
     int x ;
@@ -865,5 +864,4 @@ stack_local_params_cnt =[1,1,2,0] //when new call push
 console:
 1
 2
-
 """
