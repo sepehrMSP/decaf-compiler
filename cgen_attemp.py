@@ -174,7 +174,8 @@ class CodeGenerator(Interpreter):
         elif child.data == 'break_stmt':  # there is a problem with it !
             pass
         elif child.data == 'return_stmt':
-            # todo put return expr to v0 ro v1 or a floating point register
+            code += self.visit(child)
+            # todo wither is it essential to pop expr from stack or not or do this in caller side?
             local_var_count_of_this_scope = self.stack_local_params_count[-1]
             for local_var in reversed(self.stack_local_params[-local_var_count_of_this_scope:]):
                 local_var_name = local_var[0]
@@ -833,7 +834,6 @@ if __name__ == '__main__':
     SymbolTableMaker().visit(parse_tree)
     print(CodeGenerator().visit(parse_tree))
     pass
-
 
 """
 power(i){
