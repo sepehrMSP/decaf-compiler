@@ -64,13 +64,17 @@ void jumper_1(int x){
 }
 
 void f(){
-    int x = 5;
-    int y = 10;
+    int x;
+    int y;
+    double d2;
+    double d5;
+    x = 5;
+    y = 10;
     g(x, x+y);
     Print(x);
     Print(y);
-    double d2 = 2.5;
-    double d5 = 5.5;
+    d2 = 2.5;
+    d5 = 5.5;
     if (check(d2, d5)){
         Print("t");
         z(true);
@@ -90,4 +94,5 @@ void f(){
 
 int main()  {
     f();
+    return;
 }
