@@ -360,7 +360,7 @@ j start_stmt_{while_start}
     li $v0, 8           #read_string
     syscall             #ReadLine()
 """
-        self.expr_types.append(Types.STRING)
+        self.expr_types.append(Type(Types.STRING))
         return code
 
     def read_integer(self, tree):
@@ -370,7 +370,7 @@ j start_stmt_{while_start}
     sub $sp, $sp, 8
     sw $v0, 0($sp)
 """
-        self.expr_types.append(Types.INT)
+        self.expr_types.append(Type(Types.INT))
         return code
 
     def new_array(self, tree):
@@ -407,7 +407,7 @@ not_{0}:
     sw $t1, 0($sp)\n
 """.format(cnt())
         self.expr_types.pop()
-        self.expr_types.append(Types.BOOL)
+        self.expr_types.append(Type(Types.BOOL))
         return code
 
     def neg(self, tree):
