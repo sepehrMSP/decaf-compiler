@@ -2,7 +2,7 @@ import lark
 from lark import Lark
 from lark.visitors import Interpreter
 
-from symbol_table_creation_attemp import symbol_table
+from symbol_table_creation_attemp import symbol_table, text, just_class
 from symbol_table_creation_attemp import symbol_table_objects, function_objects, \
     function_table, grammar, SymbolTableMaker, Type
 
@@ -44,7 +44,7 @@ class CodeGenerator(Interpreter):
     - before every function call which is equivalent to 'jal f_label', we append 0 to stack
     - before every return which is equivalent to 'jr $ra', we pop last element of stack   
     """
-    stack_local_params_count = []
+    stack_local_params_count = [0]
 
     def __init__(self):
         super().__init__()
@@ -58,6 +58,8 @@ class CodeGenerator(Interpreter):
         code = ''
         for decl in tree.children:
             if decl.data == 'variable_decl' or decl.data == 'function_decl':
+                code += self.visit(decl)
+            elif decl.data == 'class_decl':
                 code += self.visit(decl)
         return code
 
@@ -141,7 +143,7 @@ class CodeGenerator(Interpreter):
                     code += '\tlw   $t1, 0($t0)\n'
                     code += '\taddi $sp, $sp, -8\n'
                     code += '\tsw   $t1, 0($sp)\n'
-            else:
+            if child.data == 'stmt':
                 code += self.visit(child)
         # pop declared variables in this scope
         for child in reversed(tree.children):
@@ -283,12 +285,21 @@ j start_stmt_{while_start}
             pass  # it is for inheritance we scape it for now
         else:
             self.current_scope += "/__class__" + ident.value
-            for field in tree.children[1:-1]:
+            for field in tree.children[1:]:
                 code += self.visit(field)
+            pop_scope(self.current_scope)
         return code
 
     def field(self, tree):
-        return ''.join(self.visit_children(tree))
+        code = ''
+        for child in tree.children:
+            if child.data == 'variable_decl':
+                code += self.visit(child)
+                pass
+            if child.data == 'function_decl':
+                code += self.visit(child)
+                pass
+        return code
 
     def variable_decl(self, tree):
         code = ''
@@ -996,6 +1007,9 @@ int main() {
 """
 
 decaf = """
+class Person{
+    int mmd(){}
+}
 int main(){
     Print("input your name:");
     Print(ReadLine());
@@ -1057,9 +1071,10 @@ int main(){
 
 if __name__ == '__main__':
     parser = Lark(grammar, parser="lalr")
-    parse_tree = parser.parse(decaf)
+    parse_tree = parser.parse(text=just_class)
     SymbolTableMaker().visit(parse_tree)
-    print(CodeGenerator().visit(parse_tree))
+    CodeGenerator().visit(parse_tree)
+    print(symbol_table)
     pass
 
 """
