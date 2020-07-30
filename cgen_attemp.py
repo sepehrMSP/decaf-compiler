@@ -1055,6 +1055,12 @@ int main(){
 }
 """
 
+def cgen(decaf):
+    parser = Lark(grammar, parser="lalr")
+    parse_tree = parser.parse(decaf)
+    SymbolTableMaker().visit(parse_tree)
+    return CodeGenerator().visit(parse_tree)
+
 if __name__ == '__main__':
     parser = Lark(grammar, parser="lalr")
     parse_tree = parser.parse(decaf)
