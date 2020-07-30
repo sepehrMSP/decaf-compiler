@@ -9,6 +9,7 @@ void f(int x, int y, bool z, double a){
         return;
     }
     Print("not ok");
+    return;
 }
 
 int main()  {

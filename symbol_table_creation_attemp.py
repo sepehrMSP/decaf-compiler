@@ -86,7 +86,7 @@ class ClassType:
         l = []
         for function in self.functions:
             l.append(function.exact_name)
-        print(l)
+        # print(l)
         return
 
 
@@ -206,7 +206,7 @@ class SymbolTableMaker(Interpreter):
         symbol_table_object = SymbolTableObject(scope=stack[-1], name=ident)
         symbol_table[(stack[-1], ident.value,)] = self.symbol_table_obj_counter
         self.symbol_table_obj_counter += 1
-        print(stack[-1] + "/" + ident.value)
+        # print(stack[-1] + "/" + ident.value)
         function = Function(name=ident.value, exact_name=stack[-1] + "/" + ident.value)
 
         if type(tree.children[0]) == lark.tree.Tree:
