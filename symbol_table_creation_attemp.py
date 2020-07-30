@@ -22,16 +22,17 @@ grammar = """
     for_stmt : "for" "(" (expr)? ";" expr ";" (expr)? ")" stmt 
     return_stmt : "return" (expr)? ";" 
     break_stmt : "break" ";" 
-    print_stmt : "Print" "(" expr (","expr)* ")" ";"
-    expr : expr "||" expr1 -> or_bool | expr1
+    print_stmt : "Print" "(" expr (","expr)* ")" ";" -> print
+    expr : l_value "=" expr -> ass | expr8
+    expr8 : expr8 "||" expr1 -> or_bool | expr1
     expr1 : expr1 "&&" expr2 -> and_bool | expr2
     expr2 : expr2 "==" expr3 -> eq | expr2 "!=" expr3 -> ne | expr3
     expr3 : expr3 "<" expr4 -> lt | expr3 "<=" expr4 -> le | expr3 ">" expr4 -> gt | expr3 ">=" expr4 -> ge | expr4
     expr4 : expr4 "+" expr5 -> add | expr4 "-" expr5 -> sub | expr5
     expr5 : expr5 "*" expr6 -> mul | expr5 "/" expr6 -> div | expr5 "%" expr6 -> mod | expr6
     expr6 : "-" expr6 -> neg | "!" expr6 -> not_expr | expr7
-    expr7 : constant | "this" | "ReadInteger" "(" ")" -> read_integer | "ReadLine" "(" ")" -> read_line | "new" IDENT | "NewArray" "(" expr "," type ")" -> new_array | "(" expr ")" | l_value | call | l_value "=" expr
-    l_value : IDENT |  expr7 "." IDENT | expr7 "[" expr "]" 
+    expr7 : constant | "this" | "ReadInteger" "(" ")" -> read_integer | "ReadLine" "(" ")" -> read_line | "new" IDENT | "NewArray" "(" expr "," type ")" -> new_array | "(" expr ")" | l_value -> val | call
+    l_value : IDENT -> var_addr |  expr7 "." IDENT | expr7 "[" expr "]" -> subscript
     call : IDENT  "(" actuals ")" |  expr7  "."  IDENT  "(" actuals ")" 
     actuals :  expr (","expr)* |  
     constant : INT -> const_int | DOUBLE -> const_double | DOUBLE_SCI -> const_double | BOOL -> const_bool |  STRING -> const_str | "null" -> null
@@ -96,6 +97,12 @@ class SymbolTableObject:
         self.type = Type()
         self.attribute = attribute
         symbol_table_objects.append(self)
+
+    def __str__(self):
+        return self.name + ': ' + str(self.type.name) + ' ' + str(self.type.dimension)
+
+    def __repr__(self):
+        return self.__str__()
 
 
 symbol_table_objects = []
@@ -163,8 +170,7 @@ class SymbolTableMaker(Interpreter):
     def decl(self, tree):
         for declaration in tree.children:
             if declaration.data == 'variable_decl':
-                # self.visit(declaration)
-                pass
+                self.visit(declaration)
             elif declaration.data == 'function_decl':
                 self.visit(declaration)
                 pass
@@ -202,10 +208,7 @@ class SymbolTableMaker(Interpreter):
         formals._meta = function
         self.visit(formals)
         stack.append(stack[-1] + "/_local")
-        stack.append(stack[-1] + "/" + str(self.block_stmt_counter))
-        self.block_stmt_counter += 1
         self.visit(stmt_block)
-        stack.pop()  # pop stmt block
         stack.pop()  # pop _local
         stack.pop()  # pop formals
 
@@ -224,12 +227,15 @@ class SymbolTableMaker(Interpreter):
                 self.visit(variable)
 
     def stmt_block(self, tree):
+        stack.append(stack[-1] + "/" + str(self.block_stmt_counter))
+        self.block_stmt_counter += 1
         for child in tree.children:
             if child.data == 'variable_decl':
                 self.visit(child)
             else:
                 self.visit(child)
                 pass  # todo must complete
+        stack.pop()
 
     def stmt(self, tree):
         child = tree.children[0]
@@ -240,16 +246,13 @@ class SymbolTableMaker(Interpreter):
         if child.data == 'for_stsmt':
             self.visit(child)
         if child.data == 'stmt_block':
-            stack.append(stack[-1] + "/" + str(self.block_stmt_counter))
-            self.block_stmt_counter += 1
             self.visit(child)
-            stack.pop()
         if child.data == 'break_stmt':  # there is a problem with it !
             pass
             # call a function just for break wellformness!it should move back on the stack maybe not in this interpreter
         if child.data == 'return_stmt':
             pass
-        if child.data == 'print_stmt':
+        if child.data == 'print_stmt' or child.data == 'print':
             pass
         if child.data == 'expr':
             pass
@@ -294,6 +297,7 @@ class SymbolTableMaker(Interpreter):
         self.visit(tree.children[0])
 
     def variable_decl(self, tree):
+        # todo check globals
         tree.children[0]._meta = tree._meta
         self.visit(tree.children[0])
 
@@ -404,11 +408,29 @@ int main() {
     p.print();
 }
 """
+
+decaf = """
+int a;
+int [] x;
+int main() {
+    double b;
+    int [] x;
+    string a;
+    bool boooooool;
+    a;
+    b;
+    x = NewArray(8, double);
+    x[2];
+}
+"""
+
 if __name__ == '__main__':
     parser = Lark(grammar, parser="lalr")
-    parse_tree = parser.parse(text)
+    parse_tree = parser.parse(decaf)
     SymbolTableMaker().visit(parse_tree)
     print(symbol_table)
+    for x in symbol_table_objects:
+        print(x.type.name)
 # print('****************************')
 # print(stack)
 # print(symbol_table)
