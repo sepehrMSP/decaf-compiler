@@ -2,7 +2,7 @@ import lark
 from lark import Lark
 from lark.visitors import Interpreter
 
-from symbol_table_creation_attemp import symbol_table, text, just_class
+from symbol_table_creation_attemp import symbol_table, text, just_class, set_inheritance, ClassTreeSetter
 from symbol_table_creation_attemp import symbol_table_objects, function_objects, \
     function_table, grammar, SymbolTableMaker, Type
 
@@ -1313,6 +1313,8 @@ if __name__ == '__main__':
     parser = Lark(grammar, parser="lalr")
     parse_tree = parser.parse(text=decaf)
     SymbolTableMaker().visit(parse_tree)
+    ClassTreeSetter().visit(parse_tree)
+    set_inheritance()
     print(CodeGenerator().visit(parse_tree))
     pass
 
