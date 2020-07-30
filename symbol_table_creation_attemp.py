@@ -72,6 +72,7 @@ class Type:
     def __str__(self):
         return 'Name: {}\tDimension: {}'.format(self.name, self.dimension)
 
+
 class ClassType:
     def __init__(self, name, parent=None):
         self.name = name
@@ -365,27 +366,31 @@ class ClassTreeSetter(Interpreter):
             parent_classes.append(ident.value)
 
 
-def set_inheritance(parent_class: ClassType):
+def set_inheritance_tree(parent_class: ClassType):
     if parent_class.children:
         for child in parent_class.children:
             child_class = class_type_objects[class_table[child]]
             child_class.variables = parent_class.variables + child_class.variables
 
-            child_functions = child_class.functions
-            child_class.functions = parent_class.functions
+            child_functions = child_class.functions.copy()
+            child_class.functions = parent_class.functions.copy()
             parent_class_function_names = set()
             for func in parent_class.functions:
                 parent_class_function_names.add(func.name)
             counter = 0
             for func in child_functions:
                 if func.name in parent_class_function_names:
-                    #override
-                    child_functions[counter] = func
+                    child_class.functions[counter] = func  # override
                 else:
                     child_class.functions.append(func)
                 counter += 1
+            set_inheritance_tree(child_class)
 
-            set_inheritance(child_class)
+
+def set_inheritance():
+    for class_name in parent_classes:
+        class_object = class_type_objects[class_table[class_name]]
+        set_inheritance_tree(class_object)
 
 
 just_class = """class Person{
@@ -410,6 +415,7 @@ class Person{
 
 class Emp extends Person {
     int lks;
+    int mmd(){}
     int fight(){}
 } 
 void cal(int number, double mmd) {
@@ -493,10 +499,10 @@ if __name__ == '__main__':
     SymbolTableMaker().visit(parse_tree)
     ClassTreeSetter().visit(parse_tree)
     print(symbol_table)
-    set_inheritance(class_type_objects[0])
-    class_type_objects[0].print_functions()
-    class_type_objects[1].print_functions()
-    # todo add function exact name which contains scope to function meta!
+    set_inheritance()
+    for x in class_type_objects[1].functions:
+        print(x.exact_name)
+    # class_type_objects[1].print_functions()
 # print('****************************')
 # print(stack)
 # print(symbol_table)
