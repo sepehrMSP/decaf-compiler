@@ -14,6 +14,13 @@ def pop_scope(scope):
     return parent_scope
 
 
+def pretty_tab(code) -> str:
+    codes = code.split('\n')
+    for i in range(len(codes)):
+        codes[i] = '\t' + codes[i].strip() + '\n'
+    return ''.join(codes)
+
+
 class Types:
     BOOL = 'bool'
     INT = 'int'
@@ -50,6 +57,7 @@ class CodeGenerator(Interpreter):
         super().__init__()
         self.expr_types = []
         self.stmt_labels = []
+        self.while_for_labels = []
 
     def start(self, tree):
         return ''.join(self.visit_children(tree))
@@ -134,7 +142,8 @@ class CodeGenerator(Interpreter):
                 code += self.visit(child)
                 self.stack_local_params_count[-1] += 1
                 variable_name = child.children[0].children[1].value
-                variable_type = symbol_table_objects[symbol_table[(self.current_scope, variable_name)]].type # TODO is current_scope set?
+                variable_type = symbol_table_objects[
+                    symbol_table[(self.current_scope, variable_name)]].type  # TODO is current_scope set?
                 self.stack_local_params.append(
                     [self.current_scope + "/" + variable_name, variable_type])  # todo must review
                 code += '.text\n'
@@ -184,6 +193,8 @@ class CodeGenerator(Interpreter):
         code += ('start_stmt_{}:\n'.format(stmt_id))
         child._meta = stmt_id
 
+        # print(child)
+
         if child.data == 'if_stmt':
             code += self.visit(child)
         elif child.data == 'while_stmt':
@@ -193,7 +204,7 @@ class CodeGenerator(Interpreter):
         elif child.data == 'stmt_block':
             code += self.visit(child)
         elif child.data == 'break_stmt':  # there is a problem with it !
-            pass
+            code += self.visit(child)
         elif child.data == 'return_stmt':
             code += self.visit(child)
             # todo wither is it essential to pop expr from stack or not or do this in caller side?
@@ -224,6 +235,14 @@ class CodeGenerator(Interpreter):
         code += 'end_stmt_{}:\n'.format(stmt_id)
         self.stmt_labels = self.stmt_labels[:store_len]
         self.stmt_labels.append(stmt_id)
+        return code
+
+    def break_stmt(self, tree):
+        parent = tree._meta
+        code = pretty_tab("""
+            .text   # break
+            j end_stmt_{}             
+        """.format(self.while_for_labels[-1]))
         return code
 
     def return_stmt(self, tree):
@@ -262,6 +281,7 @@ j end_stmt_{els}
     def while_stmt(self, tree):
         # while_id = cnt()
         while_id = tree._meta
+        self.while_for_labels.append(while_id)
         store_len = len(self.stmt_labels)
         code = '.text\n'
         # code += "start_stmt_{}:\n".format(while_id)
@@ -279,9 +299,13 @@ j start_stmt_{while_start}
         # code += "end_stmt_{}:\n".format(while_id)
         self.stmt_labels = self.stmt_labels[:store_len]
         # self.stmt_labels.append(while_id)
+        self.while_for_labels.pop()
         return code
 
     def for_stmt(self, tree):
+        for_id = tree._meta
+        self.while_for_labels.append(for_id)
+        self.while_for_labels.pop(for_id)
         return ''.join(self.visit_children(tree))
 
     # probably we wont need this part in cgen
@@ -333,7 +357,7 @@ j start_stmt_{while_start}
         return ''
 
     def expr(self, tree):
-        return''.join(self.visit_children(tree))
+        return ''.join(self.visit_children(tree))
 
     def expr8(self, tree):
         return ''.join(self.visit_children(tree))
@@ -1144,11 +1168,13 @@ int main(){
 }
 """
 
+
 def cgen(decaf):
     parser = Lark(grammar, parser="lalr")
     parse_tree = parser.parse(decaf)
     SymbolTableMaker().visit(parse_tree)
     return CodeGenerator().visit(parse_tree)
+
 
 decaf = """
 
@@ -1172,15 +1198,31 @@ int main() {
 if __name__ == '__main__':
     print(cgen("""
     int main(){
-        while(ReadInteger()){
-            Print("hey");
-            while (ReadInteger()){
-                Print("huy");
+        while(true){
+            if(ReadInteger() == 2){
+                Print(2);
+                break;
             }
+            Print(1);
         }
-        while(ReadInteger()){
-            Print("hoy");
+        while(true){
+            while(true){
+                if(ReadInteger() == 2){
+                    Print(4);
+                    break;
+                }
+                Print(3);
+            }
+            while(true){
+                if (false){
+                }else{
+                    break;
+                }
+                Print("holy");
+            }
+            break;
         }
+        Print("goody goody");
     }
 """))
 
