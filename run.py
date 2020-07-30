@@ -9,6 +9,8 @@ if __name__ == '__main__':
     for file in os.listdir("phase3_tests/tests"):
         if file.endswith(".d"):
             test = file[:-2]
+            if 'function' in test or 'expr' in test:
+                continue
             total += 1
             print('Test_{}: {}'.format(total, file))
             with open("phase3_tests/tests/" + file, "r") as f:

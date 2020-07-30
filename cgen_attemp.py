@@ -172,10 +172,11 @@ class CodeGenerator(Interpreter):
         child = tree.children[0]
         store_len = len(self.stmt_labels)
         code = ''
-        add_stmt = True if child.data not in ('while_stmt',) else False
-        if add_stmt:
-            stmt_id = cnt()
-            code += ('start_stmt_{}:\n'.format(stmt_id))
+        # add_stmt = True if child.data not in ('while_stmt',) else False
+        # if add_stmt:
+        stmt_id = cnt()
+        code += ('start_stmt_{}:\n'.format(stmt_id))
+        child._meta = stmt_id
 
         if child.data == 'if_stmt':
             code += self.visit(child)
@@ -216,10 +217,9 @@ class CodeGenerator(Interpreter):
             code += self.visit(child)
         # todo these last 4 if statements can be removed but there are here to have more explicit behavior
 
-        if add_stmt:
-            code += 'end_stmt_{}:\n'.format(stmt_id)
-            self.stmt_labels = self.stmt_labels[:store_len]
-            self.stmt_labels.append(stmt_id)
+        code += 'end_stmt_{}:\n'.format(stmt_id)
+        self.stmt_labels = self.stmt_labels[:store_len]
+        self.stmt_labels.append(stmt_id)
         return code
 
     def if_stmt(self, tree):
@@ -253,10 +253,11 @@ j end_stmt_{els}
         return code
 
     def while_stmt(self, tree):
-        while_id = cnt()
+        # while_id = cnt()
+        while_id = tree._meta
         store_len = len(self.stmt_labels)
         code = '.text\n'
-        code += "start_stmt_{}:\n".format(while_id)
+        # code += "start_stmt_{}:\n".format(while_id)
         code += self.visit(tree.children[0])
         stmt_code = self.visit(tree.children[1])
         code += """
@@ -268,9 +269,9 @@ beq $a0, 0, end_stmt_{while_end}
         code += """
 j start_stmt_{while_start}
 """.format(while_start=while_id)
-        code += "end_stmt_{}:\n".format(while_id)
+        # code += "end_stmt_{}:\n".format(while_id)
         self.stmt_labels = self.stmt_labels[:store_len]
-        self.stmt_labels.append(while_id)
+        # self.stmt_labels.append(while_id)
         return code
 
     def for_stmt(self, tree):
@@ -1091,9 +1092,14 @@ decaf = """
 """
 if __name__ == '__main__':
     print(cgen("""
-int main(){
-    Print(2.5*3);
-}
+    int main(){
+        while(ReadInteger()){
+            Print("hey");
+        }
+        while(ReadInteger()){
+            Print("hooy");
+        }
+    }
 """))
 
     exit(0)
