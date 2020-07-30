@@ -145,6 +145,8 @@ class CodeGenerator(Interpreter):
         return code
 
     def formals(self, tree):
+        # print('     ->', self.current_scope)
+        # print(tree)
         self.visit_children(tree)
         return ''
 
@@ -207,6 +209,10 @@ class CodeGenerator(Interpreter):
         code = ''
         # add_stmt = True if child.data not in ('while_stmt',) else False
         # if add_stmt:
+        if child.data == 'for_stmt':
+            if child.children[0].data == 'ass':
+                code += self.visit(child.children[0])
+
         stmt_id = cnt()
         code += ('start_stmt_{}:\n'.format(stmt_id))
         child._meta = stmt_id
@@ -216,13 +222,6 @@ class CodeGenerator(Interpreter):
         elif child.data == 'while_stmt':
             code += self.visit(child)
         elif child.data == 'for_stmt':
-            # print(child.children[0])
-            # print()
-            # print(child.children[1])
-            # print()
-            # print(child.children[2])
-            # print()
-            exit(0)
             code += self.visit(child)
         elif child.data == 'stmt_block':
             code += self.visit(child)
@@ -318,10 +317,27 @@ class CodeGenerator(Interpreter):
         return code
 
     def for_stmt(self, tree):
+        code = '.text\t\t\t\t# For'
         for_id = tree._meta
         self.loop_labels.append(for_id)
-        self.loop_labels.pop(for_id)
-        return ''.join(self.visit_children(tree))
+        childs = tree.children
+        next = ''
+        if childs[0].data == 'ass':
+            code += self.visit(childs[1])
+        else:
+            code += self.visit(childs[0])
+        if childs[-2].data == 'ass':
+            next += self.visit(childs[-2])
+        code += tab("""
+            lw $a0, 0($sp)
+            addi $sp, $sp, 8
+            beq $a0, $zero, end_stmt_{}
+        """.format(for_id))
+        code += self.visit(childs[-1])
+        code += next
+        code += "\tj start_stmt_{}\n".format(for_id)
+        self.loop_labels.pop()
+        return code
 
     # probably we wont need this part in cgen
     def class_decl(self, tree):
@@ -362,7 +378,8 @@ class CodeGenerator(Interpreter):
             elif var_type == 'string':
                 code += '.data\n'
                 code += '.align 2\n'
-                code += self.current_scope.replace('/', '_') + '_' + variable.children[1] + ': .space ' + str(size) + '\n'
+                code += self.current_scope.replace('/', '_') + '_' + variable.children[1] + ': .space ' + str(
+                    size) + '\n'
                 code += '.text\n'
                 code += '\tli $a0, 256\n'
                 code += '\tli $v0, 9\n'
@@ -698,14 +715,15 @@ class CodeGenerator(Interpreter):
         for expr in tree.children:
             code += self.visit(expr)
             formal_name = function.formals[actual_counter][0]
+
             formal_type = function.formals[actual_counter][1].name
             if formal_type == 'double':
-                code += '\tl.d $f0, 0($sp)\n'
-                code += '\ts.d $f0, {}\n'.format(formal_name)
+                code += '\tl.d  $f0, 0($sp)\n'
+                code += '\ts.d  $f0, {}\n'.format((function_scope + "/" + formal_name).replace("/", "_"))
                 code += '\taddi $sp, $sp, 8\n'
             else:
                 code += '\tlw   $v0, 0($sp)\n'
-                code += '\tsw   $v0, {}\n'.format(formal_name)
+                code += '\tsw   $v0, {}\n'.format((function_scope + "/" + formal_name).replace("/", "_"))
                 code += '\taddi $sp, $sp, 8\n'
             actual_counter += 1
 
@@ -1030,7 +1048,7 @@ class CodeGenerator(Interpreter):
         var_name = tree.children[0].value
         while (var_scope, var_name) not in symbol_table:
             var_scope = pop_scope(var_scope)
-            #inja :D chon ta'rif nashode, while tamum nemishe; dombale moteghayyere dorost migardam dg. be scope asli kar nadaram. mannnnnnn kari lazem nist bokonim. code ghalat nemidan ke. Re Dg:)) tarif nakardam y ro
+            # inja :D chon ta'rif nashode, while tamum nemishe; dombale moteghayyere dorost migardam dg. be scope asli kar nadaram. mannnnnnn kari lazem nist bokonim. code ghalat nemidan ke. Re Dg:)) tarif nakardam y ro
         label_name = var_scope.replace('/', '_') + '_' + var_name
         code = '.text\n'
         code += '\tla $t0, {}\n'.format(label_name)
@@ -1294,7 +1312,16 @@ int main()  {
 """
 
 if __name__ == '__main__':
-    print(cgen(decaf))
+    print(cgen("""
+
+int main(){
+     int i;
+	int j;
+     i = 0;
+    for(; i < 3; i = 1){
+	}
+}
+    """))
     exit(0)
     # (cgen("""
     #     int main(){
@@ -1335,9 +1362,9 @@ if __name__ == '__main__':
     #     }
     #     Print("goody goody");
     # }
-# """))
-#
-#     exit(0)
+    # """))
+    #
+    #     exit(0)
 
     parser = Lark(grammar, parser="lalr")
     parse_tree = parser.parse(text=decaf)
