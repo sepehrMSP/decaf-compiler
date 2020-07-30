@@ -121,8 +121,7 @@ class CodeGenerator(Interpreter):
             )
             code += ('.text\n'
                      'main:\n'
-                     '\tla\t$ra,__end__'
-                     '\tmove\t$ra,$t0\n')
+                     '\tla\t$ra,__end__\n')
         else:
             code += '.text\n{}:\n'.format(ident)
 
@@ -250,6 +249,8 @@ class CodeGenerator(Interpreter):
             code += self.visit(child)
         elif child.data == 'expr':
             code += self.visit(child)
+            code += '.text\n'
+            code += '\taddi\t$sp, $sp, 8\n\n'
         else:
             code += self.visit(child)
         # todo these last 4 if statements can be removed but there are here to have more explicit behavior
@@ -709,7 +710,7 @@ class CodeGenerator(Interpreter):
         code += '\taddi $sp, $sp, -8\n'
         code += '\tsw   $ra, 0($sp)\n'
         code += '\tjal {}\n'.format(function_name)
-        code += '\tlw   $ra, 0($sp)\n'
+        code += '\tlw   $ra, {}($sp)\n'.format('0' if function.return_type.name == 'void' else '8')
         code += '\taddi $sp, $sp, 8\n'
         # pop formal parameters
         for formal in reversed(function.formals):
