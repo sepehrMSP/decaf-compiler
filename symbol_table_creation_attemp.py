@@ -366,7 +366,7 @@ class ClassTreeSetter(Interpreter):
             parent_classes.append(ident.value)
 
 
-def set_inheritance(parent_class: ClassType):
+def set_inheritance_tree(parent_class: ClassType):
     if parent_class.children:
         for child in parent_class.children:
             child_class = class_type_objects[class_table[child]]
@@ -384,7 +384,13 @@ def set_inheritance(parent_class: ClassType):
                 else:
                     child_class.functions.append(func)
                 counter += 1
-            set_inheritance(child_class)
+            set_inheritance_tree(child_class)
+
+
+def set_inheritance():
+    for class_name in parent_classes:
+        class_object = class_type_objects[class_table[class_name]]
+        set_inheritance_tree(class_object)
 
 
 just_class = """class Person{
@@ -493,8 +499,8 @@ if __name__ == '__main__':
     SymbolTableMaker().visit(parse_tree)
     ClassTreeSetter().visit(parse_tree)
     print(symbol_table)
-    set_inheritance(class_type_objects[0])
-    for x in class_type_objects[0].functions:
+    set_inheritance()
+    for x in class_type_objects[1].functions:
         print(x.exact_name)
     # class_type_objects[1].print_functions()
 # print('****************************')
