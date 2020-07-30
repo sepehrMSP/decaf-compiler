@@ -679,7 +679,8 @@ class CodeGenerator(Interpreter):
         # push formal parameter
         for formal in function.formals:
             formal_name = (function_scope + "/" + formal[0]).replace("/", "_")
-            if formal.type.name == 'double':
+            formal_type = formal[1]
+            if formal_type.name == 'double':
                 code += '\tl.d  $f0, {}\n'.format(formal_name)
                 code += '\taddi $sp, $sp, -8\n'
                 code += '\ts.d  $f0, 0($sp)\n'
@@ -711,7 +712,8 @@ class CodeGenerator(Interpreter):
         # pop formal parameters
         for formal in reversed(function.formals):
             formal_name = (function_scope + "/" + formal[0]).replace("/", "_")
-            if formal.type.name == 'double':
+            formal_type = formal[1]
+            if formal[1].name == 'double':
                 code += '\tl.d  $f0, 0($sp)\n'
                 code += '\taddi $sp, $sp, 8\n'
                 code += '\ts.d  $f0, {}'.format(formal_name)
