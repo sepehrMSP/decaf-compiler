@@ -211,7 +211,14 @@ class CodeGenerator(Interpreter):
             code += self.visit(child)
         elif child.data == 'while_stmt':
             code += self.visit(child)
-        elif child.data == 'for_stsmt':
+        elif child.data == 'for_stmt':
+            print(child.children[0])
+            print()
+            print(child.children[1])
+            print()
+            print(child.children[2])
+            print()
+            exit(0)
             code += self.visit(child)
         elif child.data == 'stmt_block':
             code += self.visit(child)
@@ -365,7 +372,7 @@ class CodeGenerator(Interpreter):
         return code
 
     def type(self, tree):
-        if isinstance(tree.children[0], lark.Token):
+        if type(tree.children[0]) == lark.lexer.Token:
             self.last_type = Type(tree.children[0])
         else:
             self.visit(tree.children[0])
@@ -738,18 +745,18 @@ class CodeGenerator(Interpreter):
         typ = self.expr_types.pop()
         if typ.name == 'int':
             code += '.text\n'
-            code += '\tlw $t0, 0($sp)\n'
-            code += '\tlw $t1, 8($sp)\n'
-            code += '\tmul $t2, $t1, $t0\n'
-            code += '\tsw $t2, 8($sp)\n'
+            code += '\tlw   $t0, 0($sp)\n'
+            code += '\tlw   $t1, 8($sp)\n'
+            code += '\tmul  $t2, $t1, $t0\n'
+            code += '\tsw   $t2, 8($sp)\n'
             code += '\taddi $sp, $sp, 8\n\n'
         if typ.name == 'double':
             code += '.text\n'
-            code += '\tl.d $f0, 0($sp)\n'
-            code += '\tl.d $f2, 8($sp)\n'
-            code += '\tmul.d $f4, $f2, $f0\n'
-            code += '\ts.d $f4, 8($sp)\n'
-            code += '\taddi $sp, $sp, 8\n\n'
+            code += '\tl.d      $f0, 0($sp)\n'
+            code += '\tl.d      $f2, 8($sp)\n'
+            code += '\tmul.d    $f4, $f2, $f0\n'
+            code += '\ts.d      $f4, 8($sp)\n'
+            code += '\taddi     $sp, $sp, 8\n\n'
         return code
 
     def div(self, tree):
@@ -1261,13 +1268,14 @@ int main() {
 
 if __name__ == '__main__':
     (cgen("""
-    int main(){
-        NewArray(5, double);
-        NewArray(5, int);
-        NewArray(5, double[]);
-        NewArray(5, int[][]);
-
-    }
+        int main(){
+        
+            NewArray(5, double[][]);
+            NewArray(5, int);
+            NewArray(5, bool[]);
+            for(i=0; i<10; i=i+1){
+            }
+        }
     """))
     exit(0)
     print(cgen("""
