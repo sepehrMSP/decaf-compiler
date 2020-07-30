@@ -98,17 +98,18 @@ class CodeGenerator(Interpreter):
             code += ('.text\n'
                      'main:\n')
         else:
-            code += '{}:\n'.format(ident)
+            code += '.text\n{}:\n'.format(ident)
 
         self.current_scope += "/" + ident.value
         code += self.visit(formals)
         self.current_scope += "/_local"
-        self.current_scope += "/" + str(self.block_stmt_counter)
-        self.block_stmt_counter += 1
+        # self.current_scope += "/" + str(self.block_stmt_counter)
+        # self.block_stmt_counter += 1
+        self.stack_local_params_count.append(0)
         code += self.visit(stmt_block)
-        pop_scope(self.current_scope)  # pop stmt block
-        pop_scope(self.current_scope)  # pop _local
-        pop_scope(self.current_scope)  # pop formals
+        # pop_scope(self.current_scope)  # pop stmt block
+        self.current_scope = pop_scope(self.current_scope)  # pop _local
+        self.current_scope = pop_scope(self.current_scope)  # pop formals
 
         if ident == 'main':
             code += '.text\n'
@@ -120,6 +121,8 @@ class CodeGenerator(Interpreter):
         return ''.join(self.visit_children(tree))
 
     def stmt_block(self, tree):
+        self.current_scope += "/" + str(self.block_stmt_counter)
+        self.block_stmt_counter += 1
         code = ''
         stmt_id = cnt()
         store_len = len(self.stmt_labels)
@@ -129,18 +132,19 @@ class CodeGenerator(Interpreter):
                 code += self.visit(child)
                 self.stack_local_params_count[-1] += 1
                 variable_name = child.children[0].children[1].value
-                variable_type = symbol_table_objects[symbol_table[(self.current_scope, variable_name)]].type
+                variable_type = symbol_table_objects[symbol_table[(self.current_scope, variable_name)]].type # TODO is current_scope set?
                 self.stack_local_params.append(
                     [self.current_scope + "/" + variable_name, variable_type])  # todo must review
+                code += '.text\n'
                 if variable_type.name == 'double':
                     code += '\tl.d  $f0, {}\n'.format((self.current_scope + "/" + variable_name).replace("/", "_"))
                     code += '\taddi $sp, $sp, -8\n'
-                    code += '\ts.d  $f0, 0($sp)\n'
+                    code += '\ts.d  $f0, 0($sp)\n\n'
                 else:
                     code += '\tla   $t0, {}\n'.format((self.current_scope + "/" + variable_name).replace("/", "_"))
                     code += '\tlw   $t1, 0($t0)\n'
                     code += '\taddi $sp, $sp, -8\n'
-                    code += '\tsw   $t1, 0($sp)\n'
+                    code += '\tsw   $t1, 0($sp)\n\n'
             else:
                 code += self.visit(child)
         # pop declared variables in this scope
@@ -150,19 +154,21 @@ class CodeGenerator(Interpreter):
                 variable_name = child.children[0].children[1].value
                 variable_type = symbol_table_objects[symbol_table[(self.current_scope, variable_name)]].type
                 self.stack_local_params.pop()  # todo must review
+                code += '.text\n'
                 if variable_type.name == 'double':
                     code += '\tl.d  $f0, 0($sp)\n'
                     code += '\taddi $sp, $sp, 8\n'
-                    code += '\ts.d  $f0, {}'.format((self.current_scope + "/" + variable_name).replace("/", "_"))
+                    code += '\ts.d  $f0, {}\n\n'.format((self.current_scope + "/" + variable_name).replace("/", "_"))
                 else:
                     code += '\tlw   $t1, 0($sp)\n'
                     code += '\taddi $sp, $sp, 8\n'
                     code += '\tla   $t0, {}\n'.format((self.current_scope + "/" + variable_name).replace("/", "_"))
-                    code += '\tsw   $t1, 0($t0)\n'
+                    code += '\tsw   $t1, 0($t0)\n\n'
 
         code += 'end_stmt_{}:\n'.format(stmt_id)
         self.stmt_labels = self.stmt_labels[:store_len]
         self.stmt_labels.append(stmt_id)
+        self.current_scope = pop_scope(self.current_scope)
         return code
         # todo must review by Sir Sadegh
 
@@ -182,10 +188,7 @@ class CodeGenerator(Interpreter):
         elif child.data == 'for_stsmt':
             code += self.visit(child)
         elif child.data == 'stmt_block':
-            self.current_scope += "/" + str(self.block_stmt_counter)
-            self.block_stmt_counter += 1
             code += self.visit(child)
-            pop_scope(self.current_scope)
         elif child.data == 'break_stmt':  # there is a problem with it !
             pass
         elif child.data == 'return_stmt':
@@ -195,17 +198,18 @@ class CodeGenerator(Interpreter):
             for local_var in reversed(self.stack_local_params[-local_var_count_of_this_scope:]):
                 local_var_name = local_var[0]
                 local_var_type = local_var[1]
+                code += '.text\n'
                 if local_var_type.name == 'double':
                     code += '\tl.d  $f0, 0($sp)\n'
                     code += '\taddi $sp, $sp, 8\n'
-                    code += '\ts.d  $f0, {}\n'.format(local_var_name.replace("/", "_"))
+                    code += '\ts.d  $f0, {}\n\n'.format(local_var_name.replace("/", "_"))
                 else:
                     code += '\tlw   $t0, 0($sp)\n'
                     code += '\taddi $sp, $sp, 8\n'
-                    code += '\tsw   $t0, {}\n'.format(local_var_name.replace("/", "_"))
-            self.stack_local_params = self.stack_local_params[:-local_var_count_of_this_scope]
-            self.stack_local_params_count.pop()
-            code += '\tjr   $ra\n'
+                    code += '\tsw   $t0, {}\n\n'.format(local_var_name.replace("/", "_"))
+            # self.stack_local_params = self.stack_local_params[:-local_var_count_of_this_scope]
+            # self.stack_local_params_count.pop()
+            code += '\tjr   $ra\n\n'
         elif child.data == 'print_stmt':
             pass
         elif child.data == 'expr':
@@ -219,6 +223,9 @@ class CodeGenerator(Interpreter):
             self.stmt_labels = self.stmt_labels[:store_len]
             self.stmt_labels.append(stmt_id)
         return code
+
+    def return_stmt(self, tree):
+        return ''.join(self.visit_children(tree))
 
     def if_stmt(self, tree):
         # return ''.join(self.visit_children(tree))
@@ -308,7 +315,7 @@ j start_stmt_{while_start}
             size = 256
         name = variable.children[1]
         code += '.data\n'
-        code += self.current_scope.replace('/', '_') + '_' + name + ': .space ' + str(size) + '\n'
+        code += self.current_scope.replace('/', '_') + '_' + name + ': .space ' + str(size) + '\n\n'
         return code
 
     def variable(self, tree):
@@ -358,9 +365,9 @@ j start_stmt_{while_start}
     move $a0, $v0
     li $a1, 256         #Maximum string length (incl. null)
     li $v0, 8           #read_string
-    syscall             #ReadLine()
+    syscall             #ReadLine()\n
 """
-        self.expr_types.append(Types.STRING)
+        self.expr_types.append(Type('string'))
         return code
 
     def read_integer(self, tree):
@@ -368,9 +375,9 @@ j start_stmt_{while_start}
     li $v0, 5           #read_integer
     syscall             #ReadInteger()
     sub $sp, $sp, 8
-    sw $v0, 0($sp)
+    sw $v0, 0($sp)\n
 """
-        self.expr_types.append(Types.INT)
+        self.expr_types.append(Type('integer'))
         return code
 
     def new_array(self, tree):
@@ -481,8 +488,7 @@ ezero_{cnt}:\n
 """.format(cnt=cnt())
                 )
         # '\n' at the end of print
-        code += """
-    li $v0, 4 #print new line
+        code += """\tli $v0, 4 #print new line
     la $a0, nw
     syscall\n
 """
@@ -558,7 +564,7 @@ ezero_{cnt}:\n
             # todo must be done
             pass
         if len(tree.children) == 2:
-            self.stack_local_params_count.append(0)
+            # self.stack_local_params_count.append(0)
             ident = tree.children[0]
             actuals = tree.children[1]
             name = ident.value
@@ -1052,6 +1058,13 @@ int main(){
             Print("wrong");
         }
     }
+}
+"""
+
+decaf = """
+int a() {
+    int x;
+    return 5;
 }
 """
 
