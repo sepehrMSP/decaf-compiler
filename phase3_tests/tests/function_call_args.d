@@ -13,9 +13,12 @@ void f(int x, int y, bool z, double a){
 }
 
 int main()  {
-    int x = 1;
-    bool y = true;
-    double aa = 10.2;
+    int x ;
+    bool y;
+    double aa;
+    x = 1;
+    y = true;
+    aa = 10.2;
     f(x, 2, y, 10.2);
     Print(x);
     if(y){
