@@ -375,8 +375,19 @@ j start_stmt_{while_start}
     move $a0, $v0
     li $a1, 256         #Maximum string length (incl. null)
     li $v0, 8           #read_string
-    syscall             #ReadLine()\n
-"""
+    syscall             #ReadLine()
+    
+    lw $a0, 0($sp)      #Replace \\n to \\r(?)
+    lw $t1, nw
+    read_{label_id}:
+        lb $t0, 0($a0)
+        beq $t0, 10, e_read_{label_id}
+        addi $a0, $a0, 1
+        j read_{label_id}
+    e_read_{label_id}:
+        lb $t2, 1($a0)
+        sb $t2, 0($a0)
+""".format(label_id=cnt())
         self.expr_types.append(Type(Types.STRING))
         return code
 
@@ -1132,6 +1143,15 @@ int main(){
 }
 """
 
+def cgen(decaf):
+    parser = Lark(grammar, parser="lalr")
+    parse_tree = parser.parse(decaf)
+    SymbolTableMaker().visit(parse_tree)
+    return CodeGenerator().visit(parse_tree)
+
+decaf = """
+
+"""
 decaf = """
 int a;
 int [] x;
@@ -1149,6 +1169,14 @@ int main() {
 """
 
 if __name__ == '__main__':
+    print(cgen("""
+int main(){
+    Print(2.5*3);
+}
+"""))
+
+    exit(0)
+
     parser = Lark(grammar, parser="lalr")
     parse_tree = parser.parse(text=decaf)
     SymbolTableMaker().visit(parse_tree)
