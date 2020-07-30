@@ -143,7 +143,7 @@ class CodeGenerator(Interpreter):
                     code += '\tlw   $t1, 0($t0)\n'
                     code += '\taddi $sp, $sp, -8\n'
                     code += '\tsw   $t1, 0($sp)\n'
-            if child.data == 'stmt':
+            else:
                 code += self.visit(child)
         # pop declared variables in this scope
         for child in reversed(tree.children):
@@ -370,7 +370,18 @@ j start_stmt_{while_start}
     li $a1, 256         #Maximum string length (incl. null)
     li $v0, 8           #read_string
     syscall             #ReadLine()
-"""
+    
+    lw $a0, 0($sp)      #Replace \\n to \\r(?)
+    lw $t1, nw
+    read_{label_id}:
+        lb $t0, 0($a0)
+        beq $t0, 10, e_read_{label_id}
+        addi $a0, $a0, 1
+        j read_{label_id}
+    e_read_{label_id}:
+        lb $t2, 1($a0)
+        sb $t2, 0($a0)
+""".format(label_id=cnt())
         self.expr_types.append(Type(Types.STRING))
         return code
 
@@ -1075,7 +1086,18 @@ def cgen(decaf):
     SymbolTableMaker().visit(parse_tree)
     return CodeGenerator().visit(parse_tree)
 
+decaf = """
+
+"""
 if __name__ == '__main__':
+    print(cgen("""
+int main(){
+    Print(2.5*3);
+}
+"""))
+
+    exit(0)
+
     parser = Lark(grammar, parser="lalr")
     parse_tree = parser.parse(text=just_class)
     SymbolTableMaker().visit(parse_tree)

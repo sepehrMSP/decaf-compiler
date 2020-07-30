@@ -1,5 +1,6 @@
 import os
-import subprocess
+import time
+
 from cgen_attemp import cgen
 
 if __name__ == '__main__':
@@ -27,9 +28,17 @@ if __name__ == '__main__':
                 res = ''.join(f.readlines())
             with open(out) as f:
                 cor = ''.join(f.readlines())
+            # print(res)
+            # print()
+            # print(cor)
             if res == cor:
                 print('Accepted')
                 acc += 1
             else:
+                print(res)
+                print()
+                print(cor)
                 print('Wrong')
-    print(acc, total)
+        # exit(0)
+        # time.sleep(1)
+    print('Passed {} from {} tests'.format(acc, total))
