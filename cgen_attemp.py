@@ -121,7 +121,7 @@ class CodeGenerator(Interpreter):
             )
             code += ('.text\n'
                      'main:\n'
-                     '\tla\t$ra,__end__'
+                     '\tla\t$ra,__end__\n'
                      '\tmove\t$ra,$t0\n')
         else:
             code += '.text\n{}:\n'.format(ident)
@@ -145,7 +145,8 @@ class CodeGenerator(Interpreter):
         return code
 
     def formals(self, tree):
-        return ''.join(self.visit_children(tree))
+        self.visit_children(tree)
+        return ''
 
     def stmt_block(self, tree):
         self.current_scope += "/" + str(self.block_stmt_counter)
@@ -681,6 +682,7 @@ class CodeGenerator(Interpreter):
         function = function_objects[function_table[function_name]]
         # push formal parameter
         for formal in function.formals:
+
             formal_name = (function_scope + "/" + formal[0]).replace("/", "_")
             if formal.type.name == 'double':
                 code += '\tl.d  $f0, {}\n'.format(formal_name)
@@ -1257,17 +1259,41 @@ def cgen(decaf):
 
 
 decaf = """
-int f() {
-    Print("f u");
-    return 0;
+
+
+void f(int x, int y, bool z, double a){
+    if(x == 1 && y == 2 && z == true && a > 2.5){
+        Print("ok");
+        x = 10;
+        y = 100;
+        z = false;
+        a = 1.5123;
+        return;
+    }
+    Print("not ok");
+    return;
 }
-int main() {
-    f();
-    return 85;
+
+int main()  {
+    int x;
+    bool y;
+    double aa; 
+    x = 1;
+    y = true;
+    aa = 10.2;
+    f(x, 2, y, 10.2);
+    Print(x);
+    if(y){
+        Print("true");
+    }
+    Print(aa);
+    return;
 }
 """
 
 if __name__ == '__main__':
+    print(cgen(decaf))
+    exit(0)
     # (cgen("""
     #     int main(){
     #
