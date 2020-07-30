@@ -54,9 +54,9 @@ grammar = """
 
 
 class Type:
-    def __init__(self, name=None, meta=None):
+    def __init__(self, name=None, meta=None, dimension=0):
         self.name = name
-        self.dimension = 0
+        self.dimension = dimension
         self._meta = meta
 
     def reset(self):
@@ -69,6 +69,8 @@ class Type:
             return True
         return False
 
+    def __str__(self):
+        return 'Name: {}\tDimension: {}'.format(self.name, self.dimension)
 
 class ClassType:
     def __init__(self, name, parent=None):

@@ -58,6 +58,7 @@ class CodeGenerator(Interpreter):
         self.expr_types = []
         self.stmt_labels = []
         self.while_for_labels = []
+        self.last_type = None
 
     def start(self, tree):
         return ''.join(self.visit_children(tree))
@@ -352,8 +353,11 @@ j start_stmt_{while_start}
         return code
 
     def type(self, tree):
-        # return ''.join(self.visit_children(tree))
-        self.visit_children(tree)
+        if isinstance(tree.children[0], lark.Token):
+            self.last_type = Type(tree.children[0])
+        else:
+            self.visit(tree.children[0])
+            self.last_type.dimension += 1
         return ''
 
     def expr(self, tree):
@@ -444,7 +448,7 @@ j start_stmt_{while_start}
     sub $sp, $sp, 8
     sw $v0, 0($sp)\n
 """.format(shamt=shamt)
-        self.expr_types.append('array_{}'.format(self.expr_types.pop()))
+        self.expr_types.append(Type(name=self.last_type.name, dimension=self.last_type.dimension + 1))
         return code
 
     def not_expr(self, tree):
@@ -1196,6 +1200,16 @@ int main() {
 """
 
 if __name__ == '__main__':
+    (cgen("""
+    int main(){
+        NewArray(5, double);
+        NewArray(5, int);
+        NewArray(5, double[]);
+        NewArray(5, int[][]);
+
+    }
+    """))
+    exit(0)
     print(cgen("""
     int main(){
         while(true){
