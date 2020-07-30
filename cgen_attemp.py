@@ -1095,9 +1095,12 @@ if __name__ == '__main__':
     int main(){
         while(ReadInteger()){
             Print("hey");
+            while (ReadInteger()){
+                Print("huy");
+            }
         }
         while(ReadInteger()){
-            Print("hooy");
+            Print("hoy");
         }
     }
 """))
