@@ -73,17 +73,27 @@ class ClassType:
     def __init__(self, name, parent=None):
         self.name = name
         self.parent = parent
+        self.children = []
         self.variables = []
         self.functions = []
         class_type_objects.append(self)
 
+    def print_functions(self):
+        l = []
+        for function in self.functions:
+            l.append(function.exact_name)
+        print(l)
+        return
+
 
 class Function:
-    def __init__(self, name=None):
+    def __init__(self, name=None, exact_name=None):
         self.name = name
         self.return_type = Type()
         """formals is list of [variable_name , variable_type] maybe name part will be deleted in future"""
         self.formals = []
+        """this name is scope of function which will be it's label in mips code"""
+        self.exact_name = exact_name
 
 
 class SymbolTableObject:
@@ -110,12 +120,12 @@ Class Tank:
         double a = 5;
 
 scopes are in the following way:
-    root/Tank
-    root/Tank/val
-    root/Tank/f1/a
-    root/Tank/f1/b
-    root/Tank/f1/c
-    root/Tank/f1/_local/{a number!}/a
+    root/__class__Tank
+    root/__class__Tank/val
+    root/__class__Tank/f1/a
+    root/__class__Tank/f1/b
+    root/__class__Tank/f1/c
+    root/__class__Tank/f1/_local/{a number!}/a
 """
 symbol_table = {}
 
@@ -128,6 +138,7 @@ function index in function_objects
 function_table = {}
 
 stack = ['root']
+parent_classes = []
 
 
 class SymbolTableMaker(Interpreter):
@@ -186,8 +197,8 @@ class SymbolTableMaker(Interpreter):
         symbol_table_object = SymbolTableObject(scope=stack[-1], name=ident)
         symbol_table[(stack[-1], ident.value,)] = self.symbol_table_obj_counter
         self.symbol_table_obj_counter += 1
-
-        function = Function(name=ident.value)
+        print(stack[-1] + "/" + ident.value)
+        function = Function(name=ident.value, exact_name=stack[-1] + "/" + ident.value)
 
         if type(tree.children[0]) == lark.tree.Tree:
             object_type = tree.children[0]
@@ -276,12 +287,17 @@ class SymbolTableMaker(Interpreter):
         ident = tree.children[0]
         class_type_object = ClassType(name=ident)
         class_table[ident.value] = self.class_counter
+        self.class_counter += 1
         symbol_table_object = SymbolTableObject(scope=stack[-1], name=ident)
         symbol_table[(stack[-1], ident.value,)] = self.symbol_table_obj_counter
         self.symbol_table_obj_counter += 1
 
         if type(tree.children[1]) == lark.lexer.Token:
-            pass  # it is for inheritance we scape it for now
+            stack.append(stack[-1] + "/__class__" + ident)
+            for field in tree.children[2:]:
+                field._meta = class_type_object
+                self.visit(field)
+            stack.pop()
         else:
             stack.append(stack[-1] + "/__class__" + ident)
             for field in tree.children[1:]:
@@ -326,6 +342,46 @@ class SymbolTableMaker(Interpreter):
             self.visit(tree.children[0])
 
 
+class ClassTreeSetter(Interpreter):
+    def decl(self, tree):
+        for declaration in tree.children:
+            if declaration.data == 'class_decl':
+                self.visit(declaration)
+
+    def class_decl(self, tree):
+        ident = tree.children[0]
+
+        if type(tree.children[1]) == lark.lexer.Token:
+            parent_name = tree.children[1].value
+            parent = class_type_objects[class_table[parent_name]]
+            parent.children.append(ident.value)
+        else:
+            parent_classes.append(ident.value)
+
+
+def set_inheritance(parent_class: ClassType):
+    if parent_class.children:
+        for child in parent_class.children:
+            child_class = class_type_objects[class_table[child]]
+            child_class.variables = parent_class.variables + child_class.variables
+
+            child_functions = child_class.functions
+            child_class.functions = parent_class.functions
+            parent_class_function_names = set()
+            for func in parent_class.functions:
+                parent_class_function_names.add(func.name)
+            counter = 0
+            for func in child_functions:
+                if func.name in parent_class_function_names:
+                    #override
+                    child_functions[counter] = func
+                else:
+                    child_class.functions.append(func)
+                counter += 1
+
+            set_inheritance(child_class)
+
+
 just_class = """class Person{
     double name;
     int a;
@@ -345,6 +401,11 @@ class Person{
         int c;
     }
 }
+
+class Emp extends Person {
+    int lks;
+    int fight(){}
+} 
 void cal(int number, double mmd) {
     int c;
     {
@@ -408,7 +469,12 @@ if __name__ == '__main__':
     parser = Lark(grammar, parser="lalr")
     parse_tree = parser.parse(text)
     SymbolTableMaker().visit(parse_tree)
+    ClassTreeSetter().visit(parse_tree)
     print(symbol_table)
+    set_inheritance(class_type_objects[0])
+    class_type_objects[0].print_functions()
+    class_type_objects[1].print_functions()
+    # todo add function exact name which contains scope to function meta!
 # print('****************************')
 # print(stack)
 # print(symbol_table)
