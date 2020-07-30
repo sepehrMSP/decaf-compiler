@@ -52,7 +52,6 @@ grammar = """
 """
 
 
-
 class Type:
     def __init__(self, name=None, meta=None):
         self.name = name
@@ -170,7 +169,7 @@ class SymbolTableMaker(Interpreter):
                 self.visit(declaration)
                 pass
             elif declaration.data == 'class_decl':
-                # self.visit(declaration)
+                self.visit(declaration)
                 pass
 
     def function_decl(self, tree):
@@ -277,7 +276,6 @@ class SymbolTableMaker(Interpreter):
         ident = tree.children[0]
         class_type_object = ClassType(name=ident)
         class_table[ident.value] = self.class_counter
-
         symbol_table_object = SymbolTableObject(scope=stack[-1], name=ident)
         symbol_table[(stack[-1], ident.value,)] = self.symbol_table_obj_counter
         self.symbol_table_obj_counter += 1
@@ -285,10 +283,11 @@ class SymbolTableMaker(Interpreter):
         if type(tree.children[1]) == lark.lexer.Token:
             pass  # it is for inheritance we scape it for now
         else:
-            stack.append(stack[-1] + "/" + ident)
-            for field in tree.children[1:-1]:
+            stack.append(stack[-1] + "/__class__" + ident)
+            for field in tree.children[1:]:
                 field._meta = class_type_object
                 self.visit(field)
+            stack.pop()
 
     def field(self, tree):
         tree.children[0]._meta = tree._meta
@@ -327,9 +326,25 @@ class SymbolTableMaker(Interpreter):
             self.visit(tree.children[0])
 
 
+just_class = """class Person{
+    double name;
+    int a;
+    string l;
+    int mmd(){
+        int c;
+    }
+}"""
 text = """
 int[][][] c;
 int d;
+class Person{
+    double name;
+    int a;
+    string l;
+    int mmd(){
+        int c;
+    }
+}
 void cal(int number, double mmd) {
     int c;
     {
@@ -388,12 +403,12 @@ int main() {
 
     p.print();
 }
-
 """
-# if __name__ == '__main__':
-parser = Lark(grammar, parser="lalr")
-parse_tree = parser.parse(text)
-SymbolTableMaker().visit(parse_tree)
+if __name__ == '__main__':
+    parser = Lark(grammar, parser="lalr")
+    parse_tree = parser.parse(text)
+    SymbolTableMaker().visit(parse_tree)
+    print(symbol_table)
 # print('****************************')
 # print(stack)
 # print(symbol_table)
