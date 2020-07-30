@@ -70,7 +70,7 @@ class CodeGenerator(Interpreter):
         super().__init__()
         self.expr_types = []
         self.stmt_labels = []
-        self.while_for_labels = []
+        self.loop_labels = []
         self.last_type = None
 
     def start(self, tree):
@@ -256,7 +256,7 @@ class CodeGenerator(Interpreter):
             .text\t\t\t\t# break
                 j end_stmt_{}
             ##             
-        """.format(self.while_for_labels[-1]))
+        """.format(self.loop_labels[-1]))
         return code
 
     def return_stmt(self, tree):
@@ -292,7 +292,7 @@ class CodeGenerator(Interpreter):
 
     def while_stmt(self, tree):
         while_id = tree._meta
-        self.while_for_labels.append(while_id)
+        self.loop_labels.append(while_id)
         store_len = len(self.stmt_labels)
         code = '.text\t\t\t\t# While\n'
         code += self.visit(tree.children[0])
@@ -305,13 +305,13 @@ class CodeGenerator(Interpreter):
         code += stmt_code
         code += tab("j start_stmt_{while_start}".format(while_start=while_id))
         self.stmt_labels = self.stmt_labels[:store_len]
-        self.while_for_labels.pop()
+        self.loop_labels.pop()
         return code
 
     def for_stmt(self, tree):
         for_id = tree._meta
-        self.while_for_labels.append(for_id)
-        self.while_for_labels.pop(for_id)
+        self.loop_labels.append(for_id)
+        self.loop_labels.pop(for_id)
         return ''.join(self.visit_children(tree))
 
     # probably we wont need this part in cgen
