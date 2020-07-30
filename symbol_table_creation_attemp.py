@@ -283,11 +283,11 @@ class SymbolTableMaker(Interpreter):
         if type(tree.children[1]) == lark.lexer.Token:
             pass  # it is for inheritance we scape it for now
         else:
-            stack.append(stack[-1] + "/" + ident)
+            stack.append(stack[-1] + "/__class__" + ident)
             for field in tree.children[1:]:
                 field._meta = class_type_object
                 self.visit(field)
-        stack.pop()
+            stack.pop()
 
     def field(self, tree):
         tree.children[0]._meta = tree._meta
@@ -326,6 +326,14 @@ class SymbolTableMaker(Interpreter):
             self.visit(tree.children[0])
 
 
+just_class = """class Person{
+    double name;
+    int a;
+    string l;
+    int mmd(){
+        int c;
+    }
+}"""
 text = """
 int[][][] c;
 int d;
