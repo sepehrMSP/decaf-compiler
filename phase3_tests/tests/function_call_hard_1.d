@@ -7,6 +7,7 @@ bool check(double x, double y){
 void g(int z, int x){
     Print(z);
     Print(x);
+    return;
 }
 
 void z(bool z){
@@ -16,6 +17,7 @@ void z(bool z){
     }else{
         Print("bad z");
     }
+    return;
 }
 
 bool ge_5(int inp){
@@ -44,28 +46,35 @@ void jumper_3(int x){
     Print(x);
     x = 1;
     Print(x);
+    return;
 }
 
 void jumper_2(int y){
     jumper_3(y);
     Print(y);
     jumper_3(y+1);
+    return;
 }
 
 void jumper_1(int x){
     jumper_2(x);
     Print(x);
     jumper_2(x);
+    return;
 }
 
 void f(){
-    int x = 5;
-    int y = 10;
+    int x;
+    int y;
+    double d2;
+    double d5;
+    x = 5;
+    y = 10;
     g(x, x+y);
     Print(x);
     Print(y);
-    double d2 = 2.5;
-    double d5 = 5.5;
+    d2 = 2.5;
+    d5 = 5.5;
     if (check(d2, d5)){
         Print("t");
         z(true);
@@ -85,4 +94,5 @@ void f(){
 
 int main()  {
     f();
+    return;
 }
