@@ -120,7 +120,9 @@ class CodeGenerator(Interpreter):
                 '\tnw: .asciiz "\\n"\n'
             )
             code += ('.text\n'
-                     'main:\n')
+                     'main:\n'
+                     '\tla\t$ra,__end__'
+                     '\tmove\t$ra,$t0\n')
         else:
             code += '.text\n{}:\n'.format(ident)
 
@@ -137,6 +139,7 @@ class CodeGenerator(Interpreter):
 
         if ident == 'main':
             code += '.text\n'
+            code += '__end__:\n'
             code += '\tli $v0, 10\t\t\t#exit\n'
             code += '\tsyscall\n'
         return code
@@ -212,12 +215,12 @@ class CodeGenerator(Interpreter):
         elif child.data == 'while_stmt':
             code += self.visit(child)
         elif child.data == 'for_stmt':
-            print(child.children[0])
-            print()
-            print(child.children[1])
-            print()
-            print(child.children[2])
-            print()
+            # print(child.children[0])
+            # print()
+            # print(child.children[1])
+            # print()
+            # print(child.children[2])
+            # print()
             exit(0)
             code += self.visit(child)
         elif child.data == 'stmt_block':
@@ -668,7 +671,7 @@ class CodeGenerator(Interpreter):
             actuals = tree.children[1]
             name = ident.value
             actuals._meta = name
-            self.visit(actuals)
+            return self.visit(actuals)
 
     def actuals(self, tree):
         code = ''
@@ -1023,9 +1026,9 @@ class CodeGenerator(Interpreter):
         var_name = tree.children[0].value
         while (var_scope, var_name) not in symbol_table:
             var_scope = pop_scope(var_scope)
+            #inja :D chon ta'rif nashode, while tamum nemishe; dombale moteghayyere dorost migardam dg. be scope asli kar nadaram. mannnnnnn kari lazem nist bokonim. code ghalat nemidan ke. Re Dg:)) tarif nakardam y ro
         label_name = var_scope.replace('/', '_') + '_' + var_name
         code = '.text\n'
-        code += '\t#fuck\n'
         code += '\tla $t0, {}\n'.format(label_name)
         code += '\tsub $sp, $sp, 8\n'
         code += '\tsw $t0, 0($sp)\n\n'
@@ -1254,61 +1257,59 @@ def cgen(decaf):
 
 
 decaf = """
+int f() {
+    Print("f u");
+    return 0;
+}
 int main() {
-    string k;
-    double [] x;
-    double [] y;
-    x = NewArray(8, double);
-    y = NewArray(8 * 2, double);
-    y[5] = x[2] = 3.14;
-    Print(x[2] - y[5]);
-    Print(y[2] - x[2]);
+    f();
+    return 85;
 }
 """
 
 if __name__ == '__main__':
-    (cgen("""
-        int main(){
-        
-            NewArray(5, double[][]);
-            NewArray(5, int);
-            NewArray(5, bool[]);
-            for(i=0; i<10; i=i+1){
-            }
-        }
-    """))
-    exit(0)
-    print(cgen("""
-    int main(){
-        while(true){
-            if(ReadInteger() == 2){
-                Print(2);
-                break;
-            }
-            Print(1);
-        }
-        while(true){
-            while(true){
-                if(ReadInteger() == 2){
-                    Print(4);
-                    break;
-                }
-                Print(3);
-            }
-            while(true){
-                if (false){
-                }else{
-                    break;
-                }
-                Print("holy");
-            }
-            break;
-        }
-        Print("goody goody");
-    }
-"""))
-
-    exit(0)
+    # (cgen("""
+    #     int main(){
+    #
+    #         NewArray(5, double[][]);
+    #         NewArray(5, int);
+    #         NewArray(5, bool[]);
+    #         for(i=0; i<10; i=i+1){
+    #         }
+    #     }
+    # """))
+    # exit(0)
+    # print(cgen("""
+    # int main(){
+    #     while(true){
+    #         if(ReadInteger() == 2){
+    #             Print(2);
+    #             break;
+    #         }
+    #         Print(1);
+    #     }
+    #     while(true){
+    #         while(true){
+    #             if(ReadInteger() == 2){
+    #                 Print(4);
+    #                 break;
+    #             }
+    #             Print(3);
+    #         }
+    #         while(true){
+    #             if (false){
+    #             }else{
+    #                 break;
+    #             }
+    #             Print("holy");
+    #         }
+    #         break;
+    #     }
+    #     Print("goody goody");
+    # }
+# """))
+#
+#     exit(0)
 
     parser = Lark(grammar, parser="lalr")
     parse_tree = parser.parse(text=decaf)
