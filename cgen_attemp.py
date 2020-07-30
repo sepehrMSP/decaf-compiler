@@ -14,6 +14,26 @@ def pop_scope(scope):
     return parent_scope
 
 
+def tab(code) -> str:
+    codes = code.split('\n')
+    if len(codes[0]) == 0:
+        codes = codes[1:]
+    remove = 0
+    for char in codes[0]:
+        if char == ' ':
+            remove += 1
+        else:
+            break
+    for i in range(len(codes)):
+        codes[i] += '\n'
+        line = codes[i]
+        if line[:remove] == ' ' * remove:
+            codes[i] = line[remove:]
+    if codes[-1][-1] != '\n':
+        codes[-1][-1] += '\n'
+    return ''.join(codes)
+
+
 class Types:
     BOOL = 'bool'
     INT = 'int'
@@ -50,6 +70,8 @@ class CodeGenerator(Interpreter):
         super().__init__()
         self.expr_types = []
         self.stmt_labels = []
+        self.loop_labels = []
+        self.last_type = None
 
     def start(self, tree):
         return ''.join(self.visit_children(tree))
@@ -78,43 +100,44 @@ class CodeGenerator(Interpreter):
             code += (
                 '.text\n'
                 '__strcmp__:\n'
-                '   lb $t0, 0($a0)\n'
-                '   lb $t1, 0($a1)\n'
-                '   bne $t0, $t1, __NE__\n'
-                '   bne $t0, $zero, __cont__\n'
-                '   li $v0, 1\n'
-                '   jr $ra\n'
+                '\tlb $t0, 0($a0)\n'
+                '\tlb $t1, 0($a1)\n'
+                '\tbne $t0, $t1, __NE__\n'
+                '\tbne $t0, $zero, __cont__\n'
+                '\tli $v0, 1\n'
+                '\tjr $ra\n'
                 '__cont__:\n'
-                '   addi $a0, $a0, 1\n'
-                '   addi $a1, $a1, 1\n'
-                '   j __strcmp__\n'
+                '\taddi $a0, $a0, 1\n'
+                '\taddi $a1, $a1, 1\n'
+                '\tj __strcmp__\n'
                 '__NE__:\n'
-                '   li $v0, 0\n'
-                '   jr $ra\n\n'
+                '\tli $v0, 0\n'
+                '\tjr $ra\n\n'
                 '.data\n'
-                '   true: .asciiz "true"\n'
-                '   false: .asciiz "false"\n'
-                '	const10000: .double 10000.0\n'
-                '   nw: .asciiz "\\n"\n'
+                '\ttrue: .asciiz "true"\n'
+                '\tfalse: .asciiz "false"\n'
+                '\tconst10000: .double 10000.0\n'
+                '\tnw: .asciiz "\\n"\n'
             )
             code += ('.text\n'
                      'main:\n')
         else:
-            code += '{}:\n'.format(ident)
+            code += '.text\n{}:\n'.format(ident)
 
         self.current_scope += "/" + ident.value
         code += self.visit(formals)
         self.current_scope += "/_local"
-        self.current_scope += "/" + str(self.block_stmt_counter)
-        self.block_stmt_counter += 1
+        self.stack_local_params_count.append(0)
         code += self.visit(stmt_block)
-        pop_scope(self.current_scope)  # pop stmt block
-        pop_scope(self.current_scope)  # pop _local
-        pop_scope(self.current_scope)  # pop formals
+        local_var_count = self.stack_local_params_count[-1]
+        self.stack_local_params = self.stack_local_params[:-local_var_count]
+        self.stack_local_params_count.pop()
+        self.current_scope = pop_scope(self.current_scope)  # pop _local
+        self.current_scope = pop_scope(self.current_scope)  # pop formals
 
         if ident == 'main':
             code += '.text\n'
-            code += '\tli $v0, 10         #exit\n'
+            code += '\tli $v0, 10\t\t\t#exit\n'
             code += '\tsyscall\n'
         return code
 
@@ -122,6 +145,8 @@ class CodeGenerator(Interpreter):
         return ''.join(self.visit_children(tree))
 
     def stmt_block(self, tree):
+        self.current_scope += "/" + str(self.block_stmt_counter)
+        self.block_stmt_counter += 1
         code = ''
         stmt_id = cnt()
         store_len = len(self.stmt_labels)
@@ -131,19 +156,21 @@ class CodeGenerator(Interpreter):
                 code += self.visit(child)
                 self.stack_local_params_count[-1] += 1
                 variable_name = child.children[0].children[1].value
-                variable_type = symbol_table_objects[symbol_table[(self.current_scope, variable_name)]].type
+                variable_type = symbol_table_objects[
+                    symbol_table[(self.current_scope, variable_name)]].type  # TODO is current_scope set?
                 self.stack_local_params.append(
                     [self.current_scope + "/" + variable_name, variable_type])  # todo must review
+                code += '.text\n'
                 if variable_type.name == 'double':
                     code += '\tl.d  $f0, {}\n'.format((self.current_scope + "/" + variable_name).replace("/", "_"))
                     code += '\taddi $sp, $sp, -8\n'
-                    code += '\ts.d  $f0, 0($sp)\n'
+                    code += '\ts.d  $f0, 0($sp)\n\n'
                 else:
                     code += '\tla   $t0, {}\n'.format((self.current_scope + "/" + variable_name).replace("/", "_"))
                     code += '\tlw   $t1, 0($t0)\n'
                     code += '\taddi $sp, $sp, -8\n'
-                    code += '\tsw   $t1, 0($sp)\n'
-            if child.data == 'stmt':
+                    code += '\tsw   $t1, 0($sp)\n\n'
+            else:
                 code += self.visit(child)
         # pop declared variables in this scope
         for child in reversed(tree.children):
@@ -152,19 +179,21 @@ class CodeGenerator(Interpreter):
                 variable_name = child.children[0].children[1].value
                 variable_type = symbol_table_objects[symbol_table[(self.current_scope, variable_name)]].type
                 self.stack_local_params.pop()  # todo must review
+                code += '.text\n'
                 if variable_type.name == 'double':
                     code += '\tl.d  $f0, 0($sp)\n'
                     code += '\taddi $sp, $sp, 8\n'
-                    code += '\ts.d  $f0, {}'.format((self.current_scope + "/" + variable_name).replace("/", "_"))
+                    code += '\ts.d  $f0, {}\n\n'.format((self.current_scope + "/" + variable_name).replace("/", "_"))
                 else:
                     code += '\tlw   $t1, 0($sp)\n'
                     code += '\taddi $sp, $sp, 8\n'
                     code += '\tla   $t0, {}\n'.format((self.current_scope + "/" + variable_name).replace("/", "_"))
-                    code += '\tsw   $t1, 0($t0)\n'
+                    code += '\tsw   $t1, 0($t0)\n\n'
 
         code += 'end_stmt_{}:\n'.format(stmt_id)
         self.stmt_labels = self.stmt_labels[:store_len]
         self.stmt_labels.append(stmt_id)
+        self.current_scope = pop_scope(self.current_scope)
         return code
         # todo must review by Sir Sadegh
 
@@ -172,24 +201,31 @@ class CodeGenerator(Interpreter):
         child = tree.children[0]
         store_len = len(self.stmt_labels)
         code = ''
-        add_stmt = True if child.data not in ('while_stmt',) else False
-        if add_stmt:
-            stmt_id = cnt()
-            code += ('start_stmt_{}:\n'.format(stmt_id))
+        # add_stmt = True if child.data not in ('while_stmt',) else False
+        # if add_stmt:
+        stmt_id = cnt()
+        code += ('start_stmt_{}:\n'.format(stmt_id))
+        child._meta = stmt_id
+
+        # print(child)
 
         if child.data == 'if_stmt':
             code += self.visit(child)
         elif child.data == 'while_stmt':
             code += self.visit(child)
-        elif child.data == 'for_stsmt':
+        elif child.data == 'for_stmt':
+            print(child.children[0])
+            print()
+            print(child.children[1])
+            print()
+            print(child.children[2])
+            print()
+            exit(0)
             code += self.visit(child)
         elif child.data == 'stmt_block':
-            self.current_scope += "/" + str(self.block_stmt_counter)
-            self.block_stmt_counter += 1
             code += self.visit(child)
-            pop_scope(self.current_scope)
         elif child.data == 'break_stmt':  # there is a problem with it !
-            pass
+            code += self.visit(child)
         elif child.data == 'return_stmt':
             code += self.visit(child)
             # todo wither is it essential to pop expr from stack or not or do this in caller side?
@@ -197,83 +233,92 @@ class CodeGenerator(Interpreter):
             for local_var in reversed(self.stack_local_params[-local_var_count_of_this_scope:]):
                 local_var_name = local_var[0]
                 local_var_type = local_var[1]
+                code += '.text\n'
                 if local_var_type.name == 'double':
                     code += '\tl.d  $f0, 0($sp)\n'
                     code += '\taddi $sp, $sp, 8\n'
-                    code += '\ts.d  $f0, {}\n'.format(local_var_name.replace("/", "_"))
+                    code += '\ts.d  $f0, {}\n\n'.format(local_var_name.replace("/", "_"))
                 else:
                     code += '\tlw   $t0, 0($sp)\n'
                     code += '\taddi $sp, $sp, 8\n'
-                    code += '\tsw   $t0, {}\n'.format(local_var_name.replace("/", "_"))
-            self.stack_local_params = self.stack_local_params[:-local_var_count_of_this_scope]
-            self.stack_local_params_count.pop()
-            code += '\tjr   $ra\n'
+                    code += '\tsw   $t0, {}\n\n'.format(local_var_name.replace("/", "_"))
+            # self.stack_local_params = self.stack_local_params[:-local_var_count_of_this_scope]
+            # self.stack_local_params_count.pop()
+            code += '\tjr   $ra\n\n'
         elif child.data == 'print_stmt':
-            pass
+            code += self.visit(child)
         elif child.data == 'expr':
             code += self.visit(child)
         else:
             code += self.visit(child)
         # todo these last 4 if statements can be removed but there are here to have more explicit behavior
 
-        if add_stmt:
-            code += 'end_stmt_{}:\n'.format(stmt_id)
-            self.stmt_labels = self.stmt_labels[:store_len]
-            self.stmt_labels.append(stmt_id)
+        code += 'end_stmt_{}:\n'.format(stmt_id)
+        self.stmt_labels = self.stmt_labels[:store_len]
+        self.stmt_labels.append(stmt_id)
         return code
 
-    def if_stmt(self, tree):
-        # return ''.join(self.visit_children(tree))
+    def break_stmt(self, tree):
+        code = tab("""
+            .text\t\t\t\t# break
+                j end_stmt_{}
+            ##             
+        """.format(self.loop_labels[-1]))
+        return code
 
+    def return_stmt(self, tree):
+        return ''.join(self.visit_children(tree))
+
+    def if_stmt(self, tree):
         code = ''
         code += self.visit(tree.children[0])
         then_code = self.visit(tree.children[1])
         else_code = '' if len(tree.children) == 2 else self.visit(tree.children[2])
         if len(tree.children) == 2:
-            code += """
-.text 
-lw $a0, 0($sp)
-addi $sp, $sp, 8
-beq $a0, 0, end_stmt_{then}
-j  start_stmt_{then}
-""".format(then=self.stmt_labels[-1])
+            code += tab(
+                """
+                .text\t\t\t\t#If
+                    lw $a0, 0($sp)
+                    addi $sp, $sp, 8
+                    beq $a0, 0, end_stmt_{then}
+                    j  start_stmt_{then}
+                """.format(then=self.stmt_labels[-1])
+            )
             code += then_code
         else:
-            code += """
-.text
-lw $a0, 0($sp)
-addi $sp, $sp, 8
-beq $a0, 0, start_stmt_{els}
-""".format(els=self.stmt_labels[-1])
+            code += tab("""
+                .text\t\t\t\t# IfElse
+                    lw $a0, 0($sp)
+                    addi $sp, $sp, 8
+                    beq $a0, 0, start_stmt_{els}
+                """.format(els=self.stmt_labels[-1]))
             code += then_code
-            code += """
-j end_stmt_{els}
-""".format(els=self.stmt_labels[-1])
+            code += tab("j end_stmt_{els}".format(els=self.stmt_labels[-1]))
             code += else_code
         return code
 
     def while_stmt(self, tree):
-        while_id = cnt()
+        while_id = tree._meta
+        self.loop_labels.append(while_id)
         store_len = len(self.stmt_labels)
-        code = '.text\n'
-        code += "start_stmt_{}:\n".format(while_id)
+        code = '.text\t\t\t\t# While\n'
         code += self.visit(tree.children[0])
         stmt_code = self.visit(tree.children[1])
-        code += """
-lw $a0, 0($sp)
-addi $sp, $sp, 8
-beq $a0, 0, end_stmt_{while_end}
-""".format(while_end=while_id)
+        code += tab("""
+            lw $a0, 0($sp)
+            addi $sp, $sp, 8
+            beq $a0, 0, end_stmt_{while_end}
+        """.format(while_end=while_id))
         code += stmt_code
-        code += """
-j start_stmt_{while_start}
-""".format(while_start=while_id)
-        code += "end_stmt_{}:\n".format(while_id)
+        code += tab("j start_stmt_{while_start}".format(while_start=while_id))
         self.stmt_labels = self.stmt_labels[:store_len]
-        self.stmt_labels.append(while_id)
+        self.loop_labels.pop()
         return code
 
     def for_stmt(self, tree):
+        for_id = tree._meta
+        self.loop_labels.append(for_id)
+        self.loop_labels.pop(for_id)
         return ''.join(self.visit_children(tree))
 
     # probably we wont need this part in cgen
@@ -287,7 +332,7 @@ j start_stmt_{while_start}
             self.current_scope += "/__class__" + ident.value
             for field in tree.children[1:]:
                 code += self.visit(field)
-            pop_scope(self.current_scope)
+            self.current_scope = pop_scope(self.current_scope)
         return code
 
     def field(self, tree):
@@ -307,28 +352,33 @@ j start_stmt_{while_start}
             return code
         variable = tree.children[0]
         var_type = variable.children[0]
-        if type(var_type.children[0]) != lark.lexer.Token:
-            return code
-        var_type = var_type.children[0].value
-        if var_type not in ['int', 'double', 'bool', 'string']:
-            return code
         size = 4
-        if var_type == 'double':
-            size = 8
-        elif var_type == 'string':
-            size = 256
+        if type(var_type.children[0]) == lark.lexer.Token:
+            var_type = var_type.children[0].value
+            if var_type == 'double':
+                size = 8
+            elif var_type == 'string':
+                size = 256
         name = variable.children[1]
         code += '.data\n'
-        code += self.current_scope.replace('/', '_') + '_' + name + ': .space ' + str(size) + '\n'
+        code += self.current_scope.replace('/', '_') + '_' + name + ': .space ' + str(size) + '\n\n'
         return code
-
-    def variable(self, tree):
-        return ''.join(self.visit_children(tree))
-
+    # double [][]
+    #
+    #
+    #
     def type(self, tree):
-        return ''.join(self.visit_children(tree))
+        if type(tree.children[0]) == lark.lexer.Token:
+            self.last_type = Type(tree.children[0])
+        else:
+            self.visit(tree.children[0])
+            self.last_type.dimension += 1
+        return ''
 
     def expr(self, tree):
+        return ''.join(self.visit_children(tree))
+
+    def expr8(self, tree):
         return ''.join(self.visit_children(tree))
 
     def expr1(self, tree):
@@ -356,31 +406,42 @@ j start_stmt_{while_start}
         return ''.join(child_codes)
 
     def read_line(self, tree):
-        """
-        line address in stack
-        """
-        code = ''
-        code += """.text
-    li $a0, 256         #Maximum string length
-    li $v0, 9           #sbrk
-    syscall
-    sub $sp, $sp, 8
-    sw $v0, 0($sp)
-    move $a0, $v0
-    li $a1, 256         #Maximum string length (incl. null)
-    li $v0, 8           #read_string
-    syscall             #ReadLine()
-"""
+        code = tab("""
+        .text\t\t\t\t # Read Line
+            li $a0, 256         #Maximum string length
+            li $v0, 9           #sbrk
+            syscall
+            sub $sp, $sp, 8
+            sw $v0, 0($sp)
+            move $a0, $v0
+            li $a1, 256         #Maximum string length (incl. null)
+            li $v0, 8           #read_string
+            syscall             #ReadLine()
+            
+            lw $a0, 0($sp)      #Replace \\n to \\r(?)
+            lw $t1, nw
+            read_{label_id}:
+                lb $t0, 0($a0)
+                beq $t0, 10, e_read_{label_id}
+                addi $a0, $a0, 1
+                j read_{label_id}
+            e_read_{label_id}:
+                lb $t2, 1($a0)
+                sb $t2, 0($a0)
+        ##
+        """.format(label_id=cnt()))
         self.expr_types.append(Type(Types.STRING))
         return code
 
     def read_integer(self, tree):
-        code = """.text
-    li $v0, 5           #read_integer
-    syscall             #ReadInteger()
-    sub $sp, $sp, 8
-    sw $v0, 0($sp)
-"""
+        code = tab("""
+            .text\t\t\t\t # Read Integer
+                li $v0, 5           #read_integer
+                syscall             #ReadInteger()
+                sub $sp, $sp, 8
+                sw $v0, 0($sp)
+            ##
+            """)
         self.expr_types.append(Type(Types.INT))
         return code
 
@@ -393,30 +454,35 @@ j start_stmt_{while_start}
             if tp.value == Types.DOUBLE:
                 shamt = 3
 
-        code += """.text
-    lw $a0, 0($sp)
-    addi $sp, $sp, 8
-    sll $a0, $a0, {shamt}
-    li $v0, 9           #sbrk
-    syscall
-    sub $sp, $sp, 8
-    sw $v0, 0($sp)
-""".format(shamt=shamt)
-        self.expr_types.append('array_{}'.format(self.expr_types.pop()))
+        code += tab("""
+            .text\t\t\t\t # New array
+                lw $a0, 0($sp)
+                addi $sp, $sp, 8
+                sll $a0, $a0, {shamt}
+                li $v0, 9           #sbrk
+                syscall
+                sub $sp, $sp, 8
+                sw $v0, 0($sp)\n
+            ##
+        """.format(shamt=shamt))
+        self.expr_types.append(Type(name=self.last_type.name, dimension=self.last_type.dimension + 1))
         return code
+
 
     def not_expr(self, tree):
         code = ''.join(self.visit_children(tree))
-        code += """.text
-    lw $t0, 0($sp)
-    addi $sp, $sp, 8
-    li $t1, 1
-    beq $t0, 0, not_{0}
-        li $t1, 0
-not_{0}:
-    sub  $sp, $sp, 8
-    sw $t1, 0($sp)\n
-""".format(cnt())
+        code += tab("""
+            .text\t\t\t\t # Not
+                lw $t0, 0($sp)
+                addi $sp, $sp, 8
+                li $t1, 1
+                beq $t0, 0, not_{0}
+                    li $t1, 0
+                not_{0}:
+                    sub  $sp, $sp, 8
+                    sw $t1, 0($sp)
+            ##
+        """.format(cnt()))
         self.expr_types.pop()
         self.expr_types.append(Type(Types.BOOL))
         return code
@@ -425,17 +491,21 @@ not_{0}:
         code = ''.join(self.visit_children(tree))
         typ = self.expr_types[-1]
         if typ.name == 'int':
-            code += """.text
-    lw $t0, 0($sp)
-    sub $t0, $zero, $t0
-    sw $t0, 0($sp)\n
-"""
+            code += tab("""
+                .text\t\t\t\t# Neg int
+                    lw $t0, 0($sp)
+                    sub $t0, $zero, $t0
+                    sw $t0, 0($sp)
+                ##
+                """)
         else:
-            code += """.text
-    l.d $f0, 0($sp)
-    neg.d $f0, $f0
-    s.d $f0, 0($sp)\n
-"""
+            code += tab("""
+                .text\t\t\t\t# Neg double
+                    l.d $f0, 0($sp)
+                    neg.d $f0, $f0
+                    s.d $f0, 0($sp)
+                ##
+            """)
         return code
 
     def print(self, tree):
@@ -445,17 +515,19 @@ not_{0}:
             t = self.expr_types[-1]
             code += '.text\n'
             if t.name == 'double':
-                code += """\tl.d $f12, 0($sp)
-    addi $sp, $sp, 8
-    li.d $f2, 1000.0
-    mul.d $f12, $f12, $f2
-    round.w.d $f12, $f12
-    cvt.d.w $f12, $f12
-    div.d $f12, $f12, $f2
-    li $v0, 3
-    syscall                
-
-"""
+                code += tab("""
+                    # Print double
+                        l.d $f12, 0($sp)
+                        addi $sp, $sp, 8
+                        li.d $f2, 1000.0
+                        mul.d $f12, $f12, $f2
+                        round.w.d $f12, $f12
+                        cvt.d.w $f12, $f12
+                        div.d $f12, $f12, $f2
+                        li $v0, 3
+                        syscall             #Print double
+                    ##
+                """)
             #                 print("""
             # l.d $f12, 0($sp)
             # addi $sp, $sp, 8
@@ -463,40 +535,52 @@ not_{0}:
             # syscall
             #                 """)
             elif t.name == 'int':
-                code += """\tli $v0, 1
-    lw $a0, 0($sp)
-    addi $sp, $sp, 8
-    syscall\n
-"""
+                code += tab("""
+                    # Print int
+                        li $v0, 1
+                        lw $a0, 0($sp)
+                        addi $sp, $sp, 8
+                        syscall             #Print int
+                    ##
+                """)
             elif t.name == Types.STRING:
-                code += """\tli $v0, 4
-    lw $a0, 0($sp)
-    addi $sp, $sp, 8
-    syscall\n
-"""
-                pass
+                code += tab(
+                    """
+                    # Print string
+                        li $v0, 4
+                        lw $a0, 0($sp)
+                        addi $sp, $sp, 8
+                        syscall             #Print string
+                    ##
+                    """)
             elif t.name == 'bool' and t.dimension == 0:
-                code += (
-                    """\tlw $a0, 0($sp)
-    addi $sp, $sp, 8
-    beq $a0, 0, zero_{cnt}
-    li $v0, 4
-    la $a0, true
-    syscall
-    j ezero_{cnt}
-    zero_{cnt}:
-    li $v0, 4
-    la $a0, false
-    syscall
-ezero_{cnt}:\n
-""".format(cnt=cnt())
+                code += tab(
+                    """
+                    # Print bool
+                        lw $a0, 0($sp)
+                        addi $sp, $sp, 8
+                        beq $a0, 0, zero_{cnt}
+                        li $v0, 4
+                        la $a0, true
+                        syscall
+                        j ezero_{cnt}
+                        zero_{cnt}:
+                        li $v0, 4
+                        la $a0, false
+                        syscall             #Print bool
+                        ezero_{cnt}:
+                    ##
+                    """.format(cnt=cnt())
                 )
         # '\n' at the end of print
-        code += """
-    li $v0, 4 #print new line
-    la $a0, nw
-    syscall\n
-"""
+        code += tab(
+            """
+            # Print new line
+                li $v0, 4
+                la $a0, nw
+                syscall\t\t\t\t#Print new line\n
+            ##
+            """)
         return code
 
     def const_int(self, tree):
@@ -569,7 +653,7 @@ ezero_{cnt}:\n
             # todo must be done
             pass
         if len(tree.children) == 2:
-            self.stack_local_params_count.append(0)
+            # self.stack_local_params_count.append(0)
             ident = tree.children[0]
             actuals = tree.children[1]
             name = ident.value
@@ -651,18 +735,18 @@ ezero_{cnt}:\n
         typ = self.expr_types.pop()
         if typ.name == 'int':
             code += '.text\n'
-            code += '\tlw $t0, 0($sp)\n'
-            code += '\tlw $t1, 8($sp)\n'
-            code += '\tmul $t2, $t1, $t0\n'
-            code += '\tsw $t2, 8($sp)\n'
+            code += '\tlw   $t0, 0($sp)\n'
+            code += '\tlw   $t1, 8($sp)\n'
+            code += '\tmul  $t2, $t1, $t0\n'
+            code += '\tsw   $t2, 8($sp)\n'
             code += '\taddi $sp, $sp, 8\n\n'
         if typ.name == 'double':
             code += '.text\n'
-            code += '\tl.d $f0, 0($sp)\n'
-            code += '\tl.d $f2, 8($sp)\n'
-            code += '\tmul.d $f4, $f2, $f0\n'
-            code += '\ts.d $f4, 8($sp)\n'
-            code += '\taddi $sp, $sp, 8\n\n'
+            code += '\tl.d      $f0, 0($sp)\n'
+            code += '\tl.d      $f2, 8($sp)\n'
+            code += '\tmul.d    $f4, $f2, $f0\n'
+            code += '\ts.d      $f4, 8($sp)\n'
+            code += '\taddi     $sp, $sp, 8\n\n'
         return code
 
     def div(self, tree):
@@ -909,14 +993,73 @@ ezero_{cnt}:\n
         code += '\taddi $sp, $sp, 8\n\n'
         self.expr_types.pop()
         self.expr_types.pop()
-        self.expr_types.append(Type('bool'))
+        self.expr_types.append(Type(Types.BOOL))
         return code
 
     def null(self, tree):
         code = '.text\n'
         code += '\tsub $sp, $sp, 4\n'
         code += '\tsw $zero, 0($sp)\n\n'
-        # TODO what type should it push onto the stack?
+        self.expr_types.append(Type('null'))
+        return code
+
+    def l_value(self, tree):
+        return ''.join(self.visit_children(tree))
+
+    def var_addr(self, tree):
+        var_scope = self.current_scope
+        var_name = tree.children[0].value
+        while (var_scope, var_name) not in symbol_table:
+            var_scope = pop_scope(var_scope)
+        label_name = var_scope.replace('/', '_') + '_' + var_name
+        code = '.text\n'
+        code += '\tla $t0, {}\n'.format(label_name)
+        code += '\tsub $sp, $sp, 8\n'
+        code += '\tsw $t0, 0($sp)\n\n'
+        self.expr_types.append(symbol_table_objects[symbol_table[var_scope, var_name]].type)
+        return code
+
+    def subscript(self, tree):
+        code = ''.join(self.visit_children(tree))
+        self.expr_types.pop()
+        typ = self.expr_types[-1]
+        if typ.name == Types.DOUBLE and typ.dimension == 1:
+            code += '.text\n'
+            code += '\tlw $t7, 8($sp)\n'
+            code += '\tlw $t0, 0($sp)\n'
+            code += '\tli $t1, 8\n'
+            code += '\tmul $t0, $t0, $t1\n'
+            code += '\tadd $t1, $t0, $t7\n'
+            code += '\tsw $t1, 8($sp)\n'
+            code += '\taddi $sp, $sp, 8\n\n'
+        else:
+            code += '.text\n'
+            code += '\tlw $t7, 8($sp)\n'
+            code += '\tlw $t0, 0($sp)\n'
+            code += '\tli $t1, 4\n'
+            code += '\tmul $t0, $t0, $t1\n'
+            code += '\tadd $t1, $t0, $t7\n'
+            code += '\tsw $t1, 8($sp)\n'
+            code += '\taddi $sp, $sp, 8\n\n'
+        self.expr_types[-1].dimension -= 1
+        return code
+
+    def val(self, tree):
+        code = ''.join(self.visit_children(tree))
+        code += '.text\n'
+        code += '\tlw $t0, 0($sp)\n'
+        code += '\tlw $t0, 0($t0)\n'
+        code += '\tsw $t0, 0($sp)\n\n'
+        return code
+
+    def ass(self, tree):
+        code = ''.join(self.visit_children(tree))
+        code += '.text\n'
+        code += '\tlw $t0, 8($sp)\n'
+        code += '\tlw $t1, 0($sp)\n'
+        code += '\tsw $t1, 0($t0)\n'
+        code += '\tsw $t1, 8($sp)\n'
+        code += '\taddi $sp, $sp, 8\n\n'
         return code
 
 
@@ -1069,12 +1212,81 @@ int main(){
 }
 """
 
-if __name__ == '__main__':
+
+def cgen(decaf):
     parser = Lark(grammar, parser="lalr")
-    parse_tree = parser.parse(text=just_class)
+    parse_tree = parser.parse(decaf)
     SymbolTableMaker().visit(parse_tree)
-    CodeGenerator().visit(parse_tree)
-    print(symbol_table)
+    return CodeGenerator().visit(parse_tree)
+
+
+decaf = """
+
+"""
+decaf = """
+int a;
+int [] x;
+int main() {
+    double b;
+    double [] x;
+    string str;
+    string [] stringz;
+    a;
+    b;
+    x = NewArray(8, double);
+    x[2] = 5;
+    Print(x[5]);
+}
+"""
+
+if __name__ == '__main__':
+    (cgen("""
+        int main(){
+        
+            NewArray(5, double[][]);
+            NewArray(5, int);
+            NewArray(5, bool[]);
+            for(i=0; i<10; i=i+1){
+            }
+        }
+    """))
+    exit(0)
+    print(cgen("""
+    int main(){
+        while(true){
+            if(ReadInteger() == 2){
+                Print(2);
+                break;
+            }
+            Print(1);
+        }
+        while(true){
+            while(true){
+                if(ReadInteger() == 2){
+                    Print(4);
+                    break;
+                }
+                Print(3);
+            }
+            while(true){
+                if (false){
+                }else{
+                    break;
+                }
+                Print("holy");
+            }
+            break;
+        }
+        Print("goody goody");
+    }
+"""))
+
+    exit(0)
+
+    parser = Lark(grammar, parser="lalr")
+    parse_tree = parser.parse(text=decaf)
+    SymbolTableMaker().visit(parse_tree)
+    print(CodeGenerator().visit(parse_tree))
     pass
 
 """
