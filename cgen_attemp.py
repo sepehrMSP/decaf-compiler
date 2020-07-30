@@ -134,11 +134,12 @@ class CodeGenerator(Interpreter):
                 code += self.visit(child)
                 self.stack_local_params_count[-1] += 1
                 variable_name = child.children[0].children[1].value
-                variable_type = symbol_table_objects[symbol_table[(self.current_scope, variable_name)]].type # TODO is current_scope set?
+                variable_type = symbol_table_objects[
+                    symbol_table[(self.current_scope, variable_name)]].type  # TODO is current_scope set?
                 self.stack_local_params.append(
                     [self.current_scope + "/" + variable_name, variable_type])  # todo must review
                 code += '.text\n'
-                if variable_type.name == 'double':
+                if variable_type.name == 'double' and variable_type.dimension == 0:
                     code += '\tl.d  $f0, {}\n'.format((self.current_scope + "/" + variable_name).replace("/", "_"))
                     code += '\taddi $sp, $sp, -8\n'
                     code += '\ts.d  $f0, 0($sp)\n\n'
@@ -157,7 +158,7 @@ class CodeGenerator(Interpreter):
                 variable_type = symbol_table_objects[symbol_table[(self.current_scope, variable_name)]].type
                 self.stack_local_params.pop()  # todo must review
                 code += '.text\n'
-                if variable_type.name == 'double':
+                if variable_type.name == 'double' and variable_type.dimension == 0:
                     code += '\tl.d  $f0, 0($sp)\n'
                     code += '\taddi $sp, $sp, 8\n'
                     code += '\ts.d  $f0, {}\n\n'.format((self.current_scope + "/" + variable_name).replace("/", "_"))
@@ -321,19 +322,30 @@ j start_stmt_{while_start}
             if var_type == 'double':
                 size = 8
             elif var_type == 'string':
-                size = 256
+                code += '.data\n'
+                code += '.align 2\n'
+                code += self.current_scope.replace('/', '_') + '_' + variable.children[1] + ': .space ' + str(size) + '\n'
+                code += '.text\n'
+                code += '\tli $a0, 256\n'
+                code += '\tli $v0, 9\n'
+                code += '\tsyscall\n'
+                code += '\tsw $v0, ' + self.current_scope.replace('/', '_') + '_' + variable.children[1] + '\n\n'
+                return code
         name = variable.children[1]
         code += '.data\n'
+        code += '.align 2\n'
         code += self.current_scope.replace('/', '_') + '_' + name + ': .space ' + str(size) + '\n\n'
         return code
 
     def type(self, tree):
         # return ''.join(self.visit_children(tree))
         self.visit_children(tree)
+        # if type(tree.children[0]) == lark.lexer.Token:
+        #     self.expr_types
         return ''
 
     def expr(self, tree):
-        return''.join(self.visit_children(tree))
+        return ''.join(self.visit_children(tree))
 
     def expr8(self, tree):
         return ''.join(self.visit_children(tree))
@@ -412,16 +424,23 @@ j start_stmt_{while_start}
                 shamt = 3
 
         code += """.text
-    lw $a0, 0($sp)
-    addi $sp, $sp, 8
-    sll $a0, $a0, {shamt}
-    li $v0, 9           #sbrk
-    syscall
-    sub $sp, $sp, 8
-    sw $v0, 0($sp)\n
+\tlw $a0, 0($sp)
+\tsll $a0, $a0, {shamt}
+\tli $v0, 9           #sbrk
+\tsyscall
+\tsw $v0, 0($sp)\n
 """.format(shamt=shamt)
-        self.expr_types.append('array_{}'.format(self.expr_types.pop()))
+        # self.expr_types[-1].dimension += 1
+        # self.expr_types.append(self.get_type(tp))
+        self.expr_types.append(self.get_type(tree.children[1]))
         return code
+
+    def get_type(self, typ):
+        if type(typ) == lark.lexer.Token:
+            return Type(typ)
+        ret = self.get_type(typ.children[0])
+        ret.dimension += 1
+        return ret
 
     def not_expr(self, tree):
         code = ''.join(self.visit_children(tree))
@@ -464,14 +483,14 @@ not_{0}:
             code += '.text\n'
             if t.name == 'double':
                 code += """\tl.d $f12, 0($sp)
-    addi $sp, $sp, 8
-    li.d $f2, 1000.0
-    mul.d $f12, $f12, $f2
-    round.w.d $f12, $f12
-    cvt.d.w $f12, $f12
-    div.d $f12, $f12, $f2
-    li $v0, 3
-    syscall             #Print double\n
+\taddi $sp, $sp, 8
+\tli.d $f2, 1000.0
+\tmul.d $f12, $f12, $f2
+\tround.w.d $f12, $f12
+\tcvt.d.w $f12, $f12
+\tdiv.d $f12, $f12, $f2
+\tli $v0, 3
+\tsyscall\t\t#Print double\n
 """
             #                 print("""
             # l.d $f12, 0($sp)
@@ -510,8 +529,8 @@ ezero_{cnt}:\n
                 )
         # '\n' at the end of print
         code += """\tli $v0, 4
-    la $a0, nw
-    syscall\t\t\t\t#Print new line\n
+\tla $a0, nw
+\tsyscall\t\t#Print new line\n
 """
         return code
 
@@ -835,7 +854,9 @@ ezero_{cnt}:\n
             code += '\tsw $v0, -20($sp)\n'
             code += '\tsw $ra, -24($sp)\n'
             code += '\tlw $a0, 0($sp)\n'
+            code += '\tlw $a0, 0($a0)\n'
             code += '\tlw $a1, 8($sp)\n'
+            code += '\tlw $a1, 0($a1)\n'
             code += '\tjal __strcmp__\n'
             code += '\tsw $v0, 8($sp)\n'
             code += '\tlw $t0, -4($sp)\n'
@@ -945,10 +966,14 @@ ezero_{cnt}:\n
             var_scope = pop_scope(var_scope)
         label_name = var_scope.replace('/', '_') + '_' + var_name
         code = '.text\n'
+        code += '\t#fuck\n'
         code += '\tla $t0, {}\n'.format(label_name)
         code += '\tsub $sp, $sp, 8\n'
         code += '\tsw $t0, 0($sp)\n\n'
-        self.expr_types.append(symbol_table_objects[symbol_table[var_scope, var_name]].type)
+        typ = symbol_table_objects[symbol_table[var_scope, var_name]].type
+        new_type = Type(name=typ.name, meta=typ._meta)
+        new_type.dimension = typ.dimension
+        self.expr_types.append(new_type)
         return code
 
     def subscript(self, tree):
@@ -978,20 +1003,37 @@ ezero_{cnt}:\n
 
     def val(self, tree):
         code = ''.join(self.visit_children(tree))
-        code += '.text\n'
-        code += '\tlw $t0, 0($sp)\n'
-        code += '\tlw $t0, 0($t0)\n'
-        code += '\tsw $t0, 0($sp)\n\n'
+        typ = self.expr_types[-1]
+        if typ.name == 'double' and typ.dimension == 0:
+            code += '.text\n'
+            code += '\tlw $t0, 0($sp)\n'
+            code += '\tl.d $f0, 0($t0)\n'
+            code += '\ts.d $f0, 0($sp)\n\n'
+        else:
+            code += '.text\n'
+            code += '\tlw $t0, 0($sp)\n'
+            code += '\tlw $t0, 0($t0)\n'
+            code += '\tsw $t0, 0($sp)\n\n'
         return code
 
     def ass(self, tree):
         code = ''.join(self.visit_children(tree))
-        code += '.text\n'
-        code += '\tlw $t0, 8($sp)\n'
-        code += '\tlw $t1, 0($sp)\n'
-        code += '\tsw $t1, 0($t0)\n'
-        code += '\tsw $t1, 8($sp)\n'
-        code += '\taddi $sp, $sp, 8\n\n'
+        typ = self.expr_types[-1]
+        if typ.name == 'double' and typ.dimension == 0:
+            code += '.text\n'
+            code += '\tlw $t0, 8($sp)\n'
+            code += '\tl.d $f0, 0($sp)\n'
+            code += '\ts.d $f0, 0($t0)\n'
+            code += '\ts.d $f0, 8($sp)\n'
+            code += '\taddi $sp, $sp, 8\n\n'
+        else:
+            code += '.text\n'
+            code += '\tlw $t0, 8($sp)\n'
+            code += '\tlw $t1, 0($sp)\n'
+            code += '\tsw $t1, 0($t0)\n'
+            code += '\tsw $t1, 8($sp)\n'
+            code += '\taddi $sp, $sp, 8\n\n'
+        self.expr_types.pop()
         return code
 
 
@@ -1144,53 +1186,48 @@ int main(){
 }
 """
 
+
 def cgen(decaf):
     parser = Lark(grammar, parser="lalr")
     parse_tree = parser.parse(decaf)
     SymbolTableMaker().visit(parse_tree)
     return CodeGenerator().visit(parse_tree)
 
-decaf = """
 
-"""
 decaf = """
-int a;
-int [] x;
 int main() {
-    double b;
+    string k;
     double [] x;
-    string str;
-    string [] stringz;
-    a;
-    b;
+    double [] y;
     x = NewArray(8, double);
-    x[2] = 5;
-    Print(x[5]);
+    y = NewArray(8 * 2, double);
+    y[5] = x[2] = 3.14;
+    Print(x[2] - y[5]);
+    Print(y[2] - x[2]);
 }
 """
 
 if __name__ == '__main__':
-    print(cgen("""
-    int main(){
-        while(ReadInteger()){
-            Print("hey");
-            while (ReadInteger()){
-                Print("huy");
-            }
-        }
-        while(ReadInteger()){
-            Print("hoy");
-        }
-    }
-"""))
-
-    exit(0)
+    # print(cgen("""
+    # int main(){
+    #     while(ReadInteger()){
+    #         Print("hey");
+    #         while (ReadInteger()){
+    #             Print("huy");
+    #         }
+    #     }
+    #     while(ReadInteger()){
+    #         Print("hoy");
+    #     }
+    # }
+    # """))
+    #
+    #     exit(0)
 
     parser = Lark(grammar, parser="lalr")
     parse_tree = parser.parse(text=decaf)
     SymbolTableMaker().visit(parse_tree)
     print(CodeGenerator().visit(parse_tree))
-    pass
 
 """
 power(i){
