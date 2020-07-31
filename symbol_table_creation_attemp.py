@@ -377,13 +377,16 @@ def set_inheritance_tree(parent_class: ClassType):
             parent_class_function_names = set()
             for func in parent_class.functions:
                 parent_class_function_names.add(func.name)
-            counter = 0
+
             for func in child_functions:
-                if func.name in parent_class_function_names:
-                    child_class.functions[counter] = func  # override
-                else:
+                for i in range(len(child_class.functions)):
+                    if child_class.functions[i].name == func.name:
+                        child_class.functions[i] = func
+
+            for func in child_functions:
+                if func.name not in parent_class_function_names:
                     child_class.functions.append(func)
-                counter += 1
+
             set_inheritance_tree(child_class)
 
 
@@ -404,6 +407,10 @@ just_class = """class Person{
 text = """
 int[][][] c;
 int d;
+class Ostad extends Emp{
+    void daneshjoo(){
+    }
+}
 class Person{
     double name;
     int a;
@@ -415,8 +422,8 @@ class Person{
 
 class Emp extends Person {
     int lks;
-    int mmd(){}
     int fight(){}
+    int mmd(){}
 } 
 void cal(int number, double mmd) {
     int c;
@@ -500,7 +507,7 @@ if __name__ == '__main__':
     ClassTreeSetter().visit(parse_tree)
     print(symbol_table)
     set_inheritance()
-    for x in class_type_objects[1].functions:
+    for x in class_type_objects[0].functions:
         print(x.exact_name)
     # class_type_objects[1].print_functions()
 # print('****************************')
