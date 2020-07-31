@@ -982,9 +982,7 @@ class CodeGenerator(Interpreter):
             code += '\tsw $v0, -20($sp)\n'
             code += '\tsw $ra, -24($sp)\n'
             code += '\tlw $a0, 0($sp)\n'
-            code += '\tlw $a0, 0($a0)\n'
             code += '\tlw $a1, 8($sp)\n'
-            code += '\tlw $a1, 0($a1)\n'
             code += '\tjal __strcmp__\n'
             code += '\tsw $v0, 8($sp)\n'
             code += '\tlw $t0, -4($sp)\n'
@@ -1356,27 +1354,8 @@ int main()  {
 """
 
 decaf = r"""
-double f(double x) {
-    return x + 1.0;
-}
-
-int power(int i) {
-    int x;
-    x = -5;
-    x = i - 8;
-    if (i > 0)
-        power(i - 1);
-    else {
-        Print(f(3.14));
-        return 8;
-    }
-    Print("1: ", i, ", 2: ", x);
-    i = 800 + i;
-    return i * 2;
-}
-
 int main() {
-    power(5);
+    Print("hell" != "hell");
     return 68;
 }
 
