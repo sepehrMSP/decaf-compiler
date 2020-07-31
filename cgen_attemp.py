@@ -1022,9 +1022,7 @@ class CodeGenerator(Interpreter):
             code += '\tsw $v0, -20($sp)\n'
             code += '\tsw $ra, -24($sp)\n'
             code += '\tlw $a0, 0($sp)\n'
-            code += '\tlw $a0, 0($a0)\n'
             code += '\tlw $a1, 8($sp)\n'
-            code += '\tlw $a1, 0($a1)\n'
             code += '\tjal __strcmp__\n'
             code += '\tsw $v0, 8($sp)\n'
             code += '\tlw $t0, -4($sp)\n'
@@ -1428,6 +1426,7 @@ int main() {
     Person ali;
     mmd = new Person;
     Print(mmd.age);   
+    Print("hell" != "hell");
     return 68;
 }
 
