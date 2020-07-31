@@ -256,6 +256,7 @@ class CodeGenerator(Interpreter):
             code += self.visit(child)
         elif child.data == 'expr':
             code += self.visit(child)
+            # print('     ->>', child)
             code += '.text\n'
             code += '\taddi\t$sp, $sp, 8\n\n'
         else:
@@ -738,6 +739,8 @@ class CodeGenerator(Interpreter):
         code += '\taddi $sp, $sp, -8\n'
         code += '\tsw   $ra, 0($sp)\n'
         code += '\tjal {}\n'.format(function_name)
+        code += '\tlw   $t8, 0($sp)\n'
+        code += '\taddi $sp, $sp, 8\n'
         code += '\tlw   $ra, {}($sp)\n'.format('0' if function.return_type.name == 'void' else '8')
         code += '\taddi $sp, $sp, 8\n'
         # pop formal parameters
@@ -752,6 +755,8 @@ class CodeGenerator(Interpreter):
                 code += '\tlw   $t0, 0($sp)\n'
                 code += '\taddi $sp, $sp, 8\n'
                 code += '\tsw   $t0, {}\n'.format(formal_name)
+        code += '\taddi $sp, $sp, -8\n'
+        code += '\tsw   $t8, 0($sp)\n'
         return code
 
     def sub(self, tree):
@@ -1319,24 +1324,33 @@ int main()  {
 }
 """
 decaf = """
-int mmd(int x, double n, int [][] k){
-    Print(x);
-    return 1;
-}
 int main(){
-    int x;
-    int k;
-    string kal;
-    double aa;
-    int [][] kif;
-    x = 4;
-    mmd(x);
-    return 0;
 }
 
 """
 if __name__ == '__main__':
-    print(cgen(decaf))
+    print(cgen("""
+
+void f(){
+    return;
+}
+
+int test(int a, int b) {
+    return a * b;
+}
+
+int main() {
+    int a;
+    int b;
+
+    a = ReadInteger();
+    b = ReadInteger();
+
+    Print(test(a, b));
+}
+
+    """))
+
     exit(0)
     # (cgen("""
     #     int main(){

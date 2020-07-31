@@ -1,15 +1,15 @@
 
-void f(int x, int y, bool z, double a){
+int f(int x, int y, bool z, double a){
     if(x == 1 && y == 2 && z == true && a > 2.5){
         Print("ok");
         x = 10;
         y = 100;
         z = false;
         a = 1.5123;
-        return;
+        return 0;
     }
     Print("not ok");
-    return;
+    return 0;
 }
 
 int main()  {

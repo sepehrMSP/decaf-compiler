@@ -4,20 +4,20 @@ bool check(double x, double y){
     return (x > y);
 }
 
-void g(int z, int x){
+int g(int z, int x){
     Print(z);
     Print(x);
-    return;
+    return 0;
 }
 
-void z(bool z){
+int z(bool z){
     Print("zz!");
     if (z){
         Print("good z");
     }else{
         Print("bad z");
     }
-    return;
+    return 0;
 }
 
 bool ge_5(int inp){
@@ -42,28 +42,28 @@ bool and_cond(int x){
     return true;
 }
 
-void jumper_3(int x){
+int jumper_3(int x){
     Print(x);
     x = 1;
     Print(x);
-    return;
+    return 0;
 }
 
-void jumper_2(int y){
+int jumper_2(int y){
     jumper_3(y);
     Print(y);
     jumper_3(y+1);
-    return;
+    return 0;
 }
 
-void jumper_1(int x){
+int jumper_1(int x){
     jumper_2(x);
     Print(x);
     jumper_2(x);
-    return;
+    return 0;
 }
 
-void f(){
+int f(){
     int x;
     int y;
     double d2;
@@ -89,10 +89,10 @@ void f(){
 
     jumper_1(10);
 
-    return;
+    return 0;
 }
 
 int main()  {
     f();
-    return;
+    return 0;
 }

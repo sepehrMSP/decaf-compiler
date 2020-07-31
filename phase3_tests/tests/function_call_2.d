@@ -1,20 +1,19 @@
-
-void h() {
+int h() {
     Print("h");
-    return;
+    return 1;
 }
 
-void g() {
+int g() {
     Print("g");
     h();
-    return;
+    return 1;
 }
 
-void f(){
+int f(){
     Print("f");
     g();
     h();
-    return;
+    return 3;
 }
 
 int main()  {

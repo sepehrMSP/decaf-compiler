@@ -11,7 +11,9 @@ if __name__ == '__main__':
             test = file[:-2]
             if 'expr' in test:
                 continue
-            if 'for' not in test:
+            if 'fib' in test:
+                continue
+            if 't005-stmt1' not in test:
                 continue
             total += 1
             print('Test_{}: {}'.format(total, file))
