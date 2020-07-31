@@ -9,11 +9,7 @@ if __name__ == '__main__':
     for file in os.listdir("phase3_tests/tests"):
         if file.endswith(".d"):
             test = file[:-2]
-            if 'expr' in test:
-                continue
-            if 'fib' in test:
-                continue
-            if 't006' not in test:
+            if 'expr' not in test:
                 continue
             # if 'hard' not in test:
             #     continue
