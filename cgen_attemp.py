@@ -119,6 +119,7 @@ class CodeGenerator(Interpreter):
                 '\tfalse: .asciiz "false"\n'
                 '\tconst10000: .double 10000.0\n'
                 '\tnw: .asciiz "\\n"\n'
+                '\t__const_0_5__: .double 0.5\n'
             )
             code += ('.text\n'
                      'main:\n'
@@ -269,7 +270,6 @@ class CodeGenerator(Interpreter):
             code += self.visit(child)
         elif child.data == 'expr' or child.data == 'ass':
             code += self.visit(child)
-            code += '# HERE!\n'
             # print('     ->>', child)
             expr_type = self.expr_types[-1]
             if expr_type.name != 'void':
@@ -576,7 +576,7 @@ class CodeGenerator(Interpreter):
                     # Print double
                         l.d $f12, 0($sp)
                         addi $sp, $sp, 8
-                        li.d $f2, 1000.0
+                        li.d $f2, 10000.0
                         mul.d $f12, $f12, $f2
                         round.w.d $f12, $f12
                         cvt.d.w $f12, $f12
@@ -1378,50 +1378,39 @@ int main() {
     power(5);
     return 68;
 }
+
 """
 
 if __name__ == '__main__':
-    # print(cgen("""
-#
-# int jumper_3(int x){
-#     Print("3 ", x);
-#     x = 1;
-#     Print("3 ", x);
-#     return 0;
-# }
-#
-# int jumper_2(int y){
-#     Print("2 ", y);
-#     jumper_3(y);
-#     Print("2 ", y);
-#     jumper_3(y+1);
-#     Print("2 ", y);
-#     return 0;
-# }
-#
-# int jumper_1(int x){
-#     Print("1 ", x);
-#     jumper_2(x);
-#     Print("1 ", x);
-#     jumper_2(x);
-#     Print("1 ", x);
-#     return 0;
-# }
-#
-# int f(){
-#     jumper_1(10);
-#     return 0;
-# }
-#
-# int main()  {
-#     f();
-#     return 0;
-# }
-#
-#
-#
-#     """))
-    print(cgen(decaf))
+    print(cgen("""
+
+int main() {
+    int t;
+    int i;
+    string s;
+    bool found;
+    t = 0;
+    s = ReadLine();
+    found = false;
+	for (i = 1; i < 10; i = i+1){
+		if (s[i] == s[i-1]){
+		    t = t+1;
+		}
+		else{
+		    t = 0;
+		}
+		if (t == 6){
+		    Print("YES");
+		    found = true;
+		    break;
+		}
+	}
+	if(!found){
+        Print("NO");
+    }
+}
+    """))
+
     exit(0)
     # (cgen("""
     #     int main(){
@@ -1472,7 +1461,6 @@ if __name__ == '__main__':
     ClassTreeSetter().visit(parse_tree)
     set_inheritance()
     print(CodeGenerator().visit(parse_tree))
-    print(parse_tree.pret)
     pass
 
 """
