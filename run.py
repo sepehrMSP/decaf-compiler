@@ -18,11 +18,12 @@ if __name__ == '__main__':
         symbol_table_creation_attemp.stack.clear()
         symbol_table_creation_attemp.stack.append('root')
         symbol_table_creation_attemp.parent_classes.clear()
+        symbol_table_creation_attemp.init()
 
         if file.endswith(".d"):
             test = file[:-2]
 
-            if 'football_2' not in test:
+            if 'to' not in test:
                 continue
             # if 'hard' not in test:
             #     continue

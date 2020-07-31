@@ -99,6 +99,14 @@ class Function:
         """this name is scope of function which will be it's label in mips code"""
         self.exact_name = exact_name
 
+    def set_return_type(self, return_type: Type):
+        self.return_type = return_type
+        return self
+
+    def set_formals(self, formals):
+        self.formals = formals
+        return self
+
 
 class SymbolTableObject:
     def __init__(self, scope=None, name=None, parent_scope=None, attribute=None):
@@ -150,7 +158,48 @@ function_table = {}
 stack = ['root']
 parent_classes = []
 
+def init():
+    function_objects.append(
+        Function(name='itod', exact_name='root/itod').set_return_type(
+            Type('double')
+        ).set_formals(
+            [['ival', Type('int')]]
+        )
+    )
 
+    function_table['itod'] = 0
+
+    function_objects.append(
+        Function(name='dtoi', exact_name='root/dtoi').set_return_type(
+            Type('int')
+        ).set_formals(
+            [['dval', Type('double')]]
+        )
+    )
+
+    function_table['dtoi'] = 1
+
+
+    function_objects.append(
+        Function(name='itob', exact_name='root/itob').set_return_type(
+            Type('bool')
+        ).set_formals(
+            [['ival', Type('int')]]
+        )
+    )
+
+    function_table['itob'] = 2
+
+    function_objects.append(
+        Function(name='btoi', exact_name='root/btoi').set_return_type(
+            Type('int')
+        ).set_formals(
+            [['bval', Type('bool')]]
+        )
+    )
+
+    function_table['btoi'] = 3
+init()
 class SymbolTableMaker(Interpreter):
     symbol_table_obj_counter = 0
     class_counter = 0
