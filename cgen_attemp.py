@@ -46,7 +46,7 @@ def cnt():
     CodeGenerator.LabelCnt += 1
     return CodeGenerator.LabelCnt
 
-def cgen_to():
+def cast_cgen():
     code = ''
     code += tab(""" # ITOD
              .data
@@ -270,7 +270,7 @@ class CodeGenerator(Interpreter):
                 '\tnw: .asciiz "\\n"\n'
                 '\t__const_0_5__: .double 0.5\n'
             )
-            code += cgen_to()
+            code += cast_cgen()
             code += ('.text\n'
                      'main:\n'
                      # '\tli $sp, 0x1002FFF8\n'
