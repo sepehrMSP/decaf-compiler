@@ -89,6 +89,15 @@ class ClassType:
         # print(l)
         return
 
+    def set_vtable(self):
+        pass
+        # return pointer
+
+    def set_obj(self):
+        vtable_pointer = self.set_vtable()
+
+        pass
+
 
 class Function:
     def __init__(self, name=None, exact_name=None):
@@ -227,6 +236,8 @@ class SymbolTableMaker(Interpreter):
         stack.pop()  # pop formals
 
         if class_type_object:
+            temp = function.formals.copy()
+            function.formals = [['this', Type(name=class_type_object.name)]] + temp
             class_type_object.functions.append(function)
         else:
             function_table[function.name] = self.static_function_counter
