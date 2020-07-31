@@ -22,7 +22,7 @@ if __name__ == '__main__':
         if file.endswith(".d"):
             test = file[:-2]
 
-            if 'array' not in test:
+            if 'football_2' not in test:
                 continue
             # if 'hard' not in test:
             #     continue

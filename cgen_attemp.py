@@ -1336,21 +1336,31 @@ int main(){
 """
 if __name__ == '__main__':
     print(cgen("""
-int main(){
 
+int main() {
+    int t;
     int i;
-    int j;
-    string [][] s;
-
-    s = NewArray(3, string[]);
-    // s[0] = NewArray(2, string);
-    s[1] = NewArray(2, string);
-    // s[2] = NewArray(2, string);
-
-    // s[0][0] = "a00";
-    // s[0][1] = "a01";
-    a[1][0] = "a10";
-    // a[1][0] = "a10"; a[1][1] = "a11"; a[2][0] = "a20"; a[2][1] = "a21"; for(i=0; i < 3; i = i+1){ for(j=0; j < 2; j = j+1){ Print(s[i][j]); } }
+    string s;
+    bool found;
+    t = 0;
+    s = ReadLine();
+    found = false;
+	for (i = 1; i < 10; i = i+1){
+		if (s[i] == s[i-1]){
+		    t = t+1;
+		}
+		else{
+		    t = 0;
+		}
+		if (t == 6){
+		    Print("YES");
+		    found = true;
+		    break;
+		}
+	}
+	if(!found){
+        Print("NO");
+    }
 }
     """))
 
