@@ -3,7 +3,8 @@ import lark
 from lark import Lark
 from lark.visitors import Interpreter
 
-from symbol_table_creation_attemp import symbol_table, text, just_class, set_inheritance, ClassTreeSetter
+from symbol_table_creation_attemp import symbol_table, text, just_class, set_inheritance, ClassTreeSetter, \
+    class_type_objects, class_table
 from symbol_table_creation_attemp import symbol_table_objects, function_objects, \
     function_table, grammar, SymbolTableMaker, Type
 
@@ -370,6 +371,20 @@ class CodeGenerator(Interpreter):
         code = ''
         ident = tree.children[0]
         self.current_scope += "/__class__" + ident.value
+
+        class_object = class_type_objects[class_table[ident.value]]
+        code += '.data\n'
+        code += '{}: .space 4\n'.format(class_object.name + '_vtable')
+        code += '.text\n'
+        code += '\tli $a0, {}\n'.format(len(class_object.functions) * 4)
+        code += '\tli $v0, 9\n'
+        code += '\tsyscall\n'
+        code += '\tsw $v0, {}\n'.format(class_object.name + '_vtable')
+        counter = 0
+        for func in class_object.functions:
+            code += '\tla $t0, {}\n'.format(func.exact_name)
+            code += '\tsw $t0, {}($v0)\n'.format(counter)
+            counter += 4
 
         if type(tree.children[1]) == lark.lexer.Token:
             for field in tree.children[2:]:
