@@ -185,7 +185,9 @@ function_table = {}
 stack = ['root']
 parent_classes = []
 
+
 def init():
+
     function_objects.append(
         Function(name='itod', exact_name='root/itod').set_return_type(
             Type('double')
@@ -206,7 +208,6 @@ def init():
 
     function_table['dtoi'] = 1
 
-
     function_objects.append(
         Function(name='itob', exact_name='root/itob').set_return_type(
             Type('bool')
@@ -226,11 +227,15 @@ def init():
     )
 
     function_table['btoi'] = 3
+
+
 init()
+
+
 class SymbolTableMaker(Interpreter):
     symbol_table_obj_counter = 0
     class_counter = 0
-    static_function_counter = 0
+    static_function_counter = len(function_table)
     """block stmt counter is a counter just for block statements during building symbol table and it differentiate
      different block statements scopes. for more details see example below:
      

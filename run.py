@@ -23,8 +23,6 @@ if __name__ == '__main__':
         if file.endswith(".d"):
             test = file[:-2]
 
-            if 'to' not in test:
-                continue
             # if 'hard' not in test:
             #     continue
             total += 1
