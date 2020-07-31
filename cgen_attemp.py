@@ -72,6 +72,7 @@ def cast_cgen():
 
                  l.d   $f30, 0($sp)
                  addi $sp, $sp, 8
+                 addi $sp, $sp, 8
                  addi $sp, $sp, -8
                  s.d   $f30, 0($sp)
                  jr   $ra
@@ -106,6 +107,8 @@ def cast_cgen():
 
             l.d   $f30, 0($sp)
             addi $sp, $sp, 8
+            addi $sp, $sp, 8
+
             addi $sp, $sp, -8
             s.d   $f30, 0($sp)
             jr   $ra
@@ -764,21 +767,34 @@ class CodeGenerator(Interpreter):
             code += '.text\n'
             if t.name == 'double':
                 code += tab("""
-                   l.d $f12, 0($sp)
+                    l.d $f12, 0($sp)
                     addi $sp, $sp, 8
                     li $v0, 3
                     syscall
-                    # # Print double
+                    # .text
                     #     l.d $f12, 0($sp)
                     #     addi $sp, $sp, 8
-                    #     li.d $f2, 10000.0
-                    #     mul.d $f12, $f12, $f2
-                    #     round.w.d $f12, $f12
-                    #     cvt.d.w $f12, $f12
-                    #     div.d $f12, $f12, $f2
-                    #     li $v0, 3
-                    #     syscall             #Print double
-                    # ##
+                    #     cvt.w.d $f2,$f0
+                    #         mfc1.d $a0,$f2
+                    #     mtc1.d $a0, $f0
+                    #         cvt.d.w $f0, $f0
+                    #     
+                    #     li $v0, 1	# print before .
+                    #     syscall
+                    #     
+                    #     li $a0, 46	# print .
+                    #     li $v0, 11
+                    #     syscall
+                    #     
+                    #     sub.d $f12, $f12, $f0 # print after.
+                    #     li.d $f8, 10000.0
+                    #     li.d $f10, 0.4999999999
+                    #     mul.d $f12, $f12, $f8
+                    #     add.d $f12, $f12, $f10
+                    #     cvt.w.d $f12, $f12
+                    #     mfc1.d $a0, $f12
+                    #     li $v0, 1
+                    #     syscall
                 """)
             #                 print("""
             # l.d $f12, 0($sp)
@@ -1589,13 +1605,15 @@ int main() {
 
 if __name__ == '__main__':
     (print(cgen("""
-void f(){
-    Print(1);
+void a(){
+    Print(itod(5));
+    Print(dtoi(5.6));
+    Print(btoi(true));
+    Print(itob(5));
     return;
 }
 int main()  {
-    f();
-    f();
+    a();
 }
     """)))
     exit(0)

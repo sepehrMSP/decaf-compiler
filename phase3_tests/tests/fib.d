@@ -7,4 +7,5 @@ int f(int x){
 
 int main()  {
     Print(f(3));
+    Print(f(6));
 }
