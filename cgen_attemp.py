@@ -369,14 +369,19 @@ class CodeGenerator(Interpreter):
     def class_decl(self, tree):
         code = ''
         ident = tree.children[0]
+        self.current_scope += "/__class__" + ident.value
 
         if type(tree.children[1]) == lark.lexer.Token:
-            pass  # it is for inheritance we scape it for now
+            for field in tree.children[2:]:
+                print(field)
+                if field.children[0].data == 'function_decl':
+                    code += self.visit(field)
         else:
-            self.current_scope += "/__class__" + ident.value
             for field in tree.children[1:]:
-                code += self.visit(field)
-            self.current_scope = pop_scope(self.current_scope)
+                if field.children[0].data == 'function_decl':
+                    code += self.visit(field)
+
+        self.current_scope = pop_scope(self.current_scope)
         return code
 
     def field(self, tree):
@@ -1356,6 +1361,10 @@ int main()  {
 """
 
 decaf = r"""
+class mmd extends ll{
+    int a;
+    int kk(){}
+}
 double f(double x) {
     return x + 1.0;
 }
@@ -1384,38 +1393,38 @@ int main() {
 
 if __name__ == '__main__':
     # print(cgen("""
-#
-# int main() {
-#     int t;
-#     int i;
-#     string s;
-#     bool found;
-#     t = 0;
-#     s = ReadLine();
-#     found = false;
-# 	for (i = 1; i < 10; i = i+1){
-# 		if (s[i] == s[i-1]){
-# 		    t = t+1;
-# 		}
-# 		else{
-# 		    t = 0;
-# 		}
-# 		if (t == 6){
-# 		    Print("YES");
-# 		    found = true;
-# 		    break;
-# 		}
-# 	}
-# 	if(!found){
-#         Print("NO");
-#     }
-# }
-#     """))
-#
-#     exit(0)
-#     (cgen("""
-#         int main(){
-#
+    #
+    # int main() {
+    #     int t;
+    #     int i;
+    #     string s;
+    #     bool found;
+    #     t = 0;
+    #     s = ReadLine();
+    #     found = false;
+    # 	for (i = 1; i < 10; i = i+1){
+    # 		if (s[i] == s[i-1]){
+    # 		    t = t+1;
+    # 		}
+    # 		else{
+    # 		    t = 0;
+    # 		}
+    # 		if (t == 6){
+    # 		    Print("YES");
+    # 		    found = true;
+    # 		    break;
+    # 		}
+    # 	}
+    # 	if(!found){
+    #         Print("NO");
+    #     }
+    # }
+    #     """))
+    #
+    #     exit(0)
+    #     (cgen("""
+    #         int main(){
+    #
     #         NewArray(5, double[][]);
     #         NewArray(5, int);
     #         NewArray(5, bool[]);
