@@ -31,7 +31,7 @@ grammar = """
     expr4 : expr4 "+" expr5 -> add | expr4 "-" expr5 -> sub | expr5
     expr5 : expr5 "*" expr6 -> mul | expr5 "/" expr6 -> div | expr5 "%" expr6 -> mod | expr6
     expr6 : "-" expr6 -> neg | "!" expr6 -> not_expr | expr7
-    expr7 : constant | "this" | "ReadInteger" "(" ")" -> read_integer | "ReadLine" "(" ")" -> read_line | "new" IDENT | "NewArray" "(" expr "," type ")" -> new_array | "(" expr ")" | l_value -> val | call
+    expr7 : constant | "this" | "ReadInteger" "(" ")" -> read_integer | "ReadLine" "(" ")" -> read_line | "new" IDENT -> class_inst | "NewArray" "(" expr "," type ")" -> new_array | "(" expr ")" | l_value -> val | call
     l_value : IDENT -> var_addr |  expr7 "." IDENT | expr7 "[" expr "]" -> subscript
     call : IDENT  "(" actuals ")" |  expr7  "."  IDENT  "(" actuals ")" 
     actuals :  expr (","expr)* |  

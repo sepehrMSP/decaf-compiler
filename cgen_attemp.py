@@ -87,6 +87,23 @@ class CodeGenerator(Interpreter):
                 code += self.visit(decl)
         return code
 
+    def class_inst(self, tree):
+        class_name = tree.children[0].value
+        class_obj = class_type_objects[class_table[class_name]]
+        size = 8 + len(class_obj.variables) * 8
+        self.expr_types.append(Type(name=class_name))
+        code = ''
+        code += '.text\n'
+        code += '\tli $a0, {}\n'.format(size)
+        code += '\tli $v0, 9\n'
+        code += '\tsyscall\n'
+        code += '\tlw $t0, {}\n'.format(class_name + '_vtable')
+        code += '\tsw $t0, 0($v0)\n'
+        code += '\tsw $v0, 0($sp)\n'
+        code += '\taddi $sp, $sp, -8\n'
+
+        return code
+
     def function_decl(self, tree):
         code = ''
         if len(tree.children) == 4:
@@ -374,6 +391,7 @@ class CodeGenerator(Interpreter):
 
         class_object = class_type_objects[class_table[ident.value]]
         code += '.data\n'
+        code += '.align 2\n'
         code += '{}: .space 4\n'.format(class_object.name + '_vtable')
         code += '.text\n'
         code += '\tli $a0, {}\n'.format(len(class_object.functions) * 4)
