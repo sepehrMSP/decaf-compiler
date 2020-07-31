@@ -1202,6 +1202,22 @@ class CodeGenerator(Interpreter):
         self.expr_types.pop()
         return code
 
+    def var_access(self, tree):
+        ident = tree.children[1].value
+        code = ''
+        code += self.visit(tree.children[0])
+        code += '.text\n'
+        code += '\tlw $t0, 0($sp)\n'
+        class_type = self.expr_types[-1]
+        var_index = class_type_objects[class_table[class_type.name]].find_var_index(ident)
+        var_type = class_type_objects[class_table[class_type.name]].find_var_type(ident)
+
+        code += '\taddi $t1, $t0, {}\n'.format((1 + var_index) * 8)
+        code += '\tsw $t1, 0($sp)\n'
+
+        self.expr_types.pop()
+        self.expr_types.append(var_type)
+
 
 decaf = """
 class Person {
