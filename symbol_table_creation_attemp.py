@@ -101,6 +101,12 @@ class ClassType:
     def find_var_type(self, ident):
         return self.variables[self.find_var_index(ident)][1]
 
+    def find_function(self, name):
+        for func in self.functions:
+            if func.name == name:
+                return func
+        raise Exception("function not found")
+
     def set_vtable(self):
         pass
         # return pointer

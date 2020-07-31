@@ -253,8 +253,15 @@ class CodeGenerator(Interpreter):
         elif child.data == 'return_stmt':
             code += self.visit(child)
             # todo implement for class methods
-            func_name = self.current_scope.split('/')[1]
-            funct = function_objects[function_table[func_name]]
+            func_name = ''
+            if '__class__' in self.current_scope:
+                func_name = self.current_scope.split('/')[2]
+                class_name = self.current_scope.split('/')[1][9:]
+                funct = class_type_objects[class_table[class_name]].find_function(func_name)
+            else:
+                func_name = self.current_scope.split('/')[1]
+                funct = function_objects[function_table[func_name]]
+
             if funct.return_type.name == 'double' and funct.return_type.dimension == 0:
                 code += '\tl.d   $f30, 0($sp)\n'
                 code += '\taddi $sp, $sp, 8\n'
@@ -400,7 +407,7 @@ class CodeGenerator(Interpreter):
         code += '\tsw $v0, {}\n'.format(class_object.name + '_vtable')
         counter = 0
         for func in class_object.functions:
-            code += '\tla $t0, {}\n'.format(func.exact_name)
+            code += '\tla $t0, {}\n'.format(func.exact_name.replace('/', '_'))
             code += '\tsw $t0, {}($v0)\n'.format(counter)
             counter += 4
 
@@ -420,9 +427,6 @@ class CodeGenerator(Interpreter):
     def field(self, tree):
         code = ''
         for child in tree.children:
-            if child.data == 'variable_decl':
-                code += self.visit(child)
-                pass
             if child.data == 'function_decl':
                 code += self.visit(child)
                 pass
@@ -430,8 +434,6 @@ class CodeGenerator(Interpreter):
 
     def variable_decl(self, tree):
         code = ''
-        if '/__class__' in self.current_scope:
-            return code
         variable = tree.children[0]
         var_type = variable.children[0]
         size = 4
@@ -1217,6 +1219,7 @@ class CodeGenerator(Interpreter):
 
         self.expr_types.pop()
         self.expr_types.append(var_type)
+        return code
 
 
 decaf = """
@@ -1410,31 +1413,21 @@ int main()  {
 """
 
 decaf = r"""
-class mmd extends ll{
-    int a;
-    int kk(){}
-}
-double f(double x) {
-    return x + 1.0;
-}
-
-int power(int i) {
-    int x;
-    x = -5;
-    x = i - 8;
-    if (i > 0)
-        power(i - 1);
-    else {
-        Print(f(3.14));
-        return 8;
+class Person {
+    int age;
+    Person kk(){
+        Person p;
+        p = new Person;
+        p.age = 1;
+        Print(p.age);
+        return p;
     }
-    Print("1: ", i, ", 2: ", x);
-    i = 800 + i;
-    return i * 2;
 }
-
 int main() {
-    power(5);
+    Person mmd;
+    Person ali;
+    mmd = new Person;
+    Print(mmd.age);   
     return 68;
 }
 
@@ -1511,8 +1504,8 @@ if __name__ == '__main__':
     #     Print("goody goody");
     # }
     # """))
-    print(cgen(decaf))
-    exit(0)
+    # print(cgen(decaf))
+    # exit(0)
 
     parser = Lark(grammar, parser="lalr")
     parse_tree = parser.parse(text=decaf)
