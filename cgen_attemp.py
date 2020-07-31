@@ -150,7 +150,7 @@ class CodeGenerator(Interpreter):
             formal_type = symbol_table_objects[symbol_table[(self.current_scope, formal_name)]].type
             code += '.data\n'
             code += '.align 2\n'
-            if formal_type.name == 'double':
+            if formal_type.name == 'double' and formal_type.dimension == 0:
                 code += '{}: .space 8\n'.format((self.current_scope + "/" + formal_name).replace("/", "_"))
             else:
                 code += '{}: .space 4\n'.format((self.current_scope + "/" + formal_name).replace("/", "_"))
@@ -238,7 +238,7 @@ class CodeGenerator(Interpreter):
                 local_var_name = local_var[0]
                 local_var_type = local_var[1]
                 code += '.text\n'
-                if local_var_type.name == 'double':
+                if local_var_type.name == 'double' and local_var_type.dimension == 0:
                     code += '\tl.d  $f0, 0($sp)\n'
                     code += '\taddi $sp, $sp, 8\n'
                     code += '\ts.d  $f0, {}\n\n'.format(local_var_name.replace("/", "_"))
@@ -708,7 +708,7 @@ class CodeGenerator(Interpreter):
 
             formal_name = (function_scope + "/" + formal[0]).replace("/", "_")
             formal_type = formal[1]
-            if formal_type.name == 'double':
+            if formal_type.name == 'double' and formal_type.dimension == 0:
                 code += '\tl.d  $f0, {}\n'.format(formal_name)
                 code += '\taddi $sp, $sp, -8\n'
                 code += '\ts.d  $f0, 0($sp)\n'
@@ -736,9 +736,12 @@ class CodeGenerator(Interpreter):
         code += '\taddi $sp, $sp, -8\n'
         code += '\tsw   $ra, 0($sp)\n'
         code += '\tjal {}\n'.format(function_name)
-        code += '\tlw   $t8, 0($sp)\n'
-        code += '\taddi $sp, $sp, 8\n'
-        # code += '\tlw   $ra, {}($sp)\n'.format('0' if function.return_type.name == 'void' else '8')
+        if function.return_type.name == 'double' and function.return_type.dimension == 0:
+            code += '\tl.d   $f30, 0($sp)\n'
+            code += '\taddi $sp, $sp, 8\n'
+        elif function.return_type.name != 'void':
+            code += '\tlw   $t8, 0($sp)\n'
+            code += '\taddi $sp, $sp, 8\n'
         code += '\tlw   $ra, 0($sp)\n'
         code += '\taddi $sp, $sp, 8\n'
         # pop formal parameters
@@ -753,8 +756,12 @@ class CodeGenerator(Interpreter):
                 code += '\tlw   $t0, 0($sp)\n'
                 code += '\taddi $sp, $sp, 8\n'
                 code += '\tsw   $t0, {}\n'.format(formal_name)
-        code += '\taddi $sp, $sp, -8\n'
-        code += '\tsw   $t8, 0($sp)\n'
+        if function.return_type.name == 'double' and function.return_type.dimension == 0:
+            code += '\taddi $sp, $sp, -8\n'
+            code += '\ts.d   $f30, 0($sp)\n'
+        elif function.return_type.name != 'void':
+            code += '\taddi $sp, $sp, -8\n'
+            code += '\tsw   $t8, 0($sp)\n'
         return code
 
     def sub(self, tree):
