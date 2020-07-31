@@ -23,8 +23,8 @@ if __name__ == '__main__':
         if file.endswith(".d"):
             test = file[:-2]
 
-            # if 'hard' not in test:
-            #     continue
+            if 'sort' not in test:
+                continue
             total += 1
             print('Test_{}: {}'.format(total, file))
             with open("phase3_tests/tests/" + file, "r") as f:

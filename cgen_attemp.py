@@ -1605,18 +1605,15 @@ int main() {
 
 if __name__ == '__main__':
     (print(cgen("""
-void a(){
-    Print(itod(5));
-    Print(dtoi(5.6));
-    Print(btoi(true));
-    Print(itob(5));
-    return;
-}
-
-
-
 int main()  {
-    a();
+    int [] x;
+    double[] d;
+    x = NewArray(5, int);
+    d = NewArray(3, double);
+    d[0] = 1.1;
+    d[1] = 2.3;
+    d[2] = 5.6;
+    Print(d[0], d[1], d[2]);
 }
     """)))
     exit(0)
