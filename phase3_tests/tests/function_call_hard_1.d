@@ -82,8 +82,8 @@ int f(){
         Print("f");
         z(false);
     }
-
-    while (while_cond() and and_cond(ReadInteger())){
+    //
+    while (while_cond() && and_cond(ReadInteger())){
         Print("loop");
     }
 

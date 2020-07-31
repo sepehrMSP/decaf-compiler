@@ -213,8 +213,6 @@ class CodeGenerator(Interpreter):
         child = tree.children[0]
         store_len = len(self.stmt_labels)
         code = ''
-        # add_stmt = True if child.data not in ('while_stmt',) else False
-        # if add_stmt:
         if child.data == 'for_stmt':
             if child.children[0].data == 'ass':
                 code += self.visit(child.children[0])
@@ -222,7 +220,6 @@ class CodeGenerator(Interpreter):
         stmt_id = cnt()
         code += ('start_stmt_{}:\n'.format(stmt_id))
         child._meta = stmt_id
-
         if child.data == 'if_stmt':
             code += self.visit(child)
         elif child.data == 'while_stmt':
@@ -254,7 +251,7 @@ class CodeGenerator(Interpreter):
             code += '\tjr   $ra\n\n'
         elif child.data == 'print_stmt':
             code += self.visit(child)
-        elif child.data == 'expr':
+        elif child.data == 'expr' or child.data == 'ass':
             code += self.visit(child)
             # print('     ->>', child)
             code += '.text\n'
@@ -741,7 +738,8 @@ class CodeGenerator(Interpreter):
         code += '\tjal {}\n'.format(function_name)
         code += '\tlw   $t8, 0($sp)\n'
         code += '\taddi $sp, $sp, 8\n'
-        code += '\tlw   $ra, {}($sp)\n'.format('0' if function.return_type.name == 'void' else '8')
+        # code += '\tlw   $ra, {}($sp)\n'.format('0' if function.return_type.name == 'void' else '8')
+        code += '\tlw   $ra, 0($sp)\n'
         code += '\taddi $sp, $sp, 8\n'
         # pop formal parameters
         for formal in reversed(function.formals):
@@ -1331,23 +1329,42 @@ int main(){
 if __name__ == '__main__':
     print(cgen("""
 
-void f(){
-    return;
+int jumper_3(int x){
+    Print("3 ", x);
+    x = 1;
+    Print("3 ", x);
+    return 0;
 }
 
-int test(int a, int b) {
-    return a * b;
+int jumper_2(int y){
+    Print("2 ", y);
+    jumper_3(y);
+    Print("2 ", y);
+    jumper_3(y+1);
+    Print("2 ", y);
+    return 0;
 }
 
-int main() {
-    int a;
-    int b;
-
-    a = ReadInteger();
-    b = ReadInteger();
-
-    Print(test(a, b));
+int jumper_1(int x){
+    Print("1 ", x);
+    jumper_2(x);
+    Print("1 ", x); 
+    jumper_2(x);
+    Print("1 ", x);
+    return 0;
 }
+
+int f(){
+    jumper_1(10);
+    return 0;
+}
+
+int main()  {
+    f();
+    return 0;
+}
+
+
 
     """))
 

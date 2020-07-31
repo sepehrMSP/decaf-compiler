@@ -13,8 +13,10 @@ if __name__ == '__main__':
                 continue
             if 'fib' in test:
                 continue
-            if 't005-stmt1' not in test:
+            if 't006' not in test:
                 continue
+            # if 'hard' not in test:
+            #     continue
             total += 1
             print('Test_{}: {}'.format(total, file))
             with open("phase3_tests/tests/" + file, "r") as f:
