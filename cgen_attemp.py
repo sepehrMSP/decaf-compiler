@@ -145,8 +145,17 @@ class CodeGenerator(Interpreter):
         return code
 
     def formals(self, tree):
-        self.visit_children(tree)
-        return ''
+        code = ''
+        for variable in tree.children:
+            formal_name = variable.children[1].value
+            formal_type = symbol_table_objects[symbol_table[(self.current_scope, formal_name)]].type
+            code += '.data\n'
+            code += '.align 2\n'
+            if formal_type.name == 'double':
+                code += '{}: .space 8\n'.format((self.current_scope + "/" + formal_name).replace("/", "_"))
+            else:
+                code += '{}: .space 4\n'.format((self.current_scope + "/" + formal_name).replace("/", "_"))
+        return code
 
     def stmt_block(self, tree):
         self.current_scope += "/" + str(self.block_stmt_counter)
@@ -362,7 +371,8 @@ class CodeGenerator(Interpreter):
             elif var_type == 'string':
                 code += '.data\n'
                 code += '.align 2\n'
-                code += self.current_scope.replace('/', '_') + '_' + variable.children[1] + ': .space ' + str(size) + '\n'
+                code += self.current_scope.replace('/', '_') + '_' + variable.children[1] + ': .space ' + str(
+                    size) + '\n'
                 code += '.text\n'
                 code += '\tli $a0, 256\n'
                 code += '\tli $v0, 9\n'
@@ -699,13 +709,14 @@ class CodeGenerator(Interpreter):
             code += self.visit(expr)
             formal_name = function.formals[actual_counter][0]
             formal_type = function.formals[actual_counter][1].name
+            print(self.current_scope)
             if formal_type == 'double':
                 code += '\tl.d $f0, 0($sp)\n'
-                code += '\ts.d $f0, {}\n'.format(formal_name)
+                code += '\ts.d $f0, {}\n'.format((function_scope + "/" + formal_name).replace("/", "_"))
                 code += '\taddi $sp, $sp, 8\n'
             else:
                 code += '\tlw   $v0, 0($sp)\n'
-                code += '\tsw   $v0, {}\n'.format(formal_name)
+                code += '\tsw   $v0, {}\n'.format((function_scope + "/" + formal_name).replace("/", "_"))
                 code += '\taddi $sp, $sp, 8\n'
             actual_counter += 1
 
@@ -718,10 +729,10 @@ class CodeGenerator(Interpreter):
         for formal in reversed(function.formals):
             formal_name = (function_scope + "/" + formal[0]).replace("/", "_")
             formal_type = formal[1]
-            if formal[1].name == 'double':
+            if formal_type.name == 'double':
                 code += '\tl.d  $f0, 0($sp)\n'
                 code += '\taddi $sp, $sp, 8\n'
-                code += '\ts.d  $f0, {}'.format(formal_name)
+                code += '\ts.d  $f0, {}\n'.format(formal_name)
             else:
                 code += '\tlw   $t0, 0($sp)\n'
                 code += '\taddi $sp, $sp, 8\n'
@@ -1030,7 +1041,7 @@ class CodeGenerator(Interpreter):
         var_name = tree.children[0].value
         while (var_scope, var_name) not in symbol_table:
             var_scope = pop_scope(var_scope)
-            #inja :D chon ta'rif nashode, while tamum nemishe; dombale moteghayyere dorost migardam dg. be scope asli kar nadaram. mannnnnnn kari lazem nist bokonim. code ghalat nemidan ke. Re Dg:)) tarif nakardam y ro
+            # inja :D chon ta'rif nashode, while tamum nemishe; dombale moteghayyere dorost migardam dg. be scope asli kar nadaram. mannnnnnn kari lazem nist bokonim. code ghalat nemidan ke. Re Dg:)) tarif nakardam y ro
         label_name = var_scope.replace('/', '_') + '_' + var_name
         code = '.text\n'
         code += '\tla $t0, {}\n'.format(label_name)
@@ -1292,7 +1303,23 @@ int main()  {
     return;
 }
 """
+decaf = """
+int mmd(int x, double n, int [][] k){
+    Print(x);
+    return 1;
+}
+int main(){
+    int x;
+    int k;
+    string kal;
+    double aa;
+    int [][] kif;
+    x = 4;
+    mmd(x);
+    return 0;
+}
 
+"""
 if __name__ == '__main__':
     print(cgen(decaf))
     exit(0)
@@ -1335,9 +1362,9 @@ if __name__ == '__main__':
     #     }
     #     Print("goody goody");
     # }
-# """))
-#
-#     exit(0)
+    # """))
+    #
+    #     exit(0)
 
     parser = Lark(grammar, parser="lalr")
     parse_tree = parser.parse(text=decaf)
