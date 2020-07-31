@@ -31,8 +31,8 @@ grammar = """
     expr4 : expr4 "+" expr5 -> add | expr4 "-" expr5 -> sub | expr5
     expr5 : expr5 "*" expr6 -> mul | expr5 "/" expr6 -> div | expr5 "%" expr6 -> mod | expr6
     expr6 : "-" expr6 -> neg | "!" expr6 -> not_expr | expr7
-    expr7 : constant | "this" | "ReadInteger" "(" ")" -> read_integer | "ReadLine" "(" ")" -> read_line | "new" IDENT | "NewArray" "(" expr "," type ")" -> new_array | "(" expr ")" | l_value -> val | call
-    l_value : IDENT -> var_addr |  expr7 "." IDENT | expr7 "[" expr "]" -> subscript
+    expr7 : constant | "this" | "ReadInteger" "(" ")" -> read_integer | "ReadLine" "(" ")" -> read_line | "new" IDENT -> class_inst | "NewArray" "(" expr "," type ")" -> new_array | "(" expr ")" | l_value -> val | call
+    l_value : IDENT -> var_addr |  expr7 "." IDENT -> var_access | expr7 "[" expr "]" -> subscript
     call : IDENT  "(" actuals ")" |  expr7  "."  IDENT  "(" actuals ")" 
     actuals :  expr (","expr)* |  
     constant : INT -> const_int | DOUBLE -> const_double | DOUBLE_SCI -> const_double | BOOL -> const_bool |  STRING -> const_str | "null" -> null
@@ -88,6 +88,33 @@ class ClassType:
             l.append(function.exact_name)
         # print(l)
         return
+
+    def find_var_index(self, ident):
+        counter = 0
+        for var in self.variables:
+            if var[0] == ident:
+                return counter
+            else:
+                counter += 1
+        raise Exception("variable not found in your class")
+
+    def find_var_type(self, ident):
+        return self.variables[self.find_var_index(ident)][1]
+
+    def find_function(self, name):
+        for func in self.functions:
+            if func.name == name:
+                return func
+        raise Exception("function not found")
+
+    def set_vtable(self):
+        pass
+        # return pointer
+
+    def set_obj(self):
+        vtable_pointer = self.set_vtable()
+
+        pass
 
 
 class Function:
@@ -276,6 +303,8 @@ class SymbolTableMaker(Interpreter):
         stack.pop()  # pop formals
 
         if class_type_object:
+            temp = function.formals.copy()
+            function.formals = [['this', Type(name=class_type_object.name)]] + temp
             class_type_object.functions.append(function)
         else:
             function_table[function.name] = self.static_function_counter

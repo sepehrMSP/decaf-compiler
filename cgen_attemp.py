@@ -3,7 +3,8 @@ import lark
 from lark import Lark
 from lark.visitors import Interpreter
 
-from symbol_table_creation_attemp import symbol_table, text, just_class, set_inheritance, ClassTreeSetter
+from symbol_table_creation_attemp import symbol_table, text, just_class, set_inheritance, ClassTreeSetter, \
+    class_type_objects, class_table
 from symbol_table_creation_attemp import symbol_table_objects, function_objects, \
     function_table, grammar, SymbolTableMaker, Type
 
@@ -235,6 +236,23 @@ class CodeGenerator(Interpreter):
                 code += self.visit(decl)
         return code
 
+    def class_inst(self, tree):
+        class_name = tree.children[0].value
+        class_obj = class_type_objects[class_table[class_name]]
+        size = 8 + len(class_obj.variables) * 8
+        self.expr_types.append(Type(name=class_name))
+        code = ''
+        code += '.text\n'
+        code += '\tli $a0, {}\n'.format(size)
+        code += '\tli $v0, 9\n'
+        code += '\tsyscall\n'
+        code += '\tlw $t0, {}\n'.format(class_name + '_vtable')
+        code += '\tsw $t0, 0($v0)\n'
+        code += '\tsw $v0, 0($sp)\n'
+        code += '\taddi $sp, $sp, -8\n'
+
+        return code
+
     def function_decl(self, tree):
         code = ''
         if len(tree.children) == 4:
@@ -386,8 +404,15 @@ class CodeGenerator(Interpreter):
         elif child.data == 'return_stmt':
             code += self.visit(child)
             # todo implement for class methods
-            func_name = self.current_scope.split('/')[1]
-            funct = function_objects[function_table[func_name]]
+            func_name = ''
+            if '__class__' in self.current_scope:
+                func_name = self.current_scope.split('/')[2]
+                class_name = self.current_scope.split('/')[1][9:]
+                funct = class_type_objects[class_table[class_name]].find_function(func_name)
+            else:
+                func_name = self.current_scope.split('/')[1]
+                funct = function_objects[function_table[func_name]]
+
             if funct.return_type.name == 'double' and funct.return_type.dimension == 0:
                 code += '\tl.d   $f30, 0($sp)\n'
                 code += '\taddi $sp, $sp, 8\n'
@@ -520,22 +545,39 @@ class CodeGenerator(Interpreter):
     def class_decl(self, tree):
         code = ''
         ident = tree.children[0]
+        self.current_scope += "/__class__" + ident.value
+
+        class_object = class_type_objects[class_table[ident.value]]
+        code += '.data\n'
+        code += '.align 2\n'
+        code += '{}: .space 4\n'.format(class_object.name + '_vtable')
+        code += '.text\n'
+        code += '\tli $a0, {}\n'.format(len(class_object.functions) * 4)
+        code += '\tli $v0, 9\n'
+        code += '\tsyscall\n'
+        code += '\tsw $v0, {}\n'.format(class_object.name + '_vtable')
+        counter = 0
+        for func in class_object.functions:
+            code += '\tla $t0, {}\n'.format(func.exact_name.replace('/', '_'))
+            code += '\tsw $t0, {}($v0)\n'.format(counter)
+            counter += 4
 
         if type(tree.children[1]) == lark.lexer.Token:
-            pass  # it is for inheritance we scape it for now
+            for field in tree.children[2:]:
+                print(field)
+                if field.children[0].data == 'function_decl':
+                    code += self.visit(field)
         else:
-            self.current_scope += "/__class__" + ident.value
             for field in tree.children[1:]:
-                code += self.visit(field)
-            self.current_scope = pop_scope(self.current_scope)
+                if field.children[0].data == 'function_decl':
+                    code += self.visit(field)
+
+        self.current_scope = pop_scope(self.current_scope)
         return code
 
     def field(self, tree):
         code = ''
         for child in tree.children:
-            if child.data == 'variable_decl':
-                code += self.visit(child)
-                pass
             if child.data == 'function_decl':
                 code += self.visit(child)
                 pass
@@ -543,8 +585,6 @@ class CodeGenerator(Interpreter):
 
     def variable_decl(self, tree):
         code = ''
-        if '/__class__' in self.current_scope:
-            return code
         variable = tree.children[0]
         var_type = variable.children[0]
         size = 4
@@ -1317,6 +1357,23 @@ class CodeGenerator(Interpreter):
         self.expr_types.pop()
         return code
 
+    def var_access(self, tree):
+        ident = tree.children[1].value
+        code = ''
+        code += self.visit(tree.children[0])
+        code += '.text\n'
+        code += '\tlw $t0, 0($sp)\n'
+        class_type = self.expr_types[-1]
+        var_index = class_type_objects[class_table[class_type.name]].find_var_index(ident)
+        var_type = class_type_objects[class_table[class_type.name]].find_var_type(ident)
+
+        code += '\taddi $t1, $t0, {}\n'.format((1 + var_index) * 8)
+        code += '\tsw $t1, 0($sp)\n'
+
+        self.expr_types.pop()
+        self.expr_types.append(var_type)
+        return code
+
 
 decaf = """
 class Person {
@@ -1509,7 +1566,21 @@ int main()  {
 """
 
 decaf = r"""
+class Person {
+    int age;
+    Person kk(){
+        Person p;
+        p = new Person;
+        p.age = 1;
+        Print(p.age);
+        return p;
+    }
+}
 int main() {
+    Person mmd;
+    Person ali;
+    mmd = new Person;
+    Print(mmd.age);   
     Print("hell" != "hell");
     return 68;
 }
@@ -1538,38 +1609,38 @@ if __name__ == '__main__':
     """)))
     exit(0)
     # print(cgen("""
-#
-# int main() {
-#     int t;
-#     int i;
-#     string s;
-#     bool found;
-#     t = 0;
-#     s = ReadLine();
-#     found = false;
-# 	for (i = 1; i < 10; i = i+1){
-# 		if (s[i] == s[i-1]){
-# 		    t = t+1;
-# 		}
-# 		else{
-# 		    t = 0;
-# 		}
-# 		if (t == 6){
-# 		    Print("YES");
-# 		    found = true;
-# 		    break;
-# 		}
-# 	}
-# 	if(!found){
-#         Print("NO");
-#     }
-# }
-#     """))
-#
-#     exit(0)
-#     (cgen("""
-#         int main(){
-#
+    #
+    # int main() {
+    #     int t;
+    #     int i;
+    #     string s;
+    #     bool found;
+    #     t = 0;
+    #     s = ReadLine();
+    #     found = false;
+    # 	for (i = 1; i < 10; i = i+1){
+    # 		if (s[i] == s[i-1]){
+    # 		    t = t+1;
+    # 		}
+    # 		else{
+    # 		    t = 0;
+    # 		}
+    # 		if (t == 6){
+    # 		    Print("YES");
+    # 		    found = true;
+    # 		    break;
+    # 		}
+    # 	}
+    # 	if(!found){
+    #         Print("NO");
+    #     }
+    # }
+    #     """))
+    #
+    #     exit(0)
+    #     (cgen("""
+    #         int main(){
+    #
     #         NewArray(5, double[][]);
     #         NewArray(5, int);
     #         NewArray(5, bool[]);
@@ -1607,8 +1678,8 @@ if __name__ == '__main__':
     #     Print("goody goody");
     # }
     # """))
-    print(cgen(decaf))
-    exit(0)
+    # print(cgen(decaf))
+    # exit(0)
 
     parser = Lark(grammar, parser="lalr")
     parse_tree = parser.parse(text=decaf)
