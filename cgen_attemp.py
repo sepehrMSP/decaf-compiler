@@ -118,6 +118,7 @@ class CodeGenerator(Interpreter):
                 '\tfalse: .asciiz "false"\n'
                 '\tconst10000: .double 10000.0\n'
                 '\tnw: .asciiz "\\n"\n'
+                '\t__const_0_5__: .double 0.5\n'
             )
             code += ('.text\n'
                      'main:\n'
@@ -556,7 +557,7 @@ class CodeGenerator(Interpreter):
                     # Print double
                         l.d $f12, 0($sp)
                         addi $sp, $sp, 8
-                        li.d $f2, 1000.0
+                        li.d $f2, 10000.0
                         mul.d $f12, $f12, $f2
                         round.w.d $f12, $f12
                         cvt.d.w $f12, $f12
@@ -1335,41 +1336,9 @@ int main(){
 """
 if __name__ == '__main__':
     print(cgen("""
-
-int jumper_3(int x){
-    Print("3 ", x);
-    x = 1;
-    Print("3 ", x);
-    return 0;
-}
-
-int jumper_2(int y){
-    Print("2 ", y);
-    jumper_3(y);
-    Print("2 ", y);
-    jumper_3(y+1);
-    Print("2 ", y);
-    return 0;
-}
-
-int jumper_1(int x){
-    Print("1 ", x);
-    jumper_2(x);
-    Print("1 ", x); 
-    jumper_2(x);
-    Print("1 ", x);
-    return 0;
-}
-
-int f(){
-    jumper_1(10);
-    return 0;
-}
-
-int main()  {
-    f();
-    return 0;
-}
+    int main(){
+        Print(3.123456);
+    }
 
 
 
