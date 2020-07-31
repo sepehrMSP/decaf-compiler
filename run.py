@@ -1,19 +1,28 @@
 import os
 import time
-
 from cgen_attemp import cgen
-
+from cgen_attemp import CodeGenerator
+import symbol_table_creation_attemp
 if __name__ == '__main__':
     acc = 0
     total = 0
     for file in os.listdir("phase3_tests/tests"):
+        CodeGenerator.current_scope = 'root'
+
+        symbol_table_creation_attemp.symbol_table_objects.clear()
+        symbol_table_creation_attemp.class_type_objects.clear()
+        symbol_table_creation_attemp.function_objects.clear()
+        symbol_table_creation_attemp.symbol_table.clear()
+        symbol_table_creation_attemp.class_table.clear()
+        symbol_table_creation_attemp.function_table.clear()
+        symbol_table_creation_attemp.stack.clear()
+        symbol_table_creation_attemp.stack.append('root')
+        symbol_table_creation_attemp.parent_classes.clear()
+
         if file.endswith(".d"):
             test = file[:-2]
-            if 'expr' in test:
-                continue
-            if 'fib' in test:
-                continue
-            if 't006' not in test:
+
+            if 'football_2' not in test:
                 continue
             # if 'hard' not in test:
             #     continue

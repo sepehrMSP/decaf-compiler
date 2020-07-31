@@ -45,7 +45,7 @@ grammar = """
     STRING : /"[^"\\n]*"/
     IDENT :  /(?!((true)|(false)|(void)|(int)|(double)|(bool)|(string)|(class)|(interface)|(null)|(this)|(extends)|(implements)|(for)|(while)|(if)|(else)|(return)|(break)|(new)|(NewArray)|(Print)|(ReadInteger)|(ReadLine))([^_a-zA-Z0-9]|$))[a-zA-Z][_a-zA-Z0-9]*/
     INLINE_COMMENT : "//" /[^\\n]*/ "\\n"
-    MULTILINE_COMMENT : "/*" /.*?/ "*/"
+    MULTILINE_COMMENT : "/*" /(\\n|.)*?/ "*/"
     %import common.WS -> WHITESPACE
     %ignore WHITESPACE
     %ignore INLINE_COMMENT

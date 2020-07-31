@@ -1,3 +1,4 @@
+from copy import deepcopy
 import lark
 from lark import Lark
 from lark.visitors import Interpreter
@@ -118,12 +119,13 @@ class CodeGenerator(Interpreter):
                 '\tfalse: .asciiz "false"\n'
                 '\tconst10000: .double 10000.0\n'
                 '\tnw: .asciiz "\\n"\n'
+                '\t__const_0_5__: .double 0.5\n'
             )
             code += ('.text\n'
                      'main:\n'
                      '\tla\t$ra,__end__\n')
         else:
-            code += '.text\n{}:\n'.format(ident)
+            code += '.text\n{}:\n'.format((self.current_scope + '/' + ident).replace('/', '_'))
 
         self.current_scope += "/" + ident.value
         code += self.visit(formals)
@@ -232,6 +234,15 @@ class CodeGenerator(Interpreter):
             code += self.visit(child)
         elif child.data == 'return_stmt':
             code += self.visit(child)
+            # todo implement for class methods
+            func_name = self.current_scope.split('/')[1]
+            funct = function_objects[function_table[func_name]]
+            if funct.return_type.name == 'double' and funct.return_type.dimension == 0:
+                code += '\tl.d   $f30, 0($sp)\n'
+                code += '\taddi $sp, $sp, 8\n'
+            elif funct.return_type.name != 'void':
+                code += '\tlw   $t8, 0($sp)\n'
+                code += '\taddi $sp, $sp, 8\n'
             # todo wither is it essential to pop expr from stack or not or do this in caller side?
             local_var_count_of_this_scope = self.stack_local_params_count[-1]
             for local_var in reversed(self.stack_local_params[-local_var_count_of_this_scope:]):
@@ -247,15 +258,24 @@ class CodeGenerator(Interpreter):
                     code += '\taddi $sp, $sp, 8\n'
                     code += '\tsw   $t0, {}\n\n'.format(local_var_name.replace("/", "_"))
             # self.stack_local_params = self.stack_local_params[:-local_var_count_of_this_scope]
-            # self.stack_local_params_count.pop()
+            # self.stack_local_params_count.pop()       # sepehr
+            if funct.return_type.name == 'double' and funct.return_type.dimension == 0:
+                code += '\taddi $sp, $sp, -8\n'
+                code += '\ts.d   $f30, 0($sp)\n'
+            elif funct.return_type.name != 'void':
+                code += '\taddi $sp, $sp, -8\n'
+                code += '\tsw   $t8, 0($sp)\n'
             code += '\tjr   $ra\n\n'
         elif child.data == 'print_stmt':
             code += self.visit(child)
         elif child.data == 'expr' or child.data == 'ass':
             code += self.visit(child)
             # print('     ->>', child)
-            code += '.text\n'
-            code += '\taddi\t$sp, $sp, 8\n\n'
+            expr_type = self.expr_types[-1]
+            if expr_type.name != 'void':
+                code += '.text\n'
+                code += '\taddi\t$sp, $sp, 8\n\n'
+            self.expr_types.pop()
         else:
             code += self.visit(child)
         # todo these last 4 if statements can be removed but there are here to have more explicit behavior
@@ -277,7 +297,7 @@ class CodeGenerator(Interpreter):
         return ''.join(self.visit_children(tree))
 
     def if_stmt(self, tree):
-        code = ''
+        code = '# if starts here:\n'
         code += self.visit(tree.children[0])
         then_code = self.visit(tree.children[1])
         else_code = '' if len(tree.children) == 2 else self.visit(tree.children[2])
@@ -556,7 +576,7 @@ class CodeGenerator(Interpreter):
                     # Print double
                         l.d $f12, 0($sp)
                         addi $sp, $sp, 8
-                        li.d $f2, 1000.0
+                        li.d $f2, 10000.0
                         mul.d $f12, $f12, $f2
                         round.w.d $f12, $f12
                         cvt.d.w $f12, $f12
@@ -685,6 +705,7 @@ class CodeGenerator(Interpreter):
         return code
 
     def call(self, tree):
+        # self.expr_types
         if len(tree.children) == 3:
             # it's for class
             # todo must be done
@@ -698,7 +719,7 @@ class CodeGenerator(Interpreter):
             return self.visit(actuals)
 
     def actuals(self, tree):
-        code = ''
+        code = '.text\n'
         function_name = tree._meta
         function_scope = 'root/' + function_name
         actual_counter = 0
@@ -711,31 +732,33 @@ class CodeGenerator(Interpreter):
             if formal_type.name == 'double' and formal_type.dimension == 0:
                 code += '\tl.d  $f0, {}\n'.format(formal_name)
                 code += '\taddi $sp, $sp, -8\n'
-                code += '\ts.d  $f0, 0($sp)\n'
+                code += '\ts.d  $f0, 0($sp)\n\n'
             else:
                 code += '\tlw   $t1, {}\n'.format(formal_name)
                 code += '\taddi $sp, $sp, -8\n'
-                code += '\tsw   $t1, 0($sp)\n'
+                code += '\tsw   $t1, 0($sp)\n\n'
 
         # set actual parameters to formal parameters
         for expr in tree.children:
             code += self.visit(expr)
             formal_name = function.formals[actual_counter][0]
-
+            code += '.text\n'
             formal_type = function.formals[actual_counter][1].name
             if formal_type == 'double':
                 code += '\tl.d  $f0, 0($sp)\n'
                 code += '\ts.d  $f0, {}\n'.format((function_scope + "/" + formal_name).replace("/", "_"))
-                code += '\taddi $sp, $sp, 8\n'
+                code += '\taddi $sp, $sp, 8\n\n'
             else:
                 code += '\tlw   $v0, 0($sp)\n'
                 code += '\tsw   $v0, {}\n'.format((function_scope + "/" + formal_name).replace("/", "_"))
-                code += '\taddi $sp, $sp, 8\n'
+                code += '\taddi $sp, $sp, 8\n\n'
             actual_counter += 1
 
+        code += '.text\n'
         code += '\taddi $sp, $sp, -8\n'
         code += '\tsw   $ra, 0($sp)\n'
-        code += '\tjal {}\n'.format(function_name)
+        label_name = function_objects[function_table[function_name]].exact_name
+        code += '\tjal {}\n'.format(label_name.replace('/', '_'))
         if function.return_type.name == 'double' and function.return_type.dimension == 0:
             code += '\tl.d   $f30, 0($sp)\n'
             code += '\taddi $sp, $sp, 8\n'
@@ -743,7 +766,7 @@ class CodeGenerator(Interpreter):
             code += '\tlw   $t8, 0($sp)\n'
             code += '\taddi $sp, $sp, 8\n'
         code += '\tlw   $ra, 0($sp)\n'
-        code += '\taddi $sp, $sp, 8\n'
+        code += '\taddi $sp, $sp, 8\n\n'
         # pop formal parameters
         for formal in reversed(function.formals):
             formal_name = (function_scope + "/" + formal[0]).replace("/", "_")
@@ -751,17 +774,20 @@ class CodeGenerator(Interpreter):
             if formal_type.name == 'double':
                 code += '\tl.d  $f0, 0($sp)\n'
                 code += '\taddi $sp, $sp, 8\n'
-                code += '\ts.d  $f0, {}\n'.format(formal_name)
+                code += '\ts.d  $f0, {}\n\n'.format(formal_name)
             else:
                 code += '\tlw   $t0, 0($sp)\n'
                 code += '\taddi $sp, $sp, 8\n'
-                code += '\tsw   $t0, {}\n'.format(formal_name)
+                code += '\tsw   $t0, {}\n\n'.format(formal_name)
         if function.return_type.name == 'double' and function.return_type.dimension == 0:
             code += '\taddi $sp, $sp, -8\n'
             code += '\ts.d   $f30, 0($sp)\n'
         elif function.return_type.name != 'void':
             code += '\taddi $sp, $sp, -8\n'
             code += '\tsw   $t8, 0($sp)\n'
+        code += '# return type is ' + function.return_type.name + ' ' + str(function.return_type.dimension)
+        code += '\n'
+        self.expr_types.append(deepcopy(function.return_type))
         return code
 
     def sub(self, tree):
@@ -1328,57 +1354,68 @@ int main()  {
     return;
 }
 """
-decaf = """
-int main(){
+
+decaf = r"""
+double f(double x) {
+    return x + 1.0;
+}
+
+int power(int i) {
+    int x;
+    x = -5;
+    x = i - 8;
+    if (i > 0)
+        power(i - 1);
+    else {
+        Print(f(3.14));
+        return 8;
+    }
+    Print("1: ", i, ", 2: ", x);
+    i = 800 + i;
+    return i * 2;
+}
+
+int main() {
+    power(5);
+    return 68;
 }
 
 """
+
 if __name__ == '__main__':
-    print(cgen("""
-
-int jumper_3(int x){
-    Print("3 ", x);
-    x = 1;
-    Print("3 ", x);
-    return 0;
-}
-
-int jumper_2(int y){
-    Print("2 ", y);
-    jumper_3(y);
-    Print("2 ", y);
-    jumper_3(y+1);
-    Print("2 ", y);
-    return 0;
-}
-
-int jumper_1(int x){
-    Print("1 ", x);
-    jumper_2(x);
-    Print("1 ", x); 
-    jumper_2(x);
-    Print("1 ", x);
-    return 0;
-}
-
-int f(){
-    jumper_1(10);
-    return 0;
-}
-
-int main()  {
-    f();
-    return 0;
-}
-
-
-
-    """))
-
-    exit(0)
-    # (cgen("""
-    #     int main(){
-    #
+    # print(cgen("""
+#
+# int main() {
+#     int t;
+#     int i;
+#     string s;
+#     bool found;
+#     t = 0;
+#     s = ReadLine();
+#     found = false;
+# 	for (i = 1; i < 10; i = i+1){
+# 		if (s[i] == s[i-1]){
+# 		    t = t+1;
+# 		}
+# 		else{
+# 		    t = 0;
+# 		}
+# 		if (t == 6){
+# 		    Print("YES");
+# 		    found = true;
+# 		    break;
+# 		}
+# 	}
+# 	if(!found){
+#         Print("NO");
+#     }
+# }
+#     """))
+#
+#     exit(0)
+#     (cgen("""
+#         int main(){
+#
     #         NewArray(5, double[][]);
     #         NewArray(5, int);
     #         NewArray(5, bool[]);
@@ -1416,8 +1453,8 @@ int main()  {
     #     Print("goody goody");
     # }
     # """))
-    #
-    #     exit(0)
+    print(cgen(decaf))
+    exit(0)
 
     parser = Lark(grammar, parser="lalr")
     parse_tree = parser.parse(text=decaf)
