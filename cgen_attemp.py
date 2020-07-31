@@ -125,7 +125,7 @@ class CodeGenerator(Interpreter):
                      'main:\n'
                      '\tla\t$ra,__end__\n')
         else:
-            code += '.text\n{}:\n'.format(ident)
+            code += '.text\n{}:\n'.format((self.current_scope + '/' + ident).replace('/', '_'))
 
         self.current_scope += "/" + ident.value
         code += self.visit(formals)
@@ -757,7 +757,8 @@ class CodeGenerator(Interpreter):
         code += '.text\n'
         code += '\taddi $sp, $sp, -8\n'
         code += '\tsw   $ra, 0($sp)\n'
-        code += '\tjal {}\n'.format(function_name)
+        label_name = function_objects[function_table[function_name]].exact_name
+        code += '\tjal {}\n'.format(label_name.replace('/', '_'))
         if function.return_type.name == 'double' and function.return_type.dimension == 0:
             code += '\tl.d   $f30, 0($sp)\n'
             code += '\taddi $sp, $sp, 8\n'
@@ -1382,39 +1383,39 @@ int main() {
 """
 
 if __name__ == '__main__':
-    print(cgen("""
-
-int main() {
-    int t;
-    int i;
-    string s;
-    bool found;
-    t = 0;
-    s = ReadLine();
-    found = false;
-	for (i = 1; i < 10; i = i+1){
-		if (s[i] == s[i-1]){
-		    t = t+1;
-		}
-		else{
-		    t = 0;
-		}
-		if (t == 6){
-		    Print("YES");
-		    found = true;
-		    break;
-		}
-	}
-	if(!found){
-        Print("NO");
-    }
-}
-    """))
-
-    exit(0)
-    # (cgen("""
-    #     int main(){
-    #
+    # print(cgen("""
+#
+# int main() {
+#     int t;
+#     int i;
+#     string s;
+#     bool found;
+#     t = 0;
+#     s = ReadLine();
+#     found = false;
+# 	for (i = 1; i < 10; i = i+1){
+# 		if (s[i] == s[i-1]){
+# 		    t = t+1;
+# 		}
+# 		else{
+# 		    t = 0;
+# 		}
+# 		if (t == 6){
+# 		    Print("YES");
+# 		    found = true;
+# 		    break;
+# 		}
+# 	}
+# 	if(!found){
+#         Print("NO");
+#     }
+# }
+#     """))
+#
+#     exit(0)
+#     (cgen("""
+#         int main(){
+#
     #         NewArray(5, double[][]);
     #         NewArray(5, int);
     #         NewArray(5, bool[]);
@@ -1452,8 +1453,8 @@ int main() {
     #     Print("goody goody");
     # }
     # """))
-    #
-    #     exit(0)
+    print(cgen(decaf))
+    exit(0)
 
     parser = Lark(grammar, parser="lalr")
     parse_tree = parser.parse(text=decaf)
