@@ -121,8 +121,7 @@ class CodeGenerator(Interpreter):
             )
             code += ('.text\n'
                      'main:\n'
-                     '\tla\t$ra,__end__\n'
-                     '\tmove\t$ra,$t0\n')
+                     '\tla\t$ra,__end__\n')
         else:
             code += '.text\n{}:\n'.format(ident)
 
@@ -216,6 +215,10 @@ class CodeGenerator(Interpreter):
         code = ''
         # add_stmt = True if child.data not in ('while_stmt',) else False
         # if add_stmt:
+        if child.data == 'for_stmt':
+            if child.children[0].data == 'ass':
+                code += self.visit(child.children[0])
+
         stmt_id = cnt()
         code += ('start_stmt_{}:\n'.format(stmt_id))
         child._meta = stmt_id
@@ -225,13 +228,6 @@ class CodeGenerator(Interpreter):
         elif child.data == 'while_stmt':
             code += self.visit(child)
         elif child.data == 'for_stmt':
-            # print(child.children[0])
-            # print()
-            # print(child.children[1])
-            # print()
-            # print(child.children[2])
-            # print()
-            exit(0)
             code += self.visit(child)
         elif child.data == 'stmt_block':
             code += self.visit(child)
@@ -260,6 +256,8 @@ class CodeGenerator(Interpreter):
             code += self.visit(child)
         elif child.data == 'expr':
             code += self.visit(child)
+            code += '.text\n'
+            code += '\taddi\t$sp, $sp, 8\n\n'
         else:
             code += self.visit(child)
         # todo these last 4 if statements can be removed but there are here to have more explicit behavior
@@ -327,10 +325,27 @@ class CodeGenerator(Interpreter):
         return code
 
     def for_stmt(self, tree):
+        code = '.text\t\t\t\t# For'
         for_id = tree._meta
         self.loop_labels.append(for_id)
-        self.loop_labels.pop(for_id)
-        return ''.join(self.visit_children(tree))
+        childs = tree.children
+        next = ''
+        if childs[0].data == 'ass':
+            code += self.visit(childs[1])
+        else:
+            code += self.visit(childs[0])
+        if childs[-2].data == 'ass':
+            next += self.visit(childs[-2])
+        code += tab("""
+            lw $a0, 0($sp)
+            addi $sp, $sp, 8
+            beq $a0, $zero, end_stmt_{}
+        """.format(for_id))
+        code += self.visit(childs[-1])
+        code += next
+        code += "\tj start_stmt_{}\n".format(for_id)
+        self.loop_labels.pop()
+        return code
 
     # probably we wont need this part in cgen
     def class_decl(self, tree):
@@ -708,11 +723,11 @@ class CodeGenerator(Interpreter):
         for expr in tree.children:
             code += self.visit(expr)
             formal_name = function.formals[actual_counter][0]
+
             formal_type = function.formals[actual_counter][1].name
-            print(self.current_scope)
             if formal_type == 'double':
-                code += '\tl.d $f0, 0($sp)\n'
-                code += '\ts.d $f0, {}\n'.format((function_scope + "/" + formal_name).replace("/", "_"))
+                code += '\tl.d  $f0, 0($sp)\n'
+                code += '\ts.d  $f0, {}\n'.format((function_scope + "/" + formal_name).replace("/", "_"))
                 code += '\taddi $sp, $sp, 8\n'
             else:
                 code += '\tlw   $v0, 0($sp)\n'
@@ -723,7 +738,7 @@ class CodeGenerator(Interpreter):
         code += '\taddi $sp, $sp, -8\n'
         code += '\tsw   $ra, 0($sp)\n'
         code += '\tjal {}\n'.format(function_name)
-        code += '\tlw   $ra, 0($sp)\n'
+        code += '\tlw   $ra, {}($sp)\n'.format('0' if function.return_type.name == 'void' else '8')
         code += '\taddi $sp, $sp, 8\n'
         # pop formal parameters
         for formal in reversed(function.formals):

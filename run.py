@@ -11,7 +11,8 @@ if __name__ == '__main__':
             test = file[:-2]
             if 'expr' in test:
                 continue
-
+            if 'for' not in test:
+                continue
             total += 1
             print('Test_{}: {}'.format(total, file))
             with open("phase3_tests/tests/" + file, "r") as f:
