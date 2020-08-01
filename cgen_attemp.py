@@ -1,10 +1,10 @@
 from copy import deepcopy
 import lark
-from lark import Lark
+from lark import Lark, Tree, Token
 from lark.visitors import Interpreter
 
 from symbol_table_creation_attemp import symbol_table, text, just_class, set_inheritance, ClassTreeSetter, \
-    class_type_objects, class_table
+    class_type_objects, class_table, Function
 from symbol_table_creation_attemp import symbol_table_objects, function_objects, \
     function_table, grammar, SymbolTableMaker, Type
 
@@ -46,6 +46,7 @@ class Types:
 def cnt():
     CodeGenerator.LabelCnt += 1
     return CodeGenerator.LabelCnt
+
 
 def cast_cgen():
     code = ''
@@ -199,6 +200,7 @@ def cast_cgen():
         """
     )
     return code
+
 
 class CodeGenerator(Interpreter):
     current_scope = 'root'
@@ -407,6 +409,7 @@ class CodeGenerator(Interpreter):
         elif child.data == 'return_stmt':
             code += self.visit(child)
             # todo implement for class methods
+            # todo is it really done?
             func_name = ''
             if '__class__' in self.current_scope:
                 func_name = self.current_scope.split('/')[2]
@@ -567,7 +570,6 @@ class CodeGenerator(Interpreter):
 
         if type(tree.children[1]) == lark.lexer.Token:
             for field in tree.children[2:]:
-                print(field)
                 if field.children[0].data == 'function_decl':
                     code += self.visit(field)
         else:
@@ -918,26 +920,36 @@ class CodeGenerator(Interpreter):
     def call(self, tree):
         # self.expr_types
         if len(tree.children) == 3:
-            # it's for class
-            # todo must be done
+            expr_class_inst = tree.children[0]
+            ident = tree.children[1]
+            actuals = tree.children[2]
+            name = ident.value
+            actuals._meta = [name, expr_class_inst]
+            return self.visit(actuals)
+
+            # for class
             pass
         if len(tree.children) == 2:
             # self.stack_local_params_count.append(0)
             ident = tree.children[0]
             actuals = tree.children[1]
             name = ident.value
-            actuals._meta = name
+            actuals._meta = [name, None]
             return self.visit(actuals)
 
     def actuals(self, tree):
         code = '.text\n'
-        function_name = tree._meta
-        function_scope = 'root/' + function_name
-        actual_counter = 0
-        function = function_objects[function_table[function_name]]
+        function_name = tree._meta[0]
+        if tree._meta[1]:
+            class_type = self.expr_types[-1]
+            function_scope = 'root/__class__' + class_type.name + '/' + function_name
+            function = class_type_objects[class_table[class_type.name]].find_function(name=function_name)
+        else:
+            function_scope = 'root/' + function_name
+            function = function_objects[function_table[function_name]]
+
         # push formal parameter
         for formal in function.formals:
-
             formal_name = (function_scope + "/" + formal[0]).replace("/", "_")
             formal_type = formal[1]
             if formal_type.name == 'double' and formal_type.dimension == 0:
@@ -950,12 +962,26 @@ class CodeGenerator(Interpreter):
                 code += '\tsw   $t1, 0($sp)\n\n'
 
         # set actual parameters to formal parameters
+        if tree._meta[1]:
+            # set 'this'
+            # todo is it really a pointer or it's just a name?
+            expr = tree._meta[1]
+            code += self.visit(expr)
+            formal_name = function.formals[0][0]
+            code += '.text\n'
+            code += '\tlw $v0, 0($sp)\n'  # we don't use type because we are sure that it's class
+            code += '\tsw $v0, {}\n'.format(function_scope + "/" + formal_name).replace("/", "_")
+            code += '\taddi $sp, $sp, 8\n'
+            actual_counter = 1
+        else:
+            actual_counter = 0
+
         for expr in tree.children:
             code += self.visit(expr)
             formal_name = function.formals[actual_counter][0]
             code += '.text\n'
             formal_type = function.formals[actual_counter][1].name
-            if formal_type == 'double':
+            if formal_type == 'double':  # todo do we need a 'and' in the condition here?
                 code += '\tl.d  $f0, 0($sp)\n'
                 code += '\ts.d  $f0, {}\n'.format((function_scope + "/" + formal_name).replace("/", "_"))
                 code += '\taddi $sp, $sp, 8\n\n'
@@ -968,7 +994,7 @@ class CodeGenerator(Interpreter):
         code += '.text\n'
         code += '\taddi $sp, $sp, -8\n'
         code += '\tsw   $ra, 0($sp)\n'
-        label_name = function_objects[function_table[function_name]].exact_name
+        label_name = function.exact_name
         code += '\tjal {}\n'.format(label_name.replace('/', '_'))
         if function.return_type.name == 'double' and function.return_type.dimension == 0:
             code += '\tl.d   $f30, 0($sp)\n'
@@ -978,6 +1004,7 @@ class CodeGenerator(Interpreter):
             code += '\taddi $sp, $sp, 8\n'
         code += '\tlw   $ra, 0($sp)\n'
         code += '\taddi $sp, $sp, 8\n\n'
+
         # pop formal parameters
         for formal in reversed(function.formals):
             formal_name = (function_scope + "/" + formal[0]).replace("/", "_")
@@ -1584,7 +1611,7 @@ int main()  {
 decaf = r"""
 class Person {
     int age;
-    Person kk(){
+    Person kk(int b, int c){
         Person p;
         p = new Person;
         p.age = 1;
@@ -1596,6 +1623,7 @@ int main() {
     Person mmd;
     Person ali;
     mmd = new Person;
+    mmd.kk(4, 5);
     Print(mmd.age);   
     Print("hell" != "hell");
     return 68;
@@ -1604,19 +1632,19 @@ int main() {
 """
 
 if __name__ == '__main__':
-    (print(cgen("""
-int main()  {
-    int [] x;
-    double[] d;
-    x = NewArray(5, int);
-    d = NewArray(3, double);
-    d[0] = 1.1;
-    d[1] = 2.3;
-    d[2] = 5.6;
-    Print(d[0], d[1], d[2]);
-}
-    """)))
-    exit(0)
+    #     (print(cgen("""
+    # int main()  {
+    #     int [] x;
+    #     double[] d;
+    #     x = NewArray(5, int);
+    #     d = NewArray(3, double);
+    #     d[0] = 1.1;
+    #     d[1] = 2.3;
+    #     d[2] = 5.6;
+    #     Print(d[0], d[1], d[2]);
+    # }
+    #     """)))
+    #     exit(0)
     # print(cgen("""
     #
     # int main() {
