@@ -602,14 +602,15 @@ class CodeGenerator(Interpreter):
             counter += 4
         code += '\tjr $ra\n'
 
-        if type(tree.children[1]) == lark.lexer.Token:
-            for field in tree.children[2:]:
-                if field.children[0].data == 'function_decl':
-                    code += self.visit(field)
-        else:
-            for field in tree.children[1:]:
-                if field.children[0].data == 'function_decl':
-                    code += self.visit(field)
+        if len(tree.children) > 1:
+            if type(tree.children[1]) == lark.lexer.Token:
+                for field in tree.children[2:]:
+                    if field.children[0].data == 'function_decl':
+                        code += self.visit(field)
+            else:
+                for field in tree.children[1:]:
+                    if field.children[0].data == 'function_decl':
+                        code += self.visit(field)
 
         self.current_scope = pop_scope(self.current_scope)
         return code
@@ -1663,12 +1664,8 @@ int main() {
 
 if __name__ == '__main__':
     (print(cgen("""
-    void f(){
-        int i;
-        i = 0;
-        for(; i < 5 ; i = i + 1){
-            i = i + 1;
-        }
+    class Person{
+    
     }
 
     int main(){
