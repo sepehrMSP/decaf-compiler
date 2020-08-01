@@ -1,7 +1,7 @@
 import lark
-from lark import Lark
+from lark import Lark, Tree
 from lark.visitors import Interpreter
-import re
+from lark.lexer import Token
 
 grammar = """
     start : (decl)+
@@ -187,7 +187,6 @@ parent_classes = []
 
 
 def init():
-
     function_objects.append(
         Function(name='itod', exact_name='root/itod').set_return_type(
             Type('double')
@@ -298,6 +297,13 @@ class SymbolTableMaker(Interpreter):
         else:
             symbol_table_object.type.name = 'void'
             function.return_type.name = 'void'
+
+        if class_type_object:
+            this = Tree(data='variable',
+                        children=[Tree(data='type', children=[Token(type_='TYPE', value=class_type_object.name)]),
+                                  Token(type_='IDENT', value='this')])
+            temp = formals.children.copy()
+            formals.children = [this] + temp
 
         stack.append(stack[-1] + "/" + ident)
         formals._meta = function
