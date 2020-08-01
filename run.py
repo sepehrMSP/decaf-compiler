@@ -22,8 +22,8 @@ if __name__ == '__main__':
 
         if file.endswith(".d"):
             test = file[:-2]
-            if 'array_string' in test:
-                continue
+            # if 'sort' not in test:
+            #     continue
             # if 't00' in test:
             #     continue
             # if 'class' in file:
@@ -59,10 +59,21 @@ if __name__ == '__main__':
                 print('Accepted')
                 acc += 1
             else:
+                # print(res.count('\n'))
                 print(res)
-                # print()
+                print()
                 # print(cor)
+                # print(cor.count('\n'))
+
                 print('Wrong')
+                # res = res.split('\n')
+                # cor = cor.split('\n')
+                # print(len(res), len(cor))
+                # for i in range(len(res)):
+                #     if(res[i] != cor[i]):
+                #         print(res[i], cor[i])
+                #         print(len(res[i]), len(cor[i]))
+                #         print('_')
         # exit(0)
         # time.sleep(1)
     print('Passed {} from {} tests'.format(acc, total))
