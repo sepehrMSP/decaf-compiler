@@ -254,8 +254,8 @@ class CodeGenerator(Interpreter):
         code += '\tsyscall\n'
         code += '\tlw $t0, {}\n'.format(class_name + '_vtable')
         code += '\tsw $t0, 0($v0)\n'
-        code += '\tsw $v0, 0($sp)\n'
         code += '\taddi $sp, $sp, -8\n'
+        code += '\tsw $v0, 0($sp)\n'
         return code
 
     def function_decl(self, tree):
@@ -804,6 +804,7 @@ class CodeGenerator(Interpreter):
         for child in tree.children[0].children:
             code += self.visit(child)
             t = self.expr_types[-1]
+            self.expr_types.pop()
             code += '.text\n'
             if t.name == 'double':
                 code += tab("""
@@ -993,7 +994,10 @@ class CodeGenerator(Interpreter):
         code = '.text\n'
         function_name = tree._meta[0]
         if tree._meta[1]:
+            expr = tree._meta[1]
+            tmp = self.visit(expr)
             class_type = self.expr_types[-1]
+            self.expr_types.pop()
             function_scope = 'root/__class__' + class_type.name + '/' + function_name
             function = class_type_objects[class_table[class_type.name]].find_function(name=function_name)
         else:
@@ -1043,19 +1047,36 @@ class CodeGenerator(Interpreter):
                 code += '\tsw   $v0, {}\n'.format((function_scope + "/" + formal_name).replace("/", "_"))
                 code += '\taddi $sp, $sp, 8\n\n'
             actual_counter += 1
-            self.expr_types.pop() # todo check
+            self.expr_types.pop() # todo check f(double, double) + g(double, double) f: int g: int
 
         code += '.text\n'
         code += '\taddi $sp, $sp, -8\n'
         code += '\tsw   $ra, 0($sp)\n'
-        label_name = function.exact_name
-        code += '\tjal {}\n'.format(label_name.replace('/', '_'))
+
+        if tree._meta[1]: # E1.ident(E1, expr, expr, ...)
+            expr = tree._meta[1]
+            code += self.visit(expr)
+            class_type = self.expr_types[-1]
+            self.expr_types.pop()
+            index = class_type_objects[class_table[class_type.name]].find_function_index(function_name)
+            code += '.text\n'
+            code += '\tlw $t0, 0($sp)\n'
+            code += '\taddi $sp, $sp, 8\n'
+            code += '\tlw $t0, 0($t0)\n'
+            code += '\taddi $t0, $t0, {}\n'.format(4 * index)
+            code += '\tlw $t0, 0($t0)\n'
+            code += '\tjalr $t0\n'
+        else:
+            label_name = function.exact_name
+            code += '\tjal {}\n'.format(label_name.replace('/', '_'))
+
         if function.return_type.name == 'double' and function.return_type.dimension == 0:
             code += '\tl.d   $f30, 0($sp)\n'
             code += '\taddi $sp, $sp, 8\n'
         elif function.return_type.name != 'void':
             code += '\tlw   $t8, 0($sp)\n'
             code += '\taddi $sp, $sp, 8\n'
+
         code += '\tlw   $ra, 0($sp)\n'
         code += '\taddi $sp, $sp, 8\n\n'
 
@@ -1382,16 +1403,31 @@ class CodeGenerator(Interpreter):
         var_name = tree.children[0].value
         while (var_scope, var_name) not in symbol_table:
             var_scope = pop_scope(var_scope)
-            # inja :D chon ta'rif nashode, while tamum nemishe; dombale moteghayyere dorost migardam dg. be scope asli kar nadaram. mannnnnnn kari lazem nist bokonim. code ghalat nemidan ke. Re Dg:)) tarif nakardam y ro
+                # inja :D chon ta'rif nashode, while tamum nemishe; dombale moteghayyere dorost migardam dg. be scope asli kar nadaram. mannnnnnn kari lazem nist bokonim. code ghalat nemidan ke. Re Dg:)) tarif nakardam y ro
+        if '__class__' in var_scope.split('/')[-1]:
+            class_name = var_scope.split('/')[-1][9:]
+            class_obj = class_type_objects[class_table[class_name]]
+            index = class_obj.find_var_index(var_name)
+            if index >= 0:
+                function_name = deepcopy(self.current_scope).split('/')
+                while function_name[-1] != '_local':
+                    function_name.pop()
+                function_name.pop()
+                this_label = '/'.join(function_name).replace('/', '_') + '_this'
+                code = '.text\n'
+                code += '\tlw $t0, {}\n'.format(this_label)
+                code += '\taddi $t1, $t0, {}\n'.format((1 + index) * 8)
+                code += '\tsub $sp, $sp, 8\n'
+                code += '\tsw $t1, 0($sp)\n'
+                self.expr_types.append(deepcopy(class_obj.find_var_type(var_name)))
+                return code
         label_name = var_scope.replace('/', '_') + '_' + var_name
         code = '.text\n'
         code += '\tla $t0, {}\n'.format(label_name)
         code += '\tsub $sp, $sp, 8\n'
         code += '\tsw $t0, 0($sp)\n\n'
         typ = symbol_table_objects[symbol_table[var_scope, var_name]].type
-        new_type = Type(name=typ.name, meta=typ._meta)
-        new_type.dimension = typ.dimension
-        self.expr_types.append(new_type)
+        self.expr_types.append(deepcopy(typ))
         return code
 
     def subscript(self, tree):
@@ -1495,36 +1531,43 @@ def cgen(decaf):
     parser = Lark(grammar, parser="lalr")
     parse_tree = parser.parse(decaf)
     SymbolTableMaker().visit(parse_tree)
+    # print(symbol_table)
     return CodeGenerator().visit(parse_tree)
 
 
 decaf = r"""
-int f(int x, int y, bool z, double a){
-    if(x == 1 && y == 2 && z == true && a > 2.5){
-        Print("ok");
-        x = 10;
-        y = 100;
-        z = false;
-        a = 1.5123;
-        return 0;
+class Person {
+    string name;
+    int age;
+
+    void setName(string new_name) {
+        name = new_name;
     }
-    Print("not ok");
-    return 0;
+
+    void setAge(int new_age) {
+        age = new_age;
+    }
+
+    void print() {
+        Print("Name: ", name, " Age: ", age);
+    }
+
 }
 
-int main()  {
-    int x ;
-    bool y;
-    double aa;
-    x = 1;
-    y = true;
-    aa = 10.2;
-    f(x, 2, y, 10.2);
-    Print(x);
-    if(y){
-        Print("true");
-    }
-    Print(aa);
+int main() {
+    Person p;
+
+    string name;
+    int age;
+
+    name = ReadLine();
+    age = ReadInteger();
+
+    p = new Person;
+    p.setName(name);
+    p.setAge(age);
+
+    p.print();
 }
 """
 

@@ -31,7 +31,7 @@ grammar = """
     expr4 : expr4 "+" expr5 -> add | expr4 "-" expr5 -> sub | expr5
     expr5 : expr5 "*" expr6 -> mul | expr5 "/" expr6 -> div | expr5 "%" expr6 -> mod | expr6
     expr6 : "-" expr6 -> neg | "!" expr6 -> not_expr | expr7
-    expr7 : constant | "this" | "ReadInteger" "(" ")" -> read_integer | "ReadLine" "(" ")" -> read_line | "new" IDENT -> class_inst | "NewArray" "(" expr "," type ")" -> new_array | "(" expr ")" | l_value -> val | call
+    expr7 : constant | "ReadInteger" "(" ")" -> read_integer | "ReadLine" "(" ")" -> read_line | "new" IDENT -> class_inst | "NewArray" "(" expr "," type ")" -> new_array | "(" expr ")" | l_value -> val | call
     l_value : IDENT -> var_addr |  expr7 "." IDENT -> var_access | expr7 "[" expr "]" -> subscript
     call : IDENT  "(" actuals ")" |  expr7  "."  IDENT  "(" actuals ")" 
     actuals :  expr (","expr)* |  
@@ -43,7 +43,7 @@ grammar = """
     BOOL : /((true)|(false))(xabc1235ll)*/
     TYPE : "int" | "double" | "bool" | "string"
     STRING : /"[^"\\n]*"/
-    IDENT :  /(?!((true)|(false)|(void)|(int)|(double)|(bool)|(string)|(class)|(interface)|(null)|(this)|(extends)|(implements)|(for)|(while)|(if)|(else)|(return)|(break)|(new)|(NewArray)|(Print)|(ReadInteger)|(ReadLine))([^_a-zA-Z0-9]|$))[a-zA-Z][_a-zA-Z0-9]*/
+    IDENT :  /(?!((true)|(false)|(void)|(int)|(double)|(bool)|(string)|(class)|(interface)|(null)|(extends)|(implements)|(for)|(while)|(if)|(else)|(return)|(break)|(new)|(NewArray)|(Print)|(ReadInteger)|(ReadLine))([^_a-zA-Z0-9]|$))[a-zA-Z][_a-zA-Z0-9]*/
     INLINE_COMMENT : "//" /[^\\n]*/ "\\n"
     MULTILINE_COMMENT : "/*" /(\\n|.)*?/ "*/"
     %import common.WS -> WHITESPACE
@@ -96,7 +96,7 @@ class ClassType:
                 return counter
             else:
                 counter += 1
-        raise Exception("variable not found in your class")
+        return -1
 
     def find_var_type(self, ident):
         return self.variables[self.find_var_index(ident)][1]
@@ -105,6 +105,14 @@ class ClassType:
         for func in self.functions:
             if func.name == name:
                 return func
+        raise Exception("function not found")
+
+    def find_function_index(self, name):
+        counter = 0
+        for func in self.functions:
+            if func.name == name:
+                return counter
+            counter += 1
         raise Exception("function not found")
 
     def set_vtable(self):
@@ -301,7 +309,7 @@ class SymbolTableMaker(Interpreter):
         if class_type_object:
             this = Tree(data='variable',
                         children=[Tree(data='type', children=[Token(type_='TYPE', value=class_type_object.name)]),
-                                  Token(type_='IDENT', value='__this__')])
+                                  Token(type_='IDENT', value='this')])
             temp = formals.children.copy()
             formals.children = [this] + temp
 
@@ -314,9 +322,10 @@ class SymbolTableMaker(Interpreter):
         stack.pop()  # pop formals
 
         if class_type_object:
-            temp = function.formals.copy()
-            function.formals = [['this', Type(name=class_type_object.name)]] + temp
+            # temp = function.formals.copy()
+            # function.formals = [['__this__', Type(name=class_type_object.name)]] + temp
             class_type_object.functions.append(function)
+            pass
         else:
             function_table[function.name] = self.static_function_counter
             function_objects.append(function)
@@ -575,23 +584,32 @@ int main() {
 """
 
 decaf = """
-int a;
-int [] x;
+class Sepehr extends Person {
+}
+
+class Person {
+    int age;
+    double[][][][] mmd;
+    double grade;
+    string name;
+    
+    void fuck() {
+        Print("i am fucking");
+    }
+}
+
 int main() {
-    double b;
-    int [] x;
-    string a;
-    bool boooooool;
-    a;
-    b;
-    x = NewArray(8, double);
-    x[2];
+    Person p;
+    p = new Sepehr;
+    Print("akeysh");
+    p.fuck();
+    return 99;
 }
 """
 
 if __name__ == '__main__':
     parser = Lark(grammar, parser="lalr")
-    parse_tree = parser.parse(text)
+    parse_tree = parser.parse(decaf)
     SymbolTableMaker().visit(parse_tree)
     ClassTreeSetter().visit(parse_tree)
     print(symbol_table)
