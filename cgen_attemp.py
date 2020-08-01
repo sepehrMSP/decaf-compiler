@@ -4,7 +4,7 @@ from lark import Lark, Tree, Token
 from lark.visitors import Interpreter
 
 from symbol_table_creation_attemp import symbol_table, text, just_class, set_inheritance, ClassTreeSetter, \
-    class_type_objects, class_table, Function
+    class_type_objects, class_table, Function, ImplicitThis
 from symbol_table_creation_attemp import symbol_table_objects, function_objects, \
     function_table, grammar, SymbolTableMaker, Type
 
@@ -2088,12 +2088,26 @@ def cgen(decaf):
 
 
 decaf = r"""
+int g() {
+    return 0;
+}
+
+void f() {
+    Print("Dammit");
+}
+
 class Person {
     string name;
     int age;
+    
+    void f() {
+        Print("f!");
+    }
 
     void setName(string new_name) {
         name = new_name;
+        this.f();
+        f();
     }
 
     void setAge(int new_age) {
@@ -2124,40 +2138,40 @@ int main() {
 """
 
 if __name__ == '__main__':
-    decaf = ""
-
+    # decaf = ""
+    #
     # while Tree:
     #     try:
     #         decaf += input()
     #     except:
     #         break
     # print(cg)
-    print(cgen("""
-       
-        
-        int main(){
-            Print(123.92);
-        }
-
-    """))
-    exit(0)
-    (print(cgen("""
-    class Person{
-    
-    }
-
-    int main(){
-        f();
-        Print(1);
-        f();
-        Print(2);
-
-    }
-
-
-
-    """)))
-    exit(0)
+    # print(cgen("""
+    #
+    #
+    #     int main(){
+    #         Print(123.92);
+    #     }
+    #
+    # """))
+    # exit(0)
+    # (print(cgen("""
+    # class Person{
+    #
+    # }
+    #
+    # int main(){
+    #     f();
+    #     Print(1);
+    #     f();
+    #     Print(2);
+    #
+    # }
+    #
+    #
+    #
+    # """)))
+    # exit(0)
     # print(cgen("""
     #
     # int main() {
@@ -2322,6 +2336,7 @@ if __name__ == '__main__':
     SymbolTableMaker().visit(parse_tree)
     ClassTreeSetter().visit(parse_tree)
     set_inheritance()
+    ImplicitThis().visit(parse_tree)
     print(CodeGenerator().visit(parse_tree))
     pass
 

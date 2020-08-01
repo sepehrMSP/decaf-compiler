@@ -16,7 +16,7 @@ grammar = """
     interface_decl : "interface" IDENT "{"(prototype)*"}" 
     prototype : type IDENT "(" formals ")" ";" | "void" IDENT "(" formals ")" ";" 
     stmt_block : "{" (variable_decl)*  (stmt)* "}" 
-    stmt :  (expr)? ";" | if_stmt  | while_stmt |  for_stmt | break_stmt | return_stmt | print_stmt -> print | stmt_block 
+    stmt :  (expr)? ";" | if_stmt | while_stmt | for_stmt | break_stmt | return_stmt | print_stmt -> print | stmt_block 
     if_stmt : "if" "(" expr ")" stmt ("else" stmt)? 
     while_stmt : "while" "(" expr ")" stmt 
     for_stmt : "for" "(" (expr)? ";" expr ";" (expr)? ")" stmt 
@@ -514,6 +514,122 @@ def set_inheritance():
         set_inheritance_tree(class_object)
 
 
+class ImplicitThis(Interpreter):
+    def decl(self, tree):
+        for child in tree.children:
+            if child.data == 'class_decl':
+                self.visit(child)
+
+    def class_decl(self, tree):
+        for child in tree.children:
+            if type(child) != lark.lexer.Token:
+                child._meta = tree.children[0].value
+                self.visit(child)
+
+    def field(self, tree):
+        if tree.children[0].data == 'function_decl':
+            tree.children[0]._meta = tree._meta
+            self.visit(tree.children[0])
+
+    def function_decl(self, tree):
+        tree.children[-1]._meta = tree._meta
+        self.visit(tree.children[-1])
+
+    def stmt_block(self, tree):
+        for child in tree.children:
+            if child.data != 'variable_decl':
+                child._meta = tree._meta
+                self.visit(child)
+
+    def stmt(self, tree):
+        for child in tree.children:
+            if child.data != 'break_stmt':
+                child._meta = tree._meta
+                self.visit(child)
+
+    def if_stmt(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
+    def while_stmt(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
+    def for_stmt(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
+    def return_stmt(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
+    def print(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
+    def expr(self, tree):
+        tree.children[-1]._meta = tree._meta
+        self.visit(tree.children[-1])
+
+    def expr1(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
+    def expr2(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
+    def expr3(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
+    def expr4(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
+    def expr5(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
+    def expr6(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
+    def expr7(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
+    def expr8(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
+    def call(self, tree):
+        if len(tree.children) == 2:
+            name = tree._meta
+            fun_name = tree.children[0].value
+            exists = False
+            for fun in class_type_objects[class_table[name]].functions:
+                if fun.name == fun_name:
+                    exists = True
+            if exists:
+                copy = tree.children.copy()
+                this = Tree(data='val', children=[Tree(data='var_addr', children=[Token(type_='IDENT', value='this')])])
+                tree.children = [this] + copy
+
+
 just_class = """class Person{
     double name;
     int a;
@@ -615,6 +731,12 @@ class Person {
     
     void fuck() {
         Print("i am fucking");
+        a || b;
+        break;
+        f();
+        f.g();
+        gg();
+        a - gggvv();
     }
 }
 
@@ -624,18 +746,20 @@ int main() {
     Print("akeysh");
     p.fuck();
     return 99;
+    ;;;;;
 }
 """
 
 if __name__ == '__main__':
     parser = Lark(grammar, parser="lalr")
     parse_tree = parser.parse(decaf)
-    SymbolTableMaker().visit(parse_tree)
-    ClassTreeSetter().visit(parse_tree)
-    print(symbol_table)
-    set_inheritance()
-    for x in class_type_objects[0].functions:
-        print(x.exact_name)
+    ImplicitThis().visit(parse_tree)
+    # SymbolTableMaker().visit(parse_tree)
+    # ClassTreeSetter().visit(parse_tree)
+    # print(symbol_table)
+    # set_inheritance()
+    # for x in class_type_objects[0].functions:
+    #     print(x.exact_name)
     # class_type_objects[1].print_functions()
 # print('****************************')
 # print(stack)
