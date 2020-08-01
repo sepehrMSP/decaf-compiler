@@ -1033,8 +1033,8 @@ class CodeGenerator(Interpreter):
             code += self.visit(expr)
             formal_name = function.formals[actual_counter][0]
             code += '.text\n'
-            formal_type = function.formals[actual_counter][1].name
-            if formal_type == 'double' and formal_type.dimension == 0:
+            formal_type = function.formals[actual_counter][1]
+            if formal_type.name == 'double' and formal_type.dimension == 0:
                 code += '\tl.d  $f0, 0($sp)\n'
                 code += '\ts.d  $f0, {}\n'.format((function_scope + "/" + formal_name).replace("/", "_"))
                 code += '\taddi $sp, $sp, 8\n\n'
@@ -1499,59 +1499,32 @@ def cgen(decaf):
 
 
 decaf = r"""
-
-void sort(int[] items) {
-
-    /* implementation of bubble sort */
-
-
-    int i;
-    int j;
-
-    int n;
-    n = items.length();
-    for (i = 0; i < n-1; i = i + 1)
-        for (j = 0; j < n - i - 1; j = j + 1)
-            if (items[j] > items[j + 1]) {
-                int t;
-                t = items[j];
-                items[j] = items[j + 1];
-                items[j + 1] = t;
-            }
+int f(int x, int y, bool z, double a){
+    if(x == 1 && y == 2 && z == true && a > 2.5){
+        Print("ok");
+        x = 10;
+        y = 100;
+        z = false;
+        a = 1.5123;
+        return 0;
+    }
+    Print("not ok");
+    return 0;
 }
 
-int main() {
-    int i;
-    int j;
-    int[] rawitems;
-    int[] items;
-
-    Print("Please enter the numbers (max count: 100, enter -1 to end sooner): ");
-
-    rawitems = NewArray(100, int);
-    for (i = 0; i < 100; i = i + 1) {
-        int x;
-        x = ReadInteger();
-        if (x == -1) break;
-
-        rawitems[i] = x;
+int main()  {
+    int x ;
+    bool y;
+    double aa;
+    x = 1;
+    y = true;
+    aa = 10.2;
+    f(x, 2, y, 10.2);
+    Print(x);
+    if(y){
+        Print("true");
     }
-
-    items = NewArray(i, int);
-
-    // copy to a more convenient location
-    for (j = 0; j < i; j = j + 1) {
-        items[j] = rawitems[j];
-    }
-
-    sort(items);
-
-
-    Print("After sort: ");
-
-    for (i = 0; i < items.length(); i = i + 1) {
-        Print(items[i]);
-    }
+    Print(aa);
 }
 """
 
