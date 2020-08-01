@@ -2,12 +2,13 @@
 void sort(int[] items) {
 
     /* implementation of bubble sort */
+
+
     int i;
     int j;
 
     int n;
     n = items.length();
-
     for (i = 0; i < n-1; i = i + 1)
         for (j = 0; j < n - i - 1; j = j + 1)
             if (items[j] > items[j + 1]) {
@@ -44,8 +45,9 @@ int main() {
 
     sort(items);
 
+
     Print("After sort: ");
-    return 0;
+
     for (i = 0; i < items.length(); i = i + 1) {
         Print(items[i]);
     }

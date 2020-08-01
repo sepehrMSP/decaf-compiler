@@ -259,6 +259,8 @@ class CodeGenerator(Interpreter):
         return code
 
     def function_decl(self, tree):
+        # print(tree)
+        # exit(0)
         code = ''
         if len(tree.children) == 4:
             ident = tree.children[1]
@@ -305,14 +307,24 @@ class CodeGenerator(Interpreter):
 
         self.current_scope += "/" + ident.value
         code += self.visit(formals)
+
         self.current_scope += "/_local"
         self.stack_local_params_count.append(0)
+
+        if ident != 'main':
+            return_stmt = Tree(data='stmt', children=[Tree(data='return_stmt', children=[])])
+            stmt_block._meta = return_stmt
+
         code += self.visit(stmt_block)
+
+
+
         local_var_count = self.stack_local_params_count[-1]
         self.stack_local_params = self.stack_local_params[:-local_var_count]
         self.stack_local_params_count.pop()
         self.current_scope = pop_scope(self.current_scope)  # pop _local
         self.current_scope = pop_scope(self.current_scope)  # pop formals
+        # code += "jr $ra\n"
 
         if ident == 'main':
             code += '.text\n'
@@ -341,6 +353,13 @@ class CodeGenerator(Interpreter):
         stmt_id = cnt()
         store_len = len(self.stmt_labels)
         code += '.text\nstart_stmt_{}:\n'.format(stmt_id)
+        # print(' ->', tree._meta, type(tree._meta), type(tree._meta) == lark.tree.Tree)
+
+        if type(tree._meta) == lark.tree.Tree:
+            return_stmt = tree._meta
+            tree.children.append(return_stmt)
+
+
         for child in tree.children:
             if child.data == 'variable_decl':
                 code += self.visit(child)
@@ -362,6 +381,11 @@ class CodeGenerator(Interpreter):
                     code += '\tsw   $t1, 0($sp)\n\n'
             else:
                 code += self.visit(child)
+
+
+
+
+
         # pop declared variables in this scope
         for child in reversed(tree.children):
             if child.data == 'variable_decl':
@@ -395,8 +419,10 @@ class CodeGenerator(Interpreter):
             if child.children[0].data == 'ass':
                 code += self.visit(child.children[0])
 
+
         stmt_id = cnt()
         code += ('start_stmt_{}:\n'.format(stmt_id))
+
         child._meta = stmt_id
         if child.data == 'if_stmt':
             code += self.visit(child)
@@ -409,6 +435,7 @@ class CodeGenerator(Interpreter):
         elif child.data == 'break_stmt':  # there is a problem with it !
             code += self.visit(child)
         elif child.data == 'return_stmt':
+            # raise Exception()
             code += self.visit(child)
             # todo implement for class methods
             # todo is it really done?
@@ -536,6 +563,8 @@ class CodeGenerator(Interpreter):
             code += self.visit(childs[1])
         else:
             code += self.visit(childs[0])
+        # print(childs[0])
+        # print(childs[-2])
         if childs[-2].data == 'ass':
             next += self.visit(childs[-2])
         code += tab("""
@@ -936,6 +965,7 @@ class CodeGenerator(Interpreter):
             ident = tree.children[1]
             actuals = tree.children[2]
             name = ident.value
+
             actuals._meta = [name, expr_class_inst]
             return self.visit(actuals)
 
@@ -946,6 +976,7 @@ class CodeGenerator(Interpreter):
             ident = tree.children[0]
             actuals = tree.children[1]
             name = ident.value
+
             actuals._meta = [name, None]
             return self.visit(actuals)
 
@@ -1395,6 +1426,8 @@ class CodeGenerator(Interpreter):
         return code
 
     def ass(self, tree):
+        # print(tree)
+        # input()
         code = ''.join(self.visit_children(tree))
         typ = self.expr_types[-1]
         if typ.name == 'double' and typ.dimension == 0:
@@ -1630,59 +1663,23 @@ int main() {
 
 if __name__ == '__main__':
     (print(cgen("""
-    
-
-void sort(int[] items) {
-
-    /* implementation of bubble sort */
-    int i;
-    int j;
-
-    int n;
-    n = items.length();
-
-    for (i = 0; i < n-1; i = i + 1)
-        for (j = 0; j < n - i - 1; j = j + 1)
-            if (items[j] > items[j + 1]) {
-                int t;
-                t = items[j];
-                items[j] = items[j + 1];
-                items[j + 1] = t;
-            }
-}
-
-int main() {
-    int i;
-    int j;
-    int[] rawitems;
-    int[] items;
-
-    Print("Please enter the numbers (max count: 100, enter -1 to end sooner): ");
-
-    rawitems = NewArray(100, int);
-    for (i = 0; i < 100; i = i + 1) {
-        int x;
-        x = ReadInteger();
-        if (x == -1) break;
-
-        rawitems[i] = x;
+    void f(){
+        int i;
+        i = 0;
+        for(; i < 5 ; i = i + 1){
+            i = i + 1;
+        }
     }
 
-    items = NewArray(i, int);
+    int main(){
+        f();
+        Print(1);
+        f();
+        Print(2);
 
-    // copy to a more convenient location
-    for (j = 0; j < i; j = j + 1) {
-        items[j] = rawitems[j];
     }
 
-    sort(items);
 
-    Print("After sort: ");
-
-    for (i = 0; i < items.length(); i = i + 1) {
-        Print(items[i]);
-    }
-}
 
     """)))
     exit(0)
@@ -1882,4 +1879,13 @@ stack_local_params_cnt =[1,1,2,0] //when new call push
 console:
 1
 2
+"""
+
+
+
+
+
+"""
+Tree(function_decl, [Token(IDENT, 'sort'), Tree(formals, [Tree(variable, [Tree(type, [Tree(type, [Token(TYPE, 'int')])]), Token(IDENT, 'items')])]), Tree(stmt_block, [Tree(variable_decl, [Tree(variable, [Tree(type, [Token(TYPE, 'int')]), Token(IDENT, 'i')])]), Tree(variable_decl, [Tree(variable, [Tree(type, [Token(TYPE, 'int')]), Token(IDENT, 'j')])]), Tree(variable_decl, [Tree(variable, [Tree(type, [Token(TYPE, 'int')]), Token(IDENT, 'n')])]), Tree(stmt, [Tree(ass, [Tree(var_addr, [Token(IDENT, 'n')]), Tree(expr, [Tree(expr8, [Tree(expr1, [Tree(expr2, [Tree(expr3, [Tree(expr4, [Tree(expr5, [Tree(expr6, [Tree(val, [Tree(subscript, [Tree(val, [Tree(var_addr, [Token(IDENT, 'items')])]), Tree(expr, [Tree(expr8, [Tree(expr1, [Tree(expr2, [Tree(expr3, [Tree(expr4, [Tree(expr5, [Tree(neg, [Tree(expr6, [Tree(expr7, [Tree(const_int, [Token(INT, '2')])])])])])])])])])])])])])])])])])])])])])])]), Tree(stmt, [Tree(for_stmt, [Tree(ass, [Tree(var_addr, [Token(IDENT, 'i')]), Tree(expr, [Tree(expr8, [Tree(expr1, [Tree(expr2, [Tree(expr3, [Tree(expr4, [Tree(expr5, [Tree(expr6, [Tree(expr7, [Tree(const_int, [Token(INT, '0')])])])])])])])])])])]), Tree(expr, [Tree(expr8, [Tree(expr1, [Tree(expr2, [Tree(lt, [Tree(expr3, [Tree(expr4, [Tree(expr5, [Tree(expr6, [Tree(val, [Tree(var_addr, [Token(IDENT, 'i')])])])])])]), Tree(sub, [Tree(expr4, [Tree(expr5, [Tree(expr6, [Tree(val, [Tree(var_addr, [Token(IDENT, 'n')])])])])]), Tree(expr5, [Tree(expr6, [Tree(expr7, [Tree(const_int, [Token(INT, '1')])])])])])])])])])]), Tree(ass, [Tree(var_addr, [Token(IDENT, 'i')]), Tree(expr, [Tree(expr8, [Tree(expr1, [Tree(expr2, [Tree(expr3, [Tree(add, [Tree(expr4, [Tree(expr5, [Tree(expr6, [Tree(val, [Tree(var_addr, [Token(IDENT, 'i')])])])])]), Tree(expr5, [Tree(expr6, [Tree(expr7, [Tree(const_int, [Token(INT, '1')])])])])])])])])])])]), Tree(stmt, [Tree(stmt_block, [])])])])])])
+
 """
