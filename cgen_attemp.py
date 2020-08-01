@@ -1627,7 +1627,6 @@ int main() {
 """
 
 if __name__ == '__main__':
-<<<<<<< HEAD
     (print(cgen("""
     int main()  {
         NewArray(5, int).length;
@@ -1707,7 +1706,6 @@ if __name__ == '__main__':
     # print(cgen(decaf))
     # exit(0)
 
-=======
     # (print(cgen("""
 # int main()  {
 #     int [] x;
@@ -1794,7 +1792,6 @@ if __name__ == '__main__':
 #     print(cgen(decaf))
 #     exit(0)
 #
->>>>>>> e7a8254caa4c9505fb611ba39639a372fbd15884
     parser = Lark(grammar, parser="lalr")
     parse_tree = parser.parse(text=decaf)
     SymbolTableMaker().visit(parse_tree)

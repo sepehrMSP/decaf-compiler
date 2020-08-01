@@ -25,7 +25,7 @@ if __name__ == '__main__':
 
             # if 't00' in test:
             #     continue
-            if 'sort' not in file:
+            if 'sort' in file:
                 continue
             total += 1
             print('Test_{}: {}'.format(total, file))
