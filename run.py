@@ -22,11 +22,12 @@ if __name__ == '__main__':
 
         if file.endswith(".d"):
             test = file[:-2]
-
+            if 'array_string' in test:
+                continue
             # if 't00' in test:
             #     continue
-            if 'sort' not in file:
-                continue
+            # if 'class' in file:
+            #     continue
             total += 1
             print('Test_{}: {}'.format(total, file))
             with open("phase3_tests/tests/" + file, "r") as f:
@@ -36,6 +37,8 @@ if __name__ == '__main__':
             asm = "phase3_tests/out/" + test + ".asm"
             inp = 'phase3_tests/tests/' + test + '.in'
             out = 'phase3_tests/tests/' + test + '.out'
+            if not os.path.exists(inp):
+                inp = 'phase3_tests/tests/heapsort.in'
             os.system('spim -a -f "{}" < {} > "tmp"'.format(asm, inp))
             with open ("tmp", "r") as f:
                 f.readline()
@@ -44,8 +47,11 @@ if __name__ == '__main__':
                 f.readline()
                 f.readline()
                 res = ''.join(f.readlines())
-            with open(out) as f:
-                cor = ''.join(f.readlines())
+            try:
+                with open(out) as f:
+                    cor = ''.join(f.readlines())
+            except:
+                cor = ''
             # print(res)
             # print()
             # print(cor)

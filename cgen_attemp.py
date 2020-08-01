@@ -418,12 +418,16 @@ class CodeGenerator(Interpreter):
         if child.data == 'for_stmt':
             if child.children[0].data == 'ass':
                 code += self.visit(child.children[0])
+                code += '\taddi $sp, $sp, 8\n'
 
 
         stmt_id = cnt()
         code += ('start_stmt_{}:\n'.format(stmt_id))
 
         child._meta = stmt_id
+
+
+
         if child.data == 'if_stmt':
             code += self.visit(child)
         elif child.data == 'while_stmt':
@@ -489,7 +493,12 @@ class CodeGenerator(Interpreter):
             self.expr_types.pop()
         else:
             code += self.visit(child)
-        # todo these last 4 if statements can be removed but there are here to have more explicit behavior
+        # if child.data == 'for_stmt':
+        #     for for_child in child.children:
+        #         if for_child.data == 'ass' or for_child.data == 'expr':
+        #             print('yes')
+        #             pass
+
 
         code += 'end_stmt_{}:\n'.format(stmt_id)
         self.stmt_labels = self.stmt_labels[:store_len]
@@ -563,10 +572,9 @@ class CodeGenerator(Interpreter):
             code += self.visit(childs[1])
         else:
             code += self.visit(childs[0])
-        # print(childs[0])
-        # print(childs[-2])
         if childs[-2].data == 'ass':
             next += self.visit(childs[-2])
+            next += '\taddi $sp, $sp, 8\n'
         code += tab("""
             lw $a0, 0($sp)
             addi $sp, $sp, 8
@@ -1458,14 +1466,13 @@ class CodeGenerator(Interpreter):
         class_type = self.expr_types[-1]
         # if class_type.dimension > 0:
         #
-        #     # code += '\tlw $a0, -8($t0)\n'
+        #     code += '\tlw $a0, -8($t0)\n'
         #     # code += """
         #     #             addi $a0, $sp, 0
         #     #             li $v0, 1
         #     #             syscall
         #     #             """
-        #     code += '\tli $a2, 5\n'
-        #     code += '\tsw $a2, 0($sp)\n'
+        #     code += '\tsw $a0, 0($sp)\n'
         #     self.expr_types.pop()
         #     self.expr_types.append(Type('int)'))
         #     return code
@@ -1632,7 +1639,7 @@ int main(){
 
 
 def cgen(decaf):
-    decaf = decaf.replace('.length()', '[-2]')
+    # decaf = decaf.replace('.length()', '[-2]')
     parser = Lark(grammar, parser="lalr")
     parse_tree = parser.parse(decaf)
     SymbolTableMaker().visit(parse_tree)
@@ -1663,6 +1670,15 @@ int main() {
 """
 
 if __name__ == '__main__':
+    decaf = ""
+
+    while Tree:
+        try:
+            decaf += input()
+        except:
+            break
+    print(cgen(decaf))
+    exit(0)
     (print(cgen("""
     class Person{
     
