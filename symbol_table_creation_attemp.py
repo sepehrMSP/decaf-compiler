@@ -386,19 +386,19 @@ class SymbolTableMaker(Interpreter):
         symbol_table_object = SymbolTableObject(scope=stack[-1], name=ident)
         symbol_table[(stack[-1], ident.value,)] = self.symbol_table_obj_counter
         self.symbol_table_obj_counter += 1
-
-        if type(tree.children[1]) == lark.lexer.Token:
-            stack.append(stack[-1] + "/__class__" + ident)
-            for field in tree.children[2:]:
-                field._meta = class_type_object
-                self.visit(field)
-            stack.pop()
-        else:
-            stack.append(stack[-1] + "/__class__" + ident)
-            for field in tree.children[1:]:
-                field._meta = class_type_object
-                self.visit(field)
-            stack.pop()
+        if len(tree.children) > 1:
+            if type(tree.children[1]) == lark.lexer.Token:
+                stack.append(stack[-1] + "/__class__" + ident)
+                for field in tree.children[2:]:
+                    field._meta = class_type_object
+                    self.visit(field)
+                stack.pop()
+            else:
+                stack.append(stack[-1] + "/__class__" + ident)
+                for field in tree.children[1:]:
+                    field._meta = class_type_object
+                    self.visit(field)
+                stack.pop()
 
     def field(self, tree):
         tree.children[0]._meta = tree._meta

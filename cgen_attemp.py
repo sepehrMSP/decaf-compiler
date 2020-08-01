@@ -220,7 +220,6 @@ class CodeGenerator(Interpreter):
     - last element --N when exiting a stmt_block which N is the number of variable_decl in that stmt_block
     - before every function call which is equivalent to 'jal f_label', we append 0 to stack
     - before every return which is equivalent to 'jr $ra', we pop last element of stack   
-    b.
     """
     stack_local_params_count = [0]
 
@@ -600,14 +599,15 @@ class CodeGenerator(Interpreter):
             counter += 4
         code += '\tjr $ra\n'
 
-        if type(tree.children[1]) == lark.lexer.Token:
-            for field in tree.children[2:]:
-                if field.children[0].data == 'function_decl':
-                    code += self.visit(field)
-        else:
-            for field in tree.children[1:]:
-                if field.children[0].data == 'function_decl':
-                    code += self.visit(field)
+        if len(tree.children) > 1:
+            if type(tree.children[1]) == lark.lexer.Token:
+                for field in tree.children[2:]:
+                    if field.children[0].data == 'function_decl':
+                        code += self.visit(field)
+            else:
+                for field in tree.children[1:]:
+                    if field.children[0].data == 'function_decl':
+                        code += self.visit(field)
 
         self.current_scope = pop_scope(self.current_scope)
         return code
@@ -1466,17 +1466,18 @@ class CodeGenerator(Interpreter):
         code += '\tlw $t0, 0($sp)\n'
 
         class_type = self.expr_types[-1]
-        if class_type.dimension > 0:
-            code += '\tlw $a0, -8($t0)\n'
-            # code += """
-            #             addi $a0, $sp, 0
-            #             li $v0, 1
-            #             syscall
-            #             """
-            code += '\tsw $a0, 0($sp)\n'
-            self.expr_types.pop()
-            self.expr_types.append(Type('int)'))
-            return code
+        # if class_type.dimension > 0:
+        #
+        #     code += '\tlw $a0, -8($t0)\n'
+        #     # code += """
+        #     #             addi $a0, $sp, 0
+        #     #             li $v0, 1
+        #     #             syscall
+        #     #             """
+        #     code += '\tsw $a0, 0($sp)\n'
+        #     self.expr_types.pop()
+        #     self.expr_types.append(Type('int)'))
+        #     return code
 
         var_index = class_type_objects[class_table[class_type.name]].find_var_index(ident)
         var_type = class_type_objects[class_table[class_type.name]].find_var_type(ident)
@@ -1565,12 +1566,8 @@ if __name__ == '__main__':
     print(cgen(decaf))
     exit(0)
     (print(cgen("""
-    void f(){
-        int i;
-        i = 0;
-        for(; i < 5 ; i = i + 1){
-            i = i + 1;
-        }
+    class Person{
+    
     }
 
     int main(){
