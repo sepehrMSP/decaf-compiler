@@ -22,8 +22,8 @@ if __name__ == '__main__':
 
         if file.endswith(".d"):
             test = file[:-2]
-            if 'sort' not in test:
-                continue
+            # if 'sort' not in test:
+            #     continue
             # if 't00' in test:
             #     continue
             # if 'class' in file:
