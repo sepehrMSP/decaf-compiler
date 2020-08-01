@@ -23,7 +23,9 @@ if __name__ == '__main__':
         if file.endswith(".d"):
             test = file[:-2]
 
-            if 'sort' not in test:
+            # if 't00' in test:
+            #     continue
+            if 'sort' in file:
                 continue
             total += 1
             print('Test_{}: {}'.format(total, file))

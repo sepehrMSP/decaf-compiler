@@ -14,4 +14,5 @@ int main(){
     for(i = 0; i < len; i = i+1){
         Print(a[i]);
     }
+    Print(a.length());
 }
