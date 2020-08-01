@@ -340,7 +340,7 @@ class SymbolTableMaker(Interpreter):
             self.visit(child)
         if child.data == 'while_stmt':
             self.visit(child)
-        if child.data == 'for_stsmt':
+        if child.data == 'for_stmt':
             self.visit(child)
         if child.data == 'stmt_block':
             self.visit(child)
@@ -369,7 +369,7 @@ class SymbolTableMaker(Interpreter):
         self.visit(stmt)
 
     def for_stmt(self, tree):
-        stmt = tree.children0[-1]
+        stmt = tree.children[-1]
         self.visit(stmt)
 
     def class_decl(self, tree):

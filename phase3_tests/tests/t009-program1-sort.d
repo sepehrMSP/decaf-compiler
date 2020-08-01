@@ -45,7 +45,7 @@ int main() {
     sort(items);
 
     Print("After sort: ");
-
+    return 0;
     for (i = 0; i < items.length(); i = i + 1) {
         Print(items[i]);
     }
