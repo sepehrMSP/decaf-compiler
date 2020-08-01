@@ -205,6 +205,7 @@ class CodeGenerator(Interpreter):
     block_stmt_counter = 0
     str_const = 0
     LabelCnt = 0
+    class_cnt = 0
     """we need a way to store which local_variable do we have in our current scope so that in case of recursive
     call save the prior values of local_vars. protocol of this stack is in the following order:
     - in the entering of a stmt_block we push every variable_decl consist of [full scope name, type]
@@ -253,7 +254,6 @@ class CodeGenerator(Interpreter):
         code += '\tsw $t0, 0($v0)\n'
         code += '\tsw $v0, 0($sp)\n'
         code += '\taddi $sp, $sp, -8\n'
-
         return code
 
     def function_decl(self, tree):
@@ -293,9 +293,10 @@ class CodeGenerator(Interpreter):
             )
             code += cast_cgen()
             code += ('.text\n'
-                     'main:\n'
-                     # '\tli $sp, 0x1002FFF8\n'
-                     '\tla\t$ra,__end__\n')
+                     'main:\n')
+            for cl in range(len(class_table)):
+                code += '\tjal __init__vtable_{}\n'.format(cl)
+            code += '\tla\t$ra,__end__\n'
         else:
             code += '.text\n{}:\n'.format((self.current_scope + '/' + ident).replace('/', '_'))
 
@@ -555,15 +556,18 @@ class CodeGenerator(Interpreter):
         code += '.align 2\n'
         code += '{}: .space 4\n'.format(class_object.name + '_vtable')
         code += '.text\n'
+        code += '__init__vtable_{}:\n'.format(self.class_cnt)
         code += '\tli $a0, {}\n'.format(len(class_object.functions) * 4)
         code += '\tli $v0, 9\n'
         code += '\tsyscall\n'
         code += '\tsw $v0, {}\n'.format(class_object.name + '_vtable')
+        self.class_cnt += 1
         counter = 0
         for func in class_object.functions:
             code += '\tla $t0, {}\n'.format(func.exact_name.replace('/', '_'))
             code += '\tsw $t0, {}($v0)\n'.format(counter)
             counter += 4
+        code += '\tjr $ra\n'
 
         if type(tree.children[1]) == lark.lexer.Token:
             for field in tree.children[2:]:
@@ -1584,112 +1588,105 @@ int main()  {
 decaf = r"""
 class Person {
     int age;
-    Person kk(){
-        Person p;
-        p = new Person;
-        p.age = 1;
-        Print(p.age);
-        return p;
+    void kk(){
+        return;
     }
 }
 int main() {
     Person mmd;
-    Person ali;
     mmd = new Person;
-    Print(mmd.age);   
-    Print("hell" != "hell");
     return 68;
 }
 
 """
 
 if __name__ == '__main__':
-    (print(cgen("""
-int main()  {
-    int [] x;
-    double[] d;
-    x = NewArray(5, int);
-    d = NewArray(3, double);
-    d[0] = 1.1;
-    d[1] = 2.3;
-    d[2] = 5.6;
-    Print(d[0], d[1], d[2]);
-}
-    """)))
-    exit(0)
-    # print(cgen("""
-    #
-    # int main() {
-    #     int t;
-    #     int i;
-    #     string s;
-    #     bool found;
-    #     t = 0;
-    #     s = ReadLine();
-    #     found = false;
-    # 	for (i = 1; i < 10; i = i+1){
-    # 		if (s[i] == s[i-1]){
-    # 		    t = t+1;
-    # 		}
-    # 		else{
-    # 		    t = 0;
-    # 		}
-    # 		if (t == 6){
-    # 		    Print("YES");
-    # 		    found = true;
-    # 		    break;
-    # 		}
-    # 	}
-    # 	if(!found){
-    #         Print("NO");
-    #     }
-    # }
-    #     """))
-    #
-    #     exit(0)
-    #     (cgen("""
-    #         int main(){
-    #
-    #         NewArray(5, double[][]);
-    #         NewArray(5, int);
-    #         NewArray(5, bool[]);
-    #         for(i=0; i<10; i=i+1){
-    #         }
-    #     }
-    # """))
-    # exit(0)
-    # print(cgen("""
-    # int main(){
-    #     while(true){
-    #         if(ReadInteger() == 2){
-    #             Print(2);
-    #             break;
-    #         }
-    #         Print(1);
-    #     }
-    #     while(true){
-    #         while(true){
-    #             if(ReadInteger() == 2){
-    #                 Print(4);
-    #                 break;
-    #             }
-    #             Print(3);
-    #         }
-    #         while(true){
-    #             if (false){
-    #             }else{
-    #                 break;
-    #             }
-    #             Print("holy");
-    #         }
-    #         break;
-    #     }
-    #     Print("goody goody");
-    # }
-    # """))
-    # print(cgen(decaf))
-    # exit(0)
-
+    # (print(cgen("""
+# int main()  {
+#     int [] x;
+#     double[] d;
+#     x = NewArray(5, int);
+#     d = NewArray(3, double);
+#     d[0] = 1.1;
+#     d[1] = 2.3;
+#     d[2] = 5.6;
+#     Print(d[0], d[1], d[2]);
+# }
+#     """)))
+#     exit(0)
+#     print(cgen("""
+#
+#     int main() {
+#         int t;
+#         int i;
+#         string s;
+#         bool found;
+#         t = 0;
+#         s = ReadLine();
+#         found = false;
+#     	for (i = 1; i < 10; i = i+1){
+#     		if (s[i] == s[i-1]){
+#     		    t = t+1;
+#     		}
+#     		else{
+#     		    t = 0;
+#     		}
+#     		if (t == 6){
+#     		    Print("YES");
+#     		    found = true;
+#     		    break;
+#     		}
+#     	}
+#     	if(!found){
+#             Print("NO");
+#         }
+#     }
+#         """))
+#
+#         exit(0)
+#         (cgen("""
+#             int main(){
+#
+#             NewArray(5, double[][]);
+#             NewArray(5, int);
+#             NewArray(5, bool[]);
+#             for(i=0; i<10; i=i+1){
+#             }
+#         }
+#     """))
+#     exit(0)
+#     print(cgen("""
+#     int main(){
+#         while(true){
+#             if(ReadInteger() == 2){
+#                 Print(2);
+#                 break;
+#             }
+#             Print(1);
+#         }
+#         while(true){
+#             while(true){
+#                 if(ReadInteger() == 2){
+#                     Print(4);
+#                     break;
+#                 }
+#                 Print(3);
+#             }
+#             while(true){
+#                 if (false){
+#                 }else{
+#                     break;
+#                 }
+#                 Print("holy");
+#             }
+#             break;
+#         }
+#         Print("goody goody");
+#     }
+#     """))
+#     print(cgen(decaf))
+#     exit(0)
+#
     parser = Lark(grammar, parser="lalr")
     parse_tree = parser.parse(text=decaf)
     SymbolTableMaker().visit(parse_tree)
