@@ -1555,7 +1555,15 @@ class CodeGenerator(Interpreter):
 
         # push formal parameter
         for formal in function.formals:
-            formal_name = (function_scope + "/" + formal[0]).replace("/", "_")
+            exact_name = function_scope
+            if tree._meta[1]:
+                tmp = self.visit(tree._meta[1])
+                class_type = self.expr_types[-1]
+                self.expr_types.pop()
+                for funct in class_type_objects[class_table[class_type.name]].functions:
+                    if funct.name == function_name:
+                        exact_name = funct.exact_name
+            formal_name = (exact_name + "/" + formal[0]).replace("/", "_")
             formal_type = formal[1]
             if formal_type.name == 'double' and formal_type.dimension == 0:
                 code += '\tl.d  $f0, {}\n'.format(formal_name)
@@ -1568,14 +1576,24 @@ class CodeGenerator(Interpreter):
 
         # set actual parameters to formal parameters
         if tree._meta[1]:
+            exact_name = function_scope
+            if tree._meta[1]:
+                tmp = self.visit(tree._meta[1])
+                class_type = self.expr_types[-1]
+                self.expr_types.pop()
+                for funct in class_type_objects[class_table[class_type.name]].functions:
+                    if funct.name == function_name:
+                        exact_name = funct.exact_name
+            formal_name = (exact_name + "/" + function.formals[0][0]).replace("/", "_")
             # set 'this'
             # todo is it really a pointer or it's just a name?
             expr = tree._meta[1]
             code += self.visit(expr)
-            formal_name = function.formals[0][0]
+            # formal_name = function.formals[0][0]
             code += '.text\n'
             code += '\tlw $v0, 0($sp)\n'  # we don't use type because we are sure that it's class
-            code += '\tsw $v0, {}\n'.format((function_scope + "/" + formal_name).replace("/", "_"))
+            # code += '\tsw $v0, {}\n'.format((function_scope + "/" + formal_name).replace("/", "_"))
+            code += '\tsw $v0, {}\n'.format(formal_name)
             code += '\taddi $sp, $sp, 8\n'
             self.expr_types.pop()
             actual_counter = 1
@@ -1631,7 +1649,15 @@ class CodeGenerator(Interpreter):
 
         # pop formal parameters
         for formal in reversed(function.formals):
-            formal_name = (function_scope + "/" + formal[0]).replace("/", "_")
+            exact_name = function_scope
+            if tree._meta[1]:
+                tmp = self.visit(tree._meta[1])
+                class_type = self.expr_types[-1]
+                self.expr_types.pop()
+                for funct in class_type_objects[class_table[class_type.name]].functions:
+                    if funct.name == function_name:
+                        exact_name = funct.exact_name
+            formal_name = (exact_name + "/" + formal[0]).replace("/", "_")
             formal_type = formal[1]
             if formal_type.name == 'double' and formal_type.dimension == 0:
                 code += '\tl.d  $f0, 0($sp)\n'
@@ -2096,6 +2122,20 @@ void f() {
     Print("Dammit");
 }
 
+class X extends Person {
+    void f() {
+        Print("is this right?");
+    }
+}
+
+class Y extends Person {
+    void call_f() {
+        // f();
+        this.f();
+        Print("Aw?");
+    }
+}
+
 class Person {
     string name;
     int age;
@@ -2122,6 +2162,7 @@ class Person {
 
 int main() {
     Person p;
+    Y y;
 
     string name;
     int age;
@@ -2129,11 +2170,13 @@ int main() {
     name = ReadLine();
     age = ReadInteger();
 
-    p = new Person;
+    p = new Y;
     p.setName(name);
     p.setAge(age);
 
     p.print();
+    y = new Y;
+    y.call_f();
 }
 """
 
