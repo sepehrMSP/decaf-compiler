@@ -301,7 +301,7 @@ class SymbolTableMaker(Interpreter):
         if class_type_object:
             this = Tree(data='variable',
                         children=[Tree(data='type', children=[Token(type_='TYPE', value=class_type_object.name)]),
-                                  Token(type_='IDENT', value='this')])
+                                  Token(type_='IDENT', value='__this__')])
             temp = formals.children.copy()
             formals.children = [this] + temp
 

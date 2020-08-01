@@ -220,6 +220,7 @@ class CodeGenerator(Interpreter):
     - last element --N when exiting a stmt_block which N is the number of variable_decl in that stmt_block
     - before every function call which is equivalent to 'jal f_label', we append 0 to stack
     - before every return which is equivalent to 'jr $ra', we pop last element of stack   
+    b.
     """
     stack_local_params_count = [0]
 
@@ -317,8 +318,6 @@ class CodeGenerator(Interpreter):
 
         code += self.visit(stmt_block)
 
-
-
         local_var_count = self.stack_local_params_count[-1]
         self.stack_local_params = self.stack_local_params[:-local_var_count]
         self.stack_local_params_count.pop()
@@ -359,7 +358,6 @@ class CodeGenerator(Interpreter):
             return_stmt = tree._meta
             tree.children.append(return_stmt)
 
-
         for child in tree.children:
             if child.data == 'variable_decl':
                 code += self.visit(child)
@@ -381,10 +379,6 @@ class CodeGenerator(Interpreter):
                     code += '\tsw   $t1, 0($sp)\n\n'
             else:
                 code += self.visit(child)
-
-
-
-
 
         # pop declared variables in this scope
         for child in reversed(tree.children):
@@ -420,13 +414,10 @@ class CodeGenerator(Interpreter):
                 code += self.visit(child.children[0])
                 code += '\taddi $sp, $sp, 8\n'
 
-
         stmt_id = cnt()
         code += ('start_stmt_{}:\n'.format(stmt_id))
 
         child._meta = stmt_id
-
-
 
         if child.data == 'if_stmt':
             code += self.visit(child)
@@ -498,7 +489,6 @@ class CodeGenerator(Interpreter):
         #         if for_child.data == 'ass' or for_child.data == 'expr':
         #             print('yes')
         #             pass
-
 
         code += 'end_stmt_{}:\n'.format(stmt_id)
         self.stmt_labels = self.stmt_labels[:store_len]
@@ -969,13 +959,24 @@ class CodeGenerator(Interpreter):
     def call(self, tree):
         # self.expr_types
         if len(tree.children) == 3:
-            expr_class_inst = tree.children[0]
-            ident = tree.children[1]
-            actuals = tree.children[2]
-            name = ident.value
+            code = self.visit(tree.children[0])
+            if self.expr_types[-1].dimension > 0:
+                code += '.text\n'
+                code += '\tlw $t0, 0($sp)\n'
+                code += '\tlw $t0, -8($t0)\n'
+                code += '\tsw $t0, 0($sp)\n\n'
+                self.expr_types.pop()
+                self.expr_types.append(Type(Types.INT))
+                return code
+            else:
+                self.expr_types.pop()
+                expr_class_inst = tree.children[0]
+                ident = tree.children[1]
+                actuals = tree.children[2]
+                name = ident.value
 
-            actuals._meta = [name, expr_class_inst]
-            return self.visit(actuals)
+                actuals._meta = [name, expr_class_inst]
+                return self.visit(actuals)
 
             # for class
             pass
@@ -1021,8 +1022,9 @@ class CodeGenerator(Interpreter):
             formal_name = function.formals[0][0]
             code += '.text\n'
             code += '\tlw $v0, 0($sp)\n'  # we don't use type because we are sure that it's class
-            code += '\tsw $v0, {}\n'.format(function_scope + "/" + formal_name).replace("/", "_")
+            code += '\tsw $v0, {}\n'.format((function_scope + "/" + formal_name).replace("/", "_"))
             code += '\taddi $sp, $sp, 8\n'
+            self.expr_types.pop()
             actual_counter = 1
         else:
             actual_counter = 0
@@ -1032,7 +1034,7 @@ class CodeGenerator(Interpreter):
             formal_name = function.formals[actual_counter][0]
             code += '.text\n'
             formal_type = function.formals[actual_counter][1].name
-            if formal_type == 'double':  # todo do we need a 'and' in the condition here?
+            if formal_type == 'double' and formal_type.dimension == 0:
                 code += '\tl.d  $f0, 0($sp)\n'
                 code += '\ts.d  $f0, {}\n'.format((function_scope + "/" + formal_name).replace("/", "_"))
                 code += '\taddi $sp, $sp, 8\n\n'
@@ -1041,6 +1043,7 @@ class CodeGenerator(Interpreter):
                 code += '\tsw   $v0, {}\n'.format((function_scope + "/" + formal_name).replace("/", "_"))
                 code += '\taddi $sp, $sp, 8\n\n'
             actual_counter += 1
+            self.expr_types.pop() # todo check
 
         code += '.text\n'
         code += '\taddi $sp, $sp, -8\n'
@@ -1060,7 +1063,7 @@ class CodeGenerator(Interpreter):
         for formal in reversed(function.formals):
             formal_name = (function_scope + "/" + formal[0]).replace("/", "_")
             formal_type = formal[1]
-            if formal_type.name == 'double':
+            if formal_type.name == 'double' and formal_type.dimension == 0:
                 code += '\tl.d  $f0, 0($sp)\n'
                 code += '\taddi $sp, $sp, 8\n'
                 code += '\ts.d  $f0, {}\n\n'.format(formal_name)
@@ -1464,7 +1467,6 @@ class CodeGenerator(Interpreter):
 
         class_type = self.expr_types[-1]
         if class_type.dimension > 0:
-
             code += '\tlw $a0, -8($t0)\n'
             # code += """
             #             addi $a0, $sp, 0
@@ -1487,156 +1489,6 @@ class CodeGenerator(Interpreter):
         return code
 
 
-decaf = """
-class Person {
-    string name;
-    int age;
-
-    void setName(string new_name) {
-        name = new_name;
-    }
-
-    void setAge(int new_age) {
-        age = new_age;
-    }
-
-    void print() {
-        Print("Name: ", name, " Age: ", age);
-    }
-
-}
-
-int main() {
-    Person p;
-
-    string name;
-    int age;
-    
-    (3);
-    
-    4 + 5;
-    
-    !((-4 < 5) && (true || (3 != 5)));
- 
-    // name = ReadLine();
-    // age = ReadInteger();
-    
-    Print(ReadInteger(), 6);
-    
-    arr = NewArray(5, int);
-
-    p = new Person;
-    p.setName(name);
-    p.setAge(age);
-
-    p.print();
-}
-"""
-
-decaf = """
-int main() {
-        Print(ReadInteger(), !0, !true, 2.2, "yes_finally");
-}
-"""
-
-decaf = """
-int main() {
-    while (false){
-        Print("oj");
-    }
-
-    if (true){
-        Print("ok1");
-    }else{
-        Print("wrong1");
-    }
-    
-    if(true){
-    }else{
-    }
-    if (false){
-        Print("wrong2");
-    }else {
-        Print("ok2");
-    }
-    if (1+2){
-        Print("ok3");
-    }
-}
-"""
-
-decaf = r"""// I Guds namn
-int main() {
-    Print(-3.14 / 2.00);
-    Print("\n", 4 * -4 / 3);
-    null;
-}
-"""
-
-decaf = """
-class Person{
-    int mmd(){}
-}
-int main(){
-    Print("input your name:");
-    Print(ReadLine());
-    Print("ok bruh now input your age : ->\\n", ReadInteger(), "good age? answer is ", true);
-
-    if (ReadInteger()){
-        Print("ok1 simple if");
-    }
-
-    if (ReadInteger()){
-        Print("wrong");
-    }else {
-        Print("eyval else ham doroste");
-    }
-
-    if (ReadInteger()){
-        if(false){
-            Print("wrong");
-        }else{
-            Print(1);
-        }
-        if (true){
-            Print(2);
-        }
-
-        if (true){
-            Print(3);
-            if (false){
-                Print("wrong");
-            }else{
-                Print(4);
-                if (false){
-                    Print("wrong");
-                }else{
-                    Print(5);
-                    if (ReadInteger()){
-                        Print(true);
-                    }else{
-                        Print(false);
-                    }
-                }
-            }
-        }else{
-            Print("wrong");
-        }
-    }else{
-        if(false){
-            Print("wrong");
-        }else{
-            Print("wrong");
-        }
-
-        if (true){
-            Print("wrong");
-        }
-    }
-}
-"""
-
-
 def cgen(decaf):
     # decaf = decaf.replace('.length()', '[-2]')
     parser = Lark(grammar, parser="lalr")
@@ -1645,37 +1497,71 @@ def cgen(decaf):
     return CodeGenerator().visit(parse_tree)
 
 
-decaf = """
-
-"""
-
-
 decaf = r"""
-class Person {
-    int age;
-    void kk(int b, int c){
-        return;
+
+void sort(int[] items) {
+
+    /* implementation of bubble sort */
+
+
+    int i;
+    int j;
+
+    int n;
+    n = items.length();
+    for (i = 0; i < n-1; i = i + 1)
+        for (j = 0; j < n - i - 1; j = j + 1)
+            if (items[j] > items[j + 1]) {
+                int t;
+                t = items[j];
+                items[j] = items[j + 1];
+                items[j + 1] = t;
+            }
+}
+
+int main() {
+    int i;
+    int j;
+    int[] rawitems;
+    int[] items;
+
+    Print("Please enter the numbers (max count: 100, enter -1 to end sooner): ");
+
+    rawitems = NewArray(100, int);
+    for (i = 0; i < 100; i = i + 1) {
+        int x;
+        x = ReadInteger();
+        if (x == -1) break;
+
+        rawitems[i] = x;
+    }
+
+    items = NewArray(i, int);
+
+    // copy to a more convenient location
+    for (j = 0; j < i; j = j + 1) {
+        items[j] = rawitems[j];
+    }
+
+    sort(items);
+
+
+    Print("After sort: ");
+
+    for (i = 0; i < items.length(); i = i + 1) {
+        Print(items[i]);
     }
 }
-int main() {
-    Person mmd;
-    mmd = new Person;
-    mmd.kk(4, 5);
-    Print(mmd.age);   
-    Print("hell" != "hell");
-    return 68;
-}
-
 """
 
 if __name__ == '__main__':
-    decaf = ""
-
-    while Tree:
-        try:
-            decaf += input()
-        except:
-            break
+    # decaf = ""
+    #
+    # while Tree:
+    #     try:
+    #         decaf += input()
+    #     except:
+    #         break
     print(cgen(decaf))
     exit(0)
     (print(cgen("""
@@ -1773,91 +1659,91 @@ if __name__ == '__main__':
     # exit(0)
 
     # (print(cgen("""
-# int main()  {
-#     int [] x;
-#     double[] d;
-#     x = NewArray(5, int);
-#     d = NewArray(3, double);
-#     d[0] = 1.1;
-#     d[1] = 2.3;
-#     d[2] = 5.6;
-#     Print(d[0], d[1], d[2]);
-# }
-#     """)))
-#     exit(0)
-#     print(cgen("""
-#
-#     int main() {
-#         int t;
-#         int i;
-#         string s;
-#         bool found;
-#         t = 0;
-#         s = ReadLine();
-#         found = false;
-#     	for (i = 1; i < 10; i = i+1){
-#     		if (s[i] == s[i-1]){
-#     		    t = t+1;
-#     		}
-#     		else{
-#     		    t = 0;
-#     		}
-#     		if (t == 6){
-#     		    Print("YES");
-#     		    found = true;
-#     		    break;
-#     		}
-#     	}
-#     	if(!found){
-#             Print("NO");
-#         }
-#     }
-#         """))
-#
-#         exit(0)
-#         (cgen("""
-#             int main(){
-#
-#             NewArray(5, double[][]);
-#             NewArray(5, int);
-#             NewArray(5, bool[]);
-#             for(i=0; i<10; i=i+1){
-#             }
-#         }
-#     """))
-#     exit(0)
-#     print(cgen("""
-#     int main(){
-#         while(true){
-#             if(ReadInteger() == 2){
-#                 Print(2);
-#                 break;
-#             }
-#             Print(1);
-#         }
-#         while(true){
-#             while(true){
-#                 if(ReadInteger() == 2){
-#                     Print(4);
-#                     break;
-#                 }
-#                 Print(3);
-#             }
-#             while(true){
-#                 if (false){
-#                 }else{
-#                     break;
-#                 }
-#                 Print("holy");
-#             }
-#             break;
-#         }
-#         Print("goody goody");
-#     }
-#     """))
-#     print(cgen(decaf))
-#     exit(0)
-#
+    # int main()  {
+    #     int [] x;
+    #     double[] d;
+    #     x = NewArray(5, int);
+    #     d = NewArray(3, double);
+    #     d[0] = 1.1;
+    #     d[1] = 2.3;
+    #     d[2] = 5.6;
+    #     Print(d[0], d[1], d[2]);
+    # }
+    #     """)))
+    #     exit(0)
+    #     print(cgen("""
+    #
+    #     int main() {
+    #         int t;
+    #         int i;
+    #         string s;
+    #         bool found;
+    #         t = 0;
+    #         s = ReadLine();
+    #         found = false;
+    #     	for (i = 1; i < 10; i = i+1){
+    #     		if (s[i] == s[i-1]){
+    #     		    t = t+1;
+    #     		}
+    #     		else{
+    #     		    t = 0;
+    #     		}
+    #     		if (t == 6){
+    #     		    Print("YES");
+    #     		    found = true;
+    #     		    break;
+    #     		}
+    #     	}
+    #     	if(!found){
+    #             Print("NO");
+    #         }
+    #     }
+    #         """))
+    #
+    #         exit(0)
+    #         (cgen("""
+    #             int main(){
+    #
+    #             NewArray(5, double[][]);
+    #             NewArray(5, int);
+    #             NewArray(5, bool[]);
+    #             for(i=0; i<10; i=i+1){
+    #             }
+    #         }
+    #     """))
+    #     exit(0)
+    #     print(cgen("""
+    #     int main(){
+    #         while(true){
+    #             if(ReadInteger() == 2){
+    #                 Print(2);
+    #                 break;
+    #             }
+    #             Print(1);
+    #         }
+    #         while(true){
+    #             while(true){
+    #                 if(ReadInteger() == 2){
+    #                     Print(4);
+    #                     break;
+    #                 }
+    #                 Print(3);
+    #             }
+    #             while(true){
+    #                 if (false){
+    #                 }else{
+    #                     break;
+    #                 }
+    #                 Print("holy");
+    #             }
+    #             break;
+    #         }
+    #         Print("goody goody");
+    #     }
+    #     """))
+    #     print(cgen(decaf))
+    #     exit(0)
+    #
     parser = Lark(grammar, parser="lalr")
     parse_tree = parser.parse(text=decaf)
     SymbolTableMaker().visit(parse_tree)
@@ -1896,10 +1782,6 @@ console:
 1
 2
 """
-
-
-
-
 
 """
 Tree(function_decl, [Token(IDENT, 'sort'), Tree(formals, [Tree(variable, [Tree(type, [Tree(type, [Token(TYPE, 'int')])]), Token(IDENT, 'items')])]), Tree(stmt_block, [Tree(variable_decl, [Tree(variable, [Tree(type, [Token(TYPE, 'int')]), Token(IDENT, 'i')])]), Tree(variable_decl, [Tree(variable, [Tree(type, [Token(TYPE, 'int')]), Token(IDENT, 'j')])]), Tree(variable_decl, [Tree(variable, [Tree(type, [Token(TYPE, 'int')]), Token(IDENT, 'n')])]), Tree(stmt, [Tree(ass, [Tree(var_addr, [Token(IDENT, 'n')]), Tree(expr, [Tree(expr8, [Tree(expr1, [Tree(expr2, [Tree(expr3, [Tree(expr4, [Tree(expr5, [Tree(expr6, [Tree(val, [Tree(subscript, [Tree(val, [Tree(var_addr, [Token(IDENT, 'items')])]), Tree(expr, [Tree(expr8, [Tree(expr1, [Tree(expr2, [Tree(expr3, [Tree(expr4, [Tree(expr5, [Tree(neg, [Tree(expr6, [Tree(expr7, [Tree(const_int, [Token(INT, '2')])])])])])])])])])])])])])])])])])])])])])])]), Tree(stmt, [Tree(for_stmt, [Tree(ass, [Tree(var_addr, [Token(IDENT, 'i')]), Tree(expr, [Tree(expr8, [Tree(expr1, [Tree(expr2, [Tree(expr3, [Tree(expr4, [Tree(expr5, [Tree(expr6, [Tree(expr7, [Tree(const_int, [Token(INT, '0')])])])])])])])])])])]), Tree(expr, [Tree(expr8, [Tree(expr1, [Tree(expr2, [Tree(lt, [Tree(expr3, [Tree(expr4, [Tree(expr5, [Tree(expr6, [Tree(val, [Tree(var_addr, [Token(IDENT, 'i')])])])])])]), Tree(sub, [Tree(expr4, [Tree(expr5, [Tree(expr6, [Tree(val, [Tree(var_addr, [Token(IDENT, 'n')])])])])]), Tree(expr5, [Tree(expr6, [Tree(expr7, [Tree(const_int, [Token(INT, '1')])])])])])])])])])]), Tree(ass, [Tree(var_addr, [Token(IDENT, 'i')]), Tree(expr, [Tree(expr8, [Tree(expr1, [Tree(expr2, [Tree(expr3, [Tree(add, [Tree(expr4, [Tree(expr5, [Tree(expr6, [Tree(val, [Tree(var_addr, [Token(IDENT, 'i')])])])])]), Tree(expr5, [Tree(expr6, [Tree(expr7, [Tree(const_int, [Token(INT, '1')])])])])])])])])])])]), Tree(stmt, [Tree(stmt_block, [])])])])])])
