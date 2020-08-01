@@ -1463,18 +1463,18 @@ class CodeGenerator(Interpreter):
         code += '\tlw $t0, 0($sp)\n'
 
         class_type = self.expr_types[-1]
-        if class_type.dimension > 0:
-
-            code += '\tlw $a0, -8($t0)\n'
-            # code += """
-            #             addi $a0, $sp, 0
-            #             li $v0, 1
-            #             syscall
-            #             """
-            code += '\tsw $a0, 0($sp)\n'
-            self.expr_types.pop()
-            self.expr_types.append(Type('int)'))
-            return code
+        # if class_type.dimension > 0:
+        #
+        #     code += '\tlw $a0, -8($t0)\n'
+        #     # code += """
+        #     #             addi $a0, $sp, 0
+        #     #             li $v0, 1
+        #     #             syscall
+        #     #             """
+        #     code += '\tsw $a0, 0($sp)\n'
+        #     self.expr_types.pop()
+        #     self.expr_types.append(Type('int)'))
+        #     return code
 
         var_index = class_type_objects[class_table[class_type.name]].find_var_index(ident)
         var_type = class_type_objects[class_table[class_type.name]].find_var_type(ident)
