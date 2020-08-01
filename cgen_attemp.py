@@ -285,6 +285,7 @@ class CodeGenerator(Interpreter):
                 '\tli $v0, 0\n'
                 '\tjr $ra\n\n'
                 '.data\n'
+                '.align 2\n'
                 '\ttrue: .asciiz "true"\n'
                 '\tfalse: .asciiz "false"\n'
                 '\tconst10000: .double 10000.0\n'
@@ -698,14 +699,20 @@ class CodeGenerator(Interpreter):
         if type(tp) == lark.lexer.Token:
             if tp.value == Types.DOUBLE:
                 shamt = 3
-
+        """
+        we store size of array in 8 bytes before start pointer of array
+        """
         code += tab("""
             .text\t\t\t\t # New array
                 lw $a0, 0($sp)
                 addi $sp, $sp, 8
+                addi $t6, $a0, 0 # t6 is length of array
                 sll $a0, $a0, {shamt}
-                li $v0, 9           #sbrk
+                addi $a0, $a0, 8 # extra 8 bytes for length
+                li $v0, 9           #rsbrk
                 syscall
+                sw $t6 0($v0)
+                addi $v0, $v0, 8
                 sub $sp, $sp, 8
                 sw $v0, 0($sp)\n
             ##
@@ -887,6 +894,7 @@ class CodeGenerator(Interpreter):
     def const_str(self, tree):
         code = ''
         code += '.data\n'
+        code += '.align 2\n'
         code += '__const_str__{}: .asciiz {}\n'.format(self.str_const, tree.children[0].value)
         code += '.text\n'
         code += '\tla $t0, __const_str__{}\n'.format(self.str_const)
@@ -1321,6 +1329,7 @@ class CodeGenerator(Interpreter):
             code += '.text\n'
             code += '\tlw $t7, 8($sp)\n'
             code += '\tlw $t0, 0($sp)\n'
+            # code += '\taddi $t0, $t0, 8\n'
             code += '\tli $t1, 8\n'
             code += '\tmul $t0, $t0, $t1\n'
             code += '\tadd $t1, $t0, $t7\n'
@@ -1330,6 +1339,7 @@ class CodeGenerator(Interpreter):
             code += '.text\n'
             code += '\tlw $t7, 8($sp)\n'
             code += '\tlw $t0, 0($sp)\n'
+            # code += '\taddi $t0, $t0, 8\n'
             code += '\tli $t1, 4\n'
             code += '\tmul $t0, $t0, $t1\n'
             code += '\tadd $t1, $t0, $t7\n'
@@ -1379,7 +1389,22 @@ class CodeGenerator(Interpreter):
         code += self.visit(tree.children[0])
         code += '.text\n'
         code += '\tlw $t0, 0($sp)\n'
+
         class_type = self.expr_types[-1]
+        # if class_type.dimension > 0:
+        #
+        #     # code += '\tlw $a0, -8($t0)\n'
+        #     # code += """
+        #     #             addi $a0, $sp, 0
+        #     #             li $v0, 1
+        #     #             syscall
+        #     #             """
+        #     code += '\tli $a2, 5\n'
+        #     code += '\tsw $a2, 0($sp)\n'
+        #     self.expr_types.pop()
+        #     self.expr_types.append(Type('int)'))
+        #     return code
+
         var_index = class_type_objects[class_table[class_type.name]].find_var_index(ident)
         var_type = class_type_objects[class_table[class_type.name]].find_var_type(ident)
 
@@ -1542,6 +1567,7 @@ int main(){
 
 
 def cgen(decaf):
+    decaf = decaf.replace('.length()', '[-2]')
     parser = Lark(grammar, parser="lalr")
     parse_tree = parser.parse(decaf)
     SymbolTableMaker().visit(parse_tree)
@@ -1605,16 +1631,9 @@ int main() {
 
 if __name__ == '__main__':
     (print(cgen("""
-int main()  {
-    int [] x;
-    double[] d;
-    x = NewArray(5, int);
-    d = NewArray(3, double);
-    d[0] = 1.1;
-    d[1] = 2.3;
-    d[2] = 5.6;
-    Print(d[0], d[1], d[2]);
-}
+    int main()  {
+        NewArray(5, int).length;
+    }
     """)))
     exit(0)
     # print(cgen("""
