@@ -2130,7 +2130,7 @@ class CodeGenerator(Interpreter):
 
     def null(self, tree):
         code = '.text\n'
-        code += '\tsub $sp, $sp, 4\n'
+        code += '\tsub $sp, $sp, 8\n'
         code += '\tsw $zero, 0($sp)\n\n'
         self.expr_types.append(Type('null'))
         return code
@@ -2701,16 +2701,25 @@ void main() {
 }
 """
 
+decaf = r"""
+int main()	{
+	while(ReadInteger()){
+		Print("ok");
+	}
+	Print("done");
+}
+"""
+
 if __name__ == '__main__':
-    # pass
-    # decaf = ""
-    # while True:
-    #     try:
-    #         decaf += input() + "\n"
-    #         print(input())
-        #
-        # except:
-        #     break
+    pass
+    decaf = ""
+    while True:
+        try:
+            decaf += input() + "\n"
+            # print(input())
+
+        except:
+            break
     # decaf = ""
     # with open("theirtests/string_comparison.d") as f:
     #     decaf = ''.join(f.readlines())

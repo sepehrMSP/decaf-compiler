@@ -39,13 +39,14 @@ if __name__ == '__main__':
             out = 'phase3_tests/tests/' + test + '.out'
             if not os.path.exists(inp):
                 inp = 'phase3_tests/tests/heapsort.in'
+            print(asm, inp, out)
             os.system('spim -a -f "{}" < {} > "tmp"'.format(asm, inp))
             with open ("tmp", "r") as f:
                 f.readline()
-                f.readline()
-                f.readline()
-                f.readline()
-                f.readline()
+                # f.readline()
+                # f.readline()
+                # f.readline()
+                # f.readline()
                 res = ''.join(f.readlines())
             try:
                 with open(out) as f:
