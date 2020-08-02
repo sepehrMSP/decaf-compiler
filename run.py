@@ -26,7 +26,7 @@ if __name__ == '__main__':
             #     continue
             # if 't00' in test:
             #     continue
-            # if 'class' in file:
+            # if 'black' not in file:
             #     continue
             total += 1
             print('Test_{}: {}'.format(total, file))
@@ -39,8 +39,8 @@ if __name__ == '__main__':
             out = 'phase3_tests/tests/' + test + '.out'
             if not os.path.exists(inp):
                 inp = 'phase3_tests/tests/heapsort.in'
-            print(asm, inp, out)
             os.system('spim -a -f "{}" < {} > "tmp"'.format(asm, inp))
+            # print(os.system('diff {} tmp'.format(out)))
             with open ("tmp", "r") as f:
                 f.readline()
                 f.readline()
@@ -53,9 +53,9 @@ if __name__ == '__main__':
                     cor = ''.join(f.readlines())
             except:
                 cor = ''
-            # print(res)
-            # print()
-            # print(cor)
+            print(res)
+            print()
+            print(cor)
             if res == cor:
                 print('Accepted')
                 acc += 1
