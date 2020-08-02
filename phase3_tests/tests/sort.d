@@ -5,12 +5,12 @@ int[] ReadArray()
   int [] arr;
   int numScores;
 
-  Print("How many scores? ");
+  Print("How many scores?");
   numScores = ReadInteger();
   arr = NewArray(numScores, int);
   i = 0;
   while (i < arr.length()) {
-    Print("Enter next number: ");
+    Print("Enter next number:");
     num = ReadInteger();
     arr[i] = num;
     i = i + 1;
@@ -42,12 +42,11 @@ void PrintArray(int []arr)
 {
   int i;
    i = 0;
-   Print("Sorted results: ");
+   Print("Sorted results:");
    while (i < arr.length()) {
-	Print(arr[i], " ");
+	Print(arr[i]);
 	i = i + 1;
   }
-  Print("\n");
 }
 
 
@@ -55,8 +54,8 @@ void main()
 {
   int[] arr;
 
-  Print("\nThis program will read in a bunch of numbers and print them\n");
-  Print("back out in sorted order.\n\n");
+  Print("This program will read in a bunch of numbers and print them");
+  Print("back out in sorted order.");
   arr = ReadArray();
   Sort(arr);
   PrintArray(arr);

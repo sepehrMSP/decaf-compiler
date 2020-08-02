@@ -57,12 +57,11 @@ void main() {
     q.EnQueue(i);
 
   for (i = 0; i != 4; i = i + 1)
-    Print(q.DeQueue(), " ");
+    Print(q.DeQueue());
   Print("\n");
   for (i = 0; i != 10; i = i + 1)
     q.EnQueue(i);
 
   for (i = 0; i != 17; i = i +1)
-    Print(q.DeQueue(), " ");
-  Print("\n");
+    Print(q.DeQueue());
 }

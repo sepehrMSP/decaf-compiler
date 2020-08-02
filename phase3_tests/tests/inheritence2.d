@@ -1,7 +1,7 @@
 class Squash extends Vegetable {
    void Grow(Seeds []seeds, int [][]water)
    {
-      Print("But I don't like squash\n");
+      Print("But I don't like squash");
       Print(10 * 5);
    }
 }
@@ -15,21 +15,21 @@ class Vegetable {
        Seeds[] s;
        int [][]w;
        color = 5 % 2;
-       Print("Yum! ", color, "\n");
+       Print("Yum! ", color);
        veg.Grow(s, w);
        return;
     }
 
    void Grow(Seeds []seeds, int [][]water)
    {
-      Print("Grow, little vegetables, grow!\n");
+      Print("Grow, little vegetables, grow!");
       Eat(this);
    }
 }
 
 
 void Grow(int a) {
-   Print("mmm... veggies!\n");
+   Print("mmm... veggies!");
 }
 
 class Seeds {

@@ -1,14 +1,12 @@
 int a;
 
-
-
 int foo(int a,  bool c) {
     if (c){
-	 Print("ok");
+	  Print("ok");
       return a + 2;
     }
     else
-      Print(a, " wacky.\n");
+      Print(a, " wacky.");
    return 18;
 }
 

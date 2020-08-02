@@ -1053,6 +1053,15 @@ class CodeGenerator(Interpreter):
     def if_stmt(self, tree):
         code = '# if starts here:\n'
         code += self.visit(tree.children[0])
+
+        then_label = cnt()
+        else_label = cnt()
+
+        """
+        if (true)
+            a = b;
+        """
+
         then_code = self.visit(tree.children[1])
         else_code = '' if len(tree.children) == 2 else self.visit(tree.children[2])
         if len(tree.children) == 2:
@@ -1063,19 +1072,25 @@ class CodeGenerator(Interpreter):
                     addi $sp, $sp, 8
                     beq $a0, 0, end_stmt_{then}
                     j  start_stmt_{then}
-                """.format(then=self.stmt_labels[-1])
+                """.format(then=then_label)
             )
+            code += '\tstart_stmt_{}:\n'.format(then_label)
             code += then_code
+            code += '\tend_stmt_{}:\n'.format(then_label)
         else:
             code += tab("""
                 .text\t\t\t\t# IfElse
                     lw $a0, 0($sp)
                     addi $sp, $sp, 8
                     beq $a0, 0, start_stmt_{els}
-                """.format(els=self.stmt_labels[-1]))
+                """.format(els=else_label))
+            code += '\tstart_stmt_{}:\n'.format(then_label)
             code += then_code
-            code += tab("j end_stmt_{els}".format(els=self.stmt_labels[-1]))
+            code += '\tend_stmt_{}:\n'.format(then_label)
+            code += tab("j end_stmt_{els}".format(els=else_label))
+            code += '\tstart_stmt_{}:\n'.format(else_label)
             code += else_code
+            code += '\tend_stmt_{}:\n'.format(else_label)
         return code
 
     def while_stmt(self, tree):
@@ -1243,17 +1258,68 @@ class CodeGenerator(Interpreter):
             syscall             #ReadLine()
             
             lw $a0, 0($sp)      #Replace \\n to \\r(?)
-            lw $t1, nw
+            lb $t1, nw
+            
+            # li $v0, 1
+            # addi $a0, $t1, 0
+            # syscall
+            
+            # li $v0, 10
+            # syscall
+            
+            
             read_{label_id}:
                 lb $t0, 0($a0)
-                beq $t0, 10, e_read_{label_id}
+                
+                # addi $a3, $a0, 0
+                # 
+                # li $a0, '$'
+                # li $v0, 11
+                # syscall
+                # 
+                # 
+                # addi $a0, $t0, 0
+                # li $v0, 1
+                # syscall
+                # 
+                # li $a0, ' '
+                # li $v0, 11
+                # syscall
+                # 
+                # li $a0, '$'
+                # li $v0, 11
+                # syscall
+                # 
+                # 
+                # addi $a0, 0
+                # addi $a0, $a3, 0
+
+                beq $t0, 0, e_read_{label_id}
+                bne $t0, 10, ten_{ten}
+                li $t2, 0
+                sb $t2, 0($a0)
+                ten_{ten}:
+                
+                bne $t0, 13, thirt_{thirt}
+                li $t2, 0
+                sb $t2, 0($a0)
+                thirt_{thirt}:
+                
+                
                 addi $a0, $a0, 1
                 j read_{label_id}
             e_read_{label_id}:
-                lb $t2, 1($a0)
-                sb $t2, 0($a0)
+                # # lb $t2, 1($a0)
+                # li $t2, 0
+                # sb $t2, -1($a0)
+
+            
+            # li $v0, 10
+            # lw $a0, 0($sp)
+            # syscall
+
         ##
-        """.format(label_id=cnt()))
+        """.format(label_id=cnt(), ten=cnt(), thirt=cnt()))
         self.expr_types.append(Type(Types.STRING))
         return code
 
@@ -2210,8 +2276,6 @@ def cgen(decaf):
     ClassTreeSetter().visit(parse_tree)
     set_inheritance()
     ImplicitThis().visit(parse_tree)
-    # print(class_type_objects[1].functions[0].exact_name)
-    # print(class_type_objects[1].functions[1].exact_name)
     return CodeGenerator().visit(parse_tree)
 
 
@@ -2346,10 +2410,23 @@ int main(){
 """
 
 if __name__ == '__main__':
+    pass
     decaf = ""
     while True:
         try:
-            decaf += input()
+            decaf += input() + "\n"
+            # print(input())
+
         except:
             break
+    # decaf = ""
+    # with open("theirtests/string_comparison.d") as f:
+    #     decaf = ''.join(f.readlines())
     print(cgen(decaf))
+    # decaf = ""
+    # while True:
+    #     try:
+    #         decaf += input()
+    #     except:
+    #         break
+    # print(cgen(decaf))

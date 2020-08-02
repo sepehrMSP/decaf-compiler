@@ -27,7 +27,7 @@ class dynamic_array {
 			return 0;
 		}
 		len = len - 1;
-		ret = arr[len]
+		ret = arr[len];
 		if (3 * len < arr.length()) {
 			int i;
 			int [] temp;
