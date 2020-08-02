@@ -2220,6 +2220,22 @@ int main() {
 }
 """
 
+decaf = """
+double[] f() {
+    return NewArray(5, double);
+}
+
+int main() {
+    double[][] arr;
+    arr = NewArray(6, double[]);
+    arr[4] = f();
+    arr[2] = f();
+    arr[4][2] = 4.0 - 2.0;
+    arr[2][4] = 2.0 - 4.0;
+    Print(arr[4][2], arr[2][4]);
+}
+"""
+
 if __name__ == '__main__':
     # decaf = ""
     #
