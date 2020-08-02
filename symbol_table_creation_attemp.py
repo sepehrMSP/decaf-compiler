@@ -245,15 +245,15 @@ def init():
 
     function_table['ceil__'] = 4
 
-    function_objects.append(
-        Function(name='print_double__', exact_name='root/print_double__').set_return_type(
-            Type('void')
-        ).set_formals(
-            [['x', Type('double')]]
-        )
-    )
-
-    function_table['print_double__'] = 5
+    # function_objects.append(
+    #     Function(name='print_double__', exact_name='root/print_double__').set_return_type(
+    #         Type('void')
+    #     ).set_formals(
+    #         [['x', Type('double')]]
+    #     )
+    # )
+    #
+    # function_table['print_double__'] = 5
 
 
 init()

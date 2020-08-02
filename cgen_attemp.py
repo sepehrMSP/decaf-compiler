@@ -238,6 +238,7 @@ def cast_cgen():
         end_btoi_stmt_1:
         """
     )
+    return code
     code += tab("""
     
     .text
@@ -1351,57 +1352,65 @@ class CodeGenerator(Interpreter):
             self.expr_types.pop()
             code += '.text\n'
             if t.name == 'double':
-                code += tab("""
-                
-                
-                    .text
-                        l.d $f6, 0($sp)
-                        addi $sp, $sp, 8 
-                
-                    .text
-                        li.d $f8, 0.0
-                        c.le.d $f6, $f8
-                        bc1f __double_le__p__{sign_cnt}
-                        # Print -
-                            li $v0, 4
-                            la $a0, sign_double
-                            syscall\t\t\t\t#Print sign double\n
-                        ##
-                        neg.d $f6, $f6
-                        __double_le__p__{sign_cnt}:
-                
-                
-                	.text
-                        l.d  $f0, root_print_double___x
-                        addi $sp, $sp, -8
-                        s.d  $f0, 0($sp)
-                    
-                    .text
-                        sub $sp, $sp, 8
-                        s.d $f6, 0($sp)
-                    
-                    .text
-                        l.d  $f0, 0($sp)
-                        s.d  $f0, root_print_double___x
-                        addi $sp, $sp, 8
-                    
-                    .text
-                        addi $sp, $sp, -8
-                        sw   $ra, 0($sp)
-                        jal root_print_double__
-                        lw   $ra, 0($sp)
-                        addi $sp, $sp, 8
-                    
-                        l.d  $f0, 0($sp)
-                        addi $sp, $sp, 8
-                        s.d  $f0, root_print_double___x
-                """.format(sign_cnt=cnt()))
                 # code += tab("""
-                #     l.d $f12, 0($sp)
-                #     addi $sp, $sp, 8
-                #     li $v0, 3
-                #     syscall
-                # """)
+                #
+                #
+                #
+                #     .text
+                #         l.d $f6, 0($sp)
+                #         addi $sp, $sp, 8
+                #
+                #     .text
+                #         li.d $f8, 0.0
+                #         c.le.d $f6, $f8
+                #         bc1f __double_le__p__{sign_cnt}
+                #         # Print -
+                #             li $v0, 4
+                #             la $a0, sign_double
+                #             syscall\t\t\t\t#Print sign double\n
+                #         ##
+                #         neg.d $f6, $f6
+                #         __double_le__p__{sign_cnt}:
+                #
+                #
+                # 	.text
+                #         l.d  $f0, root_print_double___x
+                #         addi $sp, $sp, -8
+                #         s.d  $f0, 0($sp)
+                #
+                #     .text
+                #         sub $sp, $sp, 8
+                #         s.d $f6, 0($sp)
+                #
+                #     .text
+                #         l.d  $f0, 0($sp)
+                #         s.d  $f0, root_print_double___x
+                #         addi $sp, $sp, 8
+                #
+                #     .text
+                #         addi $sp, $sp, -8
+                #         sw   $ra, 0($sp)
+                #         jal root_print_double__
+                #         lw   $ra, 0($sp)
+                #         addi $sp, $sp, 8
+                #
+                #         l.d  $f0, 0($sp)
+                #         addi $sp, $sp, 8
+                #         s.d  $f0, root_print_double___x
+                # """.format(sign_cnt=cnt()))
+                # # code += tab("""
+                # #     l.d $f12, 0($sp)
+                # #     addi $sp, $sp, 8
+                # #     li $v0, 3
+                # #     syscall
+                # # """)
+                code += tab("""
+                    l.d $f12, 0($sp)
+                    addi $sp, $sp, 8
+                    cvt.s.d $f12, $f12
+                    li $v0, 2
+                    syscall
+                """)
             #                 print("""
             # l.d $f12, 0($sp)
             # addi $sp, $sp, 8
@@ -1446,15 +1455,15 @@ class CodeGenerator(Interpreter):
                     ##
                     """.format(cnt=cnt())
                 )
-        # '\n' at the end of print
-        code += tab(
-            """
-            # Print new line
-                li $v0, 4
-                la $a0, nw
-                syscall\t\t\t\t#Print new line\n
-            ##
-            """)
+            # '\n' at the end of print
+            code += tab(
+                """
+                # Print new line
+                    li $v0, 4
+                    la $a0, nw
+                    syscall\t\t\t\t#Print new line\n
+                ##
+                """)
         return code
 
     def const_int(self, tree):
