@@ -2247,7 +2247,9 @@ if __name__ == '__main__':
     decaf = ""
     while True:
         try:
-            decaf += input()
+            decaf += input() + "\n"
+            # print(input())
+
         except:
             break
     print(cgen(decaf))

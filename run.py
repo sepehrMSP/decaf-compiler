@@ -66,6 +66,7 @@ if __name__ == '__main__':
                 # print(cor.count('\n'))
 
                 print('Wrong')
+                input()
                 # res = res.split('\n')
                 # cor = cor.split('\n')
                 # print(len(res), len(cor))
