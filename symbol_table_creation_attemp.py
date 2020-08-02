@@ -636,6 +636,7 @@ class ImplicitThis(Interpreter):
                 copy = tree.children.copy()
                 this = Tree(data='val', children=[Tree(data='var_addr', children=[Token(type_='IDENT', value='this')])])
                 tree.children = [this] + copy
+                tree.data = 'method'
 
     def ass(self, tree):
         for child in tree.children:

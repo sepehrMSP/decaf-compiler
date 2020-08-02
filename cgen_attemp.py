@@ -1696,6 +1696,7 @@ class CodeGenerator(Interpreter):
         code = '.text\n'
         function_name = tree._meta[0]
         if tree._meta[1]:
+            print("wtf?")
             expr = tree._meta[1]
             tmp = self.visit(expr)
             class_type = self.expr_types[-1]
@@ -2446,7 +2447,6 @@ class BJDeck {
 
   void Init() {
     int i;
-    Print("init");
     decks = NewArray(8, Deck);
     for (i = 0; i < 8; i = i + 1) {
       decks[i] = new Deck;
@@ -2616,9 +2616,7 @@ class House {
 
     deck = new BJDeck;
     dealer = new Dealer;
-    Print("are we fucked?");
     deck.Init();
-    Print("certainly less");
     deck.Shuffle();
   }
 
