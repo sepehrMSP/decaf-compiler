@@ -1258,15 +1258,57 @@ class CodeGenerator(Interpreter):
             syscall             #ReadLine()
             
             lw $a0, 0($sp)      #Replace \\n to \\r(?)
-            lw $t1, nw
+            lb $t1, nw
+            
+            # li $v0, 1
+            # addi $a0, $t1, 0
+            # syscall
+            
+            # li $v0, 10
+            # syscall
+            
+            
             read_{label_id}:
                 lb $t0, 0($a0)
-                beq $t0, 10, e_read_{label_id}
+                
+                # addi $a3, $a0, 0
+                # 
+                # li $a0, '$'
+                # li $v0, 11
+                # syscall
+                # 
+                # 
+                # addi $a0, $t0, 0
+                # li $v0, 1
+                # syscall
+                # 
+                # li $a0, ' '
+                # li $v0, 11
+                # syscall
+                # 
+                # li $a0, '$'
+                # li $v0, 11
+                # syscall
+                # 
+                # 
+                # addi $a0, 0
+                # addi $a0, $a3, 0
+
+                beq $t0, 0, e_read_{label_id}
+                
+                
                 addi $a0, $a0, 1
                 j read_{label_id}
             e_read_{label_id}:
-                lb $t2, 1($a0)
-                sb $t2, 0($a0)
+                # lb $t2, 1($a0)
+                li $t2, 0
+                sb $t2, -2($a0)
+                sb $t2, -1($a0)
+            
+            # li $v0, 10
+            # lw $a0, 0($sp)
+            # syscall
+
         ##
         """.format(label_id=cnt()))
         self.expr_types.append(Type(Types.STRING))
@@ -2293,17 +2335,18 @@ void main() {
 """
 
 if __name__ == '__main__':
-    # decaf = ""
-    # while True:
-    #     try:
-    #         decaf += input() + "\n"
-    #         # print(input())
-    #
-    #     except:
-    #         break
+    pass
     decaf = ""
-    with open("theirtests/string_comparison.d") as f:
-        decaf = ''.join(f.readlines())
+    while True:
+        try:
+            decaf += input() + "\n"
+            # print(input())
+
+        except:
+            break
+    # decaf = ""
+    # with open("theirtests/string_comparison.d") as f:
+    #     decaf = ''.join(f.readlines())
     print(cgen(decaf))
     # decaf = ""
     # while True:
