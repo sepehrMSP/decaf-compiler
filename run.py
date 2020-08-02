@@ -43,10 +43,10 @@ if __name__ == '__main__':
             os.system('spim -a -f "{}" < {} > "tmp"'.format(asm, inp))
             with open ("tmp", "r") as f:
                 f.readline()
-                # f.readline()
-                # f.readline()
-                # f.readline()
-                # f.readline()
+                f.readline()
+                f.readline()
+                f.readline()
+                f.readline()
                 res = ''.join(f.readlines())
             try:
                 with open(out) as f:
@@ -67,15 +67,16 @@ if __name__ == '__main__':
                 # print(cor.count('\n'))
 
                 print('Wrong')
-                input()
                 # res = res.split('\n')
                 # cor = cor.split('\n')
-                # print(len(res), len(cor))
+                # # print(len(res), len(cor))
                 # for i in range(len(res)):
                 #     if(res[i] != cor[i]):
                 #         print(res[i], cor[i])
                 #         print(len(res[i]), len(cor[i]))
                 #         print('_')
+                input()
+
         # exit(0)
         # time.sleep(1)
     print('Passed {} from {} tests'.format(acc, total))
