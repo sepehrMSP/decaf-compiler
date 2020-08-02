@@ -725,9 +725,8 @@ class ImplicitThis(Interpreter):
             self.visit(child)
 
     def var_access(self, tree):
-        for child in tree.children:
-            child._meta = tree._meta
-            self.visit(child)
+        tree.children[0]._meta = tree._meta
+        self.visit(tree.children[0])
 
     def subscript(self, tree):
         for child in tree.children:
