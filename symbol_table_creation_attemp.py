@@ -1,7 +1,7 @@
 import lark
 from lark import Lark, Tree
-from lark.visitors import Interpreter
 from lark.lexer import Token
+from lark.visitors import Interpreter
 
 grammar = """
     start : (decl)+
@@ -86,7 +86,6 @@ class ClassType:
         l = []
         for function in self.functions:
             l.append(function.exact_name)
-        # print(l)
         return
 
     def find_var_index(self, ident):
@@ -114,15 +113,6 @@ class ClassType:
                 return counter
             counter += 1
         raise Exception("function not found")
-
-    def set_vtable(self):
-        pass
-        # return pointer
-
-    def set_obj(self):
-        vtable_pointer = self.set_vtable()
-
-        pass
 
 
 class Function:
@@ -374,7 +364,6 @@ class SymbolTableMaker(Interpreter):
                 self.visit(child)
             else:
                 self.visit(child)
-                pass  # todo must complete
         stack.pop()
 
     def stmt(self, tree):
@@ -387,19 +376,8 @@ class SymbolTableMaker(Interpreter):
             self.visit(child)
         if child.data == 'stmt_block':
             self.visit(child)
-        if child.data == 'break_stmt':  # there is a problem with it !
-            pass
-            # call a function just for break wellformness!it should move back on the stack maybe not in this interpreter
-        if child.data == 'return_stmt':
-            pass
-        if child.data == 'print_stmt' or child.data == 'print':
-            pass
-        if child.data == 'expr':
-            pass
-        # todo these last 4 if statements can be removed but there are here to have more explicit behavior
 
     def if_stmt(self, tree):
-        expr = tree.children[0]  # todo can be omit
         stmt = tree.children[1]
         self.visit(stmt)
         if len(tree.children) == 3:
@@ -407,7 +385,6 @@ class SymbolTableMaker(Interpreter):
             self.visit(else_stmt)
 
     def while_stmt(self, tree):
-        expr = tree.children[0]  # this can be omit
         stmt = tree.children[1]
         self.visit(stmt)
 
@@ -442,7 +419,6 @@ class SymbolTableMaker(Interpreter):
         self.visit(tree.children[0])
 
     def variable_decl(self, tree):
-        # todo check globals
         tree.children[0]._meta = tree._meta
         self.visit(tree.children[0])
 
@@ -462,7 +438,6 @@ class SymbolTableMaker(Interpreter):
         if type(tree._meta) == Function:
             function = tree._meta
             function.formals.append([name, symbol_table_object.type])
-            # note that here we can omit name from append but we assume it now for probable future use cases
 
     def type(self, tree):
         if type(tree.children[0]) == lark.lexer.Token:
@@ -743,14 +718,6 @@ class ImplicitThis(Interpreter):
             self.visit(child)
 
 
-just_class = """class Person{
-    double name;
-    int a;
-    string l;
-    int mmd(){
-        int c;
-    }
-}"""
 text = """
 int[][][] c;
 int d;
@@ -831,41 +798,9 @@ int main() {
     p.print();
 }
 """
-
-decaf = """
-class Sepehr extends Person {
-}
-
-class Person {
-    int age;
-    double[][][][] mmd;
-    double grade;
-    string name;
-    
-    void fuck() {
-        Print("i am fucking");
-        a || b;
-        break;
-        f();
-        f.g();
-        gg();
-        a - gggvv();
-    }
-}
-
-int main() {
-    Person p;
-    p = new Sepehr;
-    Print("akeysh");
-    p.fuck();
-    return 99;
-    ;;;;;
-}
-"""
-
 if __name__ == '__main__':
     parser = Lark(grammar, parser="lalr")
-    parse_tree = parser.parse(decaf)
+    parse_tree = parser.parse(text)
     ImplicitThis().visit(parse_tree)
     # SymbolTableMaker().visit(parse_tree)
     # ClassTreeSetter().visit(parse_tree)
@@ -874,11 +809,4 @@ if __name__ == '__main__':
     # for x in class_type_objects[0].functions:
     #     print(x.exact_name)
     # class_type_objects[1].print_functions()
-# print('****************************')
-# print(stack)
-# print(symbol_table)
-
-# for checking classes
-# print(class_table)
-# a = class_type_objects[0].functions
-# print(a[0].name, a[0].formals[0][1].name, a[1].name, a[1].return_type.name)
+    # print('****************************')

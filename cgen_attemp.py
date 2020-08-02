@@ -1,10 +1,11 @@
 from copy import deepcopy
+
 import lark
-from lark import Lark, Tree, Token
+from lark import Lark, Tree
 from lark.visitors import Interpreter
 
-from symbol_table_creation_attemp import symbol_table, text, just_class, set_inheritance, ClassTreeSetter, \
-    class_type_objects, class_table, Function, ImplicitThis
+from symbol_table_creation_attemp import symbol_table, set_inheritance, ClassTreeSetter, \
+    class_type_objects, class_table, ImplicitThis
 from symbol_table_creation_attemp import symbol_table_objects, function_objects, \
     function_table, grammar, SymbolTableMaker, Type
 
@@ -239,511 +240,6 @@ def cast_cgen():
         """
     )
     return code
-    code += tab("""
-    
-    .text
-    root_print_double__:
-    .data
-    .align 2
-    root_print_double___x: .space 8
-    .text
-    start_pstmt_1:
-    .data
-    .align 2
-    root_print_double____local_0_xc: .space 8
-    
-    .text
-        l.d  $f0, root_print_double____local_0_xc
-        addi $sp, $sp, -8
-        s.d  $f0, 0($sp)
-    
-    .data
-    .align 2
-    root_print_double____local_0_y: .space 4
-    
-    .text
-        la   $t0, root_print_double____local_0_y
-        lw   $t1, 0($t0)
-        addi $sp, $sp, -8
-        sw   $t1, 0($sp)
-    
-    start_pstmt_2:
-    .text
-        la $t0, root_print_double___x
-        sub $sp, $sp, 8
-        sw $t0, 0($sp)
-    
-    .text
-        la $t0, root_print_double___x
-        sub $sp, $sp, 8
-        sw $t0, 0($sp)
-    
-    .text
-        lw $t0, 0($sp)
-        l.d $f0, 0($t0)
-        s.d $f0, 0($sp)
-    
-    .text
-        li.d $f0, 0.0000499999
-        sub $sp, $sp, 8
-        s.d $f0, 0($sp)
-    
-    .text
-        l.d $f0, 0($sp)
-        l.d $f2, 8($sp)
-        add.d $f4, $f2, $f0
-        s.d $f4, 8($sp)
-        addi $sp, $sp, 8
-    
-    .text
-        lw $t0, 8($sp)
-        l.d $f0, 0($sp)
-        s.d $f0, 0($t0)
-        s.d $f0, 8($sp)
-        addi $sp, $sp, 8
-    
-    .text
-        addi	$sp, $sp, 8
-    
-    end_pstmt_2:
-    start_pstmt_3:
-    .text
-        la $t0, root_print_double____local_0_xc
-        sub $sp, $sp, 8
-        sw $t0, 0($sp)
-    
-    .text
-        la $t0, root_print_double___x
-        sub $sp, $sp, 8
-        sw $t0, 0($sp)
-    
-    .text
-        lw $t0, 0($sp)
-        l.d $f0, 0($t0)
-        s.d $f0, 0($sp)
-    
-    .text
-        lw $t0, 8($sp)
-        l.d $f0, 0($sp)
-        s.d $f0, 0($t0)
-        s.d $f0, 8($sp)
-        addi $sp, $sp, 8
-    
-    .text
-        addi	$sp, $sp, 8
-    
-    end_pstmt_3:
-    start_pstmt_4:
-    .text
-        la $t0, root_print_double___x
-        sub $sp, $sp, 8
-        sw $t0, 0($sp)
-    
-    .text
-        la $t0, root_print_double___x
-        sub $sp, $sp, 8
-        sw $t0, 0($sp)
-    
-    .text
-        lw $t0, 0($sp)
-        l.d $f0, 0($t0)
-        s.d $f0, 0($sp)
-    
-    .text
-        lw   $t1, root_itod_ival
-        addi $sp, $sp, -8
-        sw   $t1, 0($sp)
-    
-    .text
-        l.d  $f0, root_ceil___dval
-        addi $sp, $sp, -8
-        s.d  $f0, 0($sp)
-    
-    .text
-        la $t0, root_print_double___x
-        sub $sp, $sp, 8
-        sw $t0, 0($sp)
-    
-    .text
-        lw $t0, 0($sp)
-        l.d $f0, 0($t0)
-        s.d $f0, 0($sp)
-    
-    .text
-        l.d  $f0, 0($sp)
-        s.d  $f0, root_ceil___dval
-        addi $sp, $sp, 8
-    
-    .text
-        addi $sp, $sp, -8
-        sw   $ra, 0($sp)
-        jal root_ceil__
-        lw   $t8, 0($sp)
-        addi $sp, $sp, 8
-        lw   $ra, 0($sp)
-        addi $sp, $sp, 8
-    
-        l.d  $f0, 0($sp)
-        addi $sp, $sp, 8
-        s.d  $f0, root_ceil___dval
-    
-        addi $sp, $sp, -8
-        sw   $t8, 0($sp)
-    # return type is int 0
-    .text
-        lw   $v0, 0($sp)
-        sw   $v0, root_itod_ival
-        addi $sp, $sp, 8
-    
-    .text
-        addi $sp, $sp, -8
-        sw   $ra, 0($sp)
-        jal root_itod
-        l.d   $f30, 0($sp)
-        addi $sp, $sp, 8
-        lw   $ra, 0($sp)
-        addi $sp, $sp, 8
-    
-        lw   $t0, 0($sp)
-        addi $sp, $sp, 8
-        sw   $t0, root_itod_ival
-    
-        addi $sp, $sp, -8
-        s.d   $f30, 0($sp)
-    # return type is double 0
-    .text
-        l.d $f0, 0($sp)
-        l.d $f2, 8($sp)
-        sub.d $f4, $f2, $f0
-        s.d $f4, 8($sp)
-        addi $sp, $sp, 8
-    
-    .text
-        lw $t0, 8($sp)
-        l.d $f0, 0($sp)
-        s.d $f0, 0($t0)
-        s.d $f0, 8($sp)
-        addi $sp, $sp, 8
-    
-    .text
-        addi	$sp, $sp, 8
-    
-    end_pstmt_4:
-    start_pstmt_5:
-    .text
-        la $t0, root_print_double___x
-        sub $sp, $sp, 8
-        sw $t0, 0($sp)
-    
-    .text
-        la $t0, root_print_double___x
-        sub $sp, $sp, 8
-        sw $t0, 0($sp)
-    
-    .text
-        lw $t0, 0($sp)
-        l.d $f0, 0($t0)
-        s.d $f0, 0($sp)
-    
-    .text
-        li.d $f0, 10000.0
-        sub $sp, $sp, 8
-        s.d $f0, 0($sp)
-    
-    .text
-        l.d      $f0, 0($sp)
-        l.d      $f2, 8($sp)
-        mul.d    $f4, $f2, $f0
-        s.d      $f4, 8($sp)
-        addi     $sp, $sp, 8
-    
-    .text
-        lw $t0, 8($sp)
-        l.d $f0, 0($sp)
-        s.d $f0, 0($t0)
-        s.d $f0, 8($sp)
-        addi $sp, $sp, 8
-    
-    .text
-        addi	$sp, $sp, 8
-    
-    end_pstmt_5:
-    start_pstmt_6:
-    .text
-        la $t0, root_print_double____local_0_y
-        sub $sp, $sp, 8
-        sw $t0, 0($sp)
-    
-    .text
-        l.d  $f0, root_ceil___dval
-        addi $sp, $sp, -8
-        s.d  $f0, 0($sp)
-    
-    .text
-        la $t0, root_print_double___x
-        sub $sp, $sp, 8
-        sw $t0, 0($sp)
-    
-    .text
-        lw $t0, 0($sp)
-        l.d $f0, 0($t0)
-        s.d $f0, 0($sp)
-    
-    .text
-        l.d  $f0, 0($sp)
-        s.d  $f0, root_ceil___dval
-        addi $sp, $sp, 8
-    
-    .text
-        addi $sp, $sp, -8
-        sw   $ra, 0($sp)
-        jal root_ceil__
-        lw   $t8, 0($sp)
-        addi $sp, $sp, 8
-        lw   $ra, 0($sp)
-        addi $sp, $sp, 8
-    
-        l.d  $f0, 0($sp)
-        addi $sp, $sp, 8
-        s.d  $f0, root_ceil___dval
-    
-        addi $sp, $sp, -8
-        sw   $t8, 0($sp)
-    # return type is int 0
-    .text
-        lw $t0, 8($sp)
-        lw $t1, 0($sp)
-        sw $t1, 0($t0)
-        sw $t1, 8($sp)
-        addi $sp, $sp, 8
-    
-    .text
-        addi	$sp, $sp, 8
-    
-    end_pstmt_6:
-    start_pstmt_7:
-    .text				# While
-    .text
-        la $t0, root_print_double____local_0_y
-        sub $sp, $sp, 8
-        sw $t0, 0($sp)
-    
-    .text
-        lw $t0, 0($sp)
-        lw $t0, 0($t0)
-        sw $t0, 0($sp)
-    
-    .text
-        li $t0, 0
-        sub $sp, $sp, 8
-        sw $t0, 0($sp)
-    
-    .text
-        lw $t0, 0($sp)
-        lw $t1, 8($sp)
-        sne $t2, $t1, $t0
-        sw $t2, 8($sp)
-        addi $sp, $sp, 8
-    
-    .text
-        la $t0, root_print_double____local_0_y
-        sub $sp, $sp, 8
-        sw $t0, 0($sp)
-    
-    .text
-        lw $t0, 0($sp)
-        lw $t0, 0($t0)
-        sw $t0, 0($sp)
-    
-    .text
-        li $t0, 10
-        sub $sp, $sp, 8
-        sw $t0, 0($sp)
-    
-    .text
-        lw $t0, 0($sp)
-        lw $t1, 8($sp)
-        div $t1, $t0
-        mfhi $t2
-        sw $t2, 8($sp)
-        addi $sp, $sp, 8
-    .text
-        li $t0, 0
-        sub $sp, $sp, 8
-        sw $t0, 0($sp)
-    
-    .text
-        lw $t0, 0($sp)
-        lw $t1, 8($sp)
-        seq $t2, $t1, $t0
-        sw $t2, 8($sp)
-        addi $sp, $sp, 8
-    
-    .text
-        lw $t0, 0($sp)
-        lw $t1, 8($sp)
-        and $t2, $t1, $t0
-        sw $t2, 8($sp)
-        addi $sp, $sp, 8
-    
-    lw $a0, 0($sp)
-    addi $sp, $sp, 8
-    beq $a0, 0, end_pstmt_7
-            
-    start_pstmt_8:
-    .text
-    start_pstmt_9:
-    start_pstmt_10:
-    .text
-        la $t0, root_print_double____local_0_y
-        sub $sp, $sp, 8
-        sw $t0, 0($sp)
-    
-    .text
-        la $t0, root_print_double____local_0_y
-        sub $sp, $sp, 8
-        sw $t0, 0($sp)
-    
-    .text
-        lw $t0, 0($sp)
-        lw $t0, 0($t0)
-        sw $t0, 0($sp)
-    
-    .text
-        li $t0, 10
-        sub $sp, $sp, 8
-        sw $t0, 0($sp)
-    
-    .text
-        lw $t0, 0($sp)
-        lw $t1, 8($sp)
-        div $t2, $t1, $t0
-        sw $t2, 8($sp)
-        addi $sp, $sp, 8
-    
-    .text
-        lw $t0, 8($sp)
-        lw $t1, 0($sp)
-        sw $t1, 0($t0)
-        sw $t1, 8($sp)
-        addi $sp, $sp, 8
-    
-    .text
-        addi	$sp, $sp, 8
-    
-    end_pstmt_10:
-    end_pstmt_9:
-    end_pstmt_8:
-    j start_pstmt_7
-    end_pstmt_7:
-    .text
-        l.d  $f0, root_ceil___dval
-        addi $sp, $sp, -8
-        s.d  $f0, 0($sp)
-    
-    .text
-        la $t0, root_print_double____local_0_xc
-        sub $sp, $sp, 8
-        sw $t0, 0($sp)
-    
-    .text
-        lw $t0, 0($sp)
-        l.d $f0, 0($t0)
-        s.d $f0, 0($sp)
-    
-    .text
-        l.d  $f0, 0($sp)
-        s.d  $f0, root_ceil___dval
-        addi $sp, $sp, 8
-    
-    .text
-        addi $sp, $sp, -8
-        sw   $ra, 0($sp)
-        jal root_ceil__
-        lw   $t8, 0($sp)
-        addi $sp, $sp, 8
-        lw   $ra, 0($sp)
-        addi $sp, $sp, 8
-    
-        l.d  $f0, 0($sp)
-        addi $sp, $sp, 8
-        s.d  $f0, root_ceil___dval
-    
-        addi $sp, $sp, -8
-        sw   $t8, 0($sp)
-    # return type is int 0
-    .text
-    # Print int
-        li $v0, 1
-        lw $a0, 0($sp)
-        addi $sp, $sp, 8
-        syscall             #Print int
-    ##
-                    
-    .data
-    .align 2
-    __pconst_str__0: .asciiz "."
-    .text
-        la $t0, __pconst_str__0
-        sub $sp, $sp, 8
-        sw $t0, 0($sp)
-    
-    .text
-    # Print string
-        li $v0, 4
-        lw $a0, 0($sp)
-        addi $sp, $sp, 8
-        syscall             #Print string
-    ##
-    
-    .text
-        la $t0, root_print_double____local_0_y
-        sub $sp, $sp, 8
-        sw $t0, 0($sp)
-    
-    .text
-        lw $t0, 0($sp)
-        lw $t0, 0($t0)
-        sw $t0, 0($sp)
-    
-    .text
-    # Print int
-        li $v0, 1
-        lw $a0, 0($sp)
-        addi $sp, $sp, 8
-        syscall             #Print int
-    ##
-                    
-
-    
-    start_pstmt_11:
-    .text
-        lw   $t0, 0($sp)
-        addi $sp, $sp, 8
-        sw   $t0, root_print_double____local_0_y
-    
-    .text
-        l.d  $f0, 0($sp)
-        addi $sp, $sp, 8
-        s.d  $f0, root_print_double____local_0_xc
-    
-        jr   $ra
-    
-    end_ppstmt_11:
-    .text
-        lw   $t1, 0($sp)
-        addi $sp, $sp, 8
-        la   $t0, root_print_double____local_0_y
-        sw   $t1, 0($t0)
-    
-    .text
-        l.d  $f0, 0($sp)
-        addi $sp, $sp, 8
-        s.d  $f0, root_print_double____local_0_xc
-    
-    end_pstmt_1:
-    """)
-    return code
 
 
 class CodeGenerator(Interpreter):
@@ -803,8 +299,6 @@ class CodeGenerator(Interpreter):
         return code
 
     def function_decl(self, tree):
-        # print(tree)
-        # exit(0)
         code = ''
         if len(tree.children) == 4:
             ident = tree.children[1]
@@ -896,7 +390,6 @@ class CodeGenerator(Interpreter):
         stmt_id = cnt()
         store_len = len(self.stmt_labels)
         code += '.text\nstart_stmt_{}:\n'.format(stmt_id)
-        # print(' ->', tree._meta, type(tree._meta), type(tree._meta) == lark.tree.Tree)
 
         if type(tree._meta) == lark.tree.Tree:
             return_stmt = tree._meta
@@ -910,7 +403,7 @@ class CodeGenerator(Interpreter):
                 variable_type = symbol_table_objects[
                     symbol_table[(self.current_scope, variable_name)]].type  # TODO is current_scope set?
                 self.stack_local_params.append(
-                    [self.current_scope + "/" + variable_name, variable_type])  # todo must review
+                    [self.current_scope + "/" + variable_name, variable_type])
                 code += '.text\n'
                 if variable_type.name == 'double' and variable_type.dimension == 0:
                     code += '\tl.d  $f0, {}\n'.format((self.current_scope + "/" + variable_name).replace("/", "_"))
@@ -930,7 +423,7 @@ class CodeGenerator(Interpreter):
                 self.stack_local_params_count[-1] -= 1
                 variable_name = child.children[0].children[1].value
                 variable_type = symbol_table_objects[symbol_table[(self.current_scope, variable_name)]].type
-                self.stack_local_params.pop()  # todo must review
+                self.stack_local_params.pop()
                 code += '.text\n'
                 if variable_type.name == 'double' and variable_type.dimension == 0:
                     code += '\tl.d  $f0, 0($sp)\n'
@@ -947,7 +440,6 @@ class CodeGenerator(Interpreter):
         self.stmt_labels.append(stmt_id)
         self.current_scope = pop_scope(self.current_scope)
         return code
-        # todo must review by Sir Sadegh
 
     def stmt(self, tree):
         child = tree.children[0]
@@ -1008,7 +500,7 @@ class CodeGenerator(Interpreter):
                     code += '\taddi $sp, $sp, 8\n'
                     code += '\tsw   $t0, {}\n\n'.format(local_var_name.replace("/", "_"))
             # self.stack_local_params = self.stack_local_params[:-local_var_count_of_this_scope]
-            # self.stack_local_params_count.pop()       # sepehr
+            # self.stack_local_params_count.pop()
             if funct.return_type.name == 'double' and funct.return_type.dimension == 0:
                 code += '\taddi $sp, $sp, -8\n'
                 code += '\ts.d   $f30, 0($sp)\n'
@@ -1020,7 +512,6 @@ class CodeGenerator(Interpreter):
             code += self.visit(child)
         elif child.data == 'expr' or child.data == 'ass':
             code += self.visit(child)
-            # print('     ->>', child)
             expr_type = self.expr_types[-1]
             if expr_type.name != 'void':
                 code += '.text\n'
@@ -1112,24 +603,24 @@ class CodeGenerator(Interpreter):
         return code
 
     def for_stmt(self, tree):
-        code = '.text\t\t\t\t# For\n' # todo check this comment
+        code = '.text\t\t\t\t# For\n'  # todo check this comment
         for_id = tree._meta
         self.loop_labels.append(for_id)
-        childs = tree.children
+        children = tree.children
         next = ''
-        if childs[0].data == 'ass':
-            code += self.visit(childs[1])
+        if children[0].data == 'ass':
+            code += self.visit(children[1])
         else:
-            code += self.visit(childs[0])
-        if childs[-2].data == 'ass':
-            next += self.visit(childs[-2])
+            code += self.visit(children[0])
+        if children[-2].data == 'ass':
+            next += self.visit(children[-2])
             next += '\taddi $sp, $sp, 8\n'
         code += tab("""
             lw $a0, 0($sp)
             addi $sp, $sp, 8
             beq $a0, $zero, end_stmt_{}
         """.format(for_id))
-        code += self.visit(childs[-1])
+        code += self.visit(children[-1])
         code += next
         code += "\tj start_stmt_{}\n".format(for_id)
         self.loop_labels.pop()
@@ -1618,9 +1109,7 @@ class CodeGenerator(Interpreter):
 
                 actuals._meta = [name, expr_class_inst]
                 return self.visit(actuals)
-
             # for class
-            pass
         if len(tree.children) == 2:
             # self.stack_local_params_count.append(0)
             ident = tree.children[0]
@@ -1775,17 +1264,17 @@ class CodeGenerator(Interpreter):
                 code += '\taddi $sp, $sp, 8\n\n'
             else:
                 code += '\tlw   $v0, 0($sp)\n'
-                # code += '\tsw   $v0, {}\n'.format((function_scope + "/" + formal_name).replace("/", "_")) #herererere
-                code += '\tsw   $v0, {}\n'.format(formal_name) #herererere
+                # code += '\tsw   $v0, {}\n'.format((function_scope + "/" + formal_name).replace("/", "_"))
+                code += '\tsw   $v0, {}\n'.format(formal_name)  # herererere
                 code += '\taddi $sp, $sp, 8\n\n'
             actual_counter += 1
-            self.expr_types.pop() # todo check f(double, double) + g(double, double) f: int g: int
+            self.expr_types.pop()  # todo check f(double, double) + g(double, double) f: int g: int
 
         code += '.text\n'
         code += '\taddi $sp, $sp, -8\n'
         code += '\tsw   $ra, 0($sp)\n'
 
-        if tree._meta[1]: # E1.ident(E1, expr, expr, ...)
+        if tree._meta[1]:  # E1.ident(E1, expr, expr, ...)
             expr = tree._meta[1]
             code += self.visit(expr)
             class_type = self.expr_types[-1]
@@ -2147,7 +1636,6 @@ class CodeGenerator(Interpreter):
                 if class_type_objects[class_table[class_name]].find_var_index(var_name) >= 0:
                     break
             var_scope = pop_scope(var_scope)
-                # inja :D chon ta'rif nashode, while tamum nemishe; dombale moteghayyere dorost migardam dg. be scope asli kar nadaram. mannnnnnn kari lazem nist bokonim. code ghalat nemidan ke. Re Dg:)) tarif nakardam y ro
         if '__class__' in var_scope.split('/')[-1]:
             class_name = var_scope.split('/')[-1][9:]
             class_obj = class_type_objects[class_table[class_name]]
@@ -2229,8 +1717,6 @@ class CodeGenerator(Interpreter):
         return code
 
     def ass(self, tree):
-        # print(tree)
-        # input()
         code = ''.join(self.visit_children(tree))
         typ = self.expr_types[-1]
         if typ.name == 'double' and typ.dimension == 0:
@@ -2286,7 +1772,6 @@ def cgen(decaf):
     decaf = tab("""
     
     """) + decaf
-    # decaf = decaf.replace('.length()', '[-2]')
     parser = Lark(grammar, parser="lalr")
     parse_tree = parser.parse(decaf)
     SymbolTableMaker().visit(parse_tree)
@@ -2296,438 +1781,11 @@ def cgen(decaf):
     return CodeGenerator().visit(parse_tree)
 
 
-decaf = r"""
-int g() {
-    return 0;
-}
-void f() {
-    Print("Dammit");
-}
-class X extends Person {
-    void f() {
-        Print("is this right?");
-    }
-}
-class Y extends Person {
-    void call_f() {
-        // f();
-        this.f();
-        Print("Aw?");
-    }
-}
-class Person {
-    string name;
-    int age;
-
-    void f() {
-        Print("f!");
-    }
-    void setName(string new_name) {
-        name = new_name;
-        this.f();
-        f();
-    }
-    void setAge(int new_age) {
-        age = new_age;
-    }
-    void print() {
-        Print("Name: ", name, " Age: ", age);
-    }
-}
-int main() {
-    Person p;
-    Y y;
-    string name;
-    int age;
-    name = ReadLine();
-    age = ReadInteger();
-    p = new Y;
-    p.setName(name);
-    p.setAge(age);
-    p.print();
-    y = new Y;
-    y.call_f();
-}
-"""
-
-decaf = """
-int f() {
-    return 2;
-}
-int g() {
-    return 3;
-}
-class X {
-    int f() {
-        return 5;
-    }
-
-    int func() {
-        return ((f()) * g());
-    }
-}
-class Y {
-    int g() {
-        return 7;
-    }
-
-    int func() {
-        return (f() * (g()));
-    }
-}
-int main() {
-    X x;
-    Y y;
-    x = new X;
-    y = new Y;
-    Print(x.func());
-    Print(y.func());
-}
-"""
-
-decaf = r"""
-class Random {
-
-  int seed;
-
-  void Init(int seedVal) {
-    seed = seedVal;
-  }
-
-  int GenRandom() {
-    seed = (15625 * (seed % 10000) + 22221) % 65536;
-    return seed;
-  }
-
-  int RndInt(int max) {
-    return (GenRandom() % max);
-  }
-
-}
-
-Random gRnd;
-
-class Deck {
-
-  int current;
-  int[] cards;
-
-  void Init() {
-    cards = NewArray(52, int);
-  }
-
-  void Shuffle() {
-    for (current = 0; current < 52; current = current + 1) {
-      cards[current] = (current + 1) % 13;
-    }
-    while (current > 0) {
-      int r;
-      int temp;
-      r = gRnd.RndInt(current);
-      current = current - 1;
-      temp = cards[current];
-      cards[current] = cards[r];
-      cards[r] = temp;
-    }
-  }
-
-  int GetCard() {
-    int result;
-    if (current >= 52) return 0;
-    result = cards[current];
-    current = current + 1;
-    return result;
-  }
-}
-
-class BJDeck {
-
-  Deck[] decks;
-  int numdealt;
-
-  void Init() {
-    int i;
-    decks = NewArray(8, Deck);
-    for (i = 0; i < 8; i = i + 1) {
-      decks[i] = new Deck;
-      decks[i].Init();
-    }
-  }
-
-  int DealCard() {
-    int c;
-    c = 0;
-    if (numdealt >= 8*52) return 11;
-    while (c == 0) {
-      int d;
-      d = gRnd.RndInt(8);
-      c = decks[d].GetCard();
-    }
-    if (c > 10) c = 10;
-    else if (c == 1) c = 11;
-    numdealt = numdealt + 1;
-    return c;
-  }
-
-  void Shuffle() {
-    int i;
-
-    Print("Shuffling...");
-    for (i = 0; i < 8; i = i + 1)
-      decks[i].Shuffle();
-
-    numdealt = 0;
-    Print("done.\n");
-  }
-
-  int NumCardsRemaining()
-  {
-    return 8*52 - numdealt;
-  }
-}
-
-class Player {
-  int total;
-  int aces;
-  int numcards;
-  int bet;
-  int money;
-  string name;
-
-  void Init(int num) {
-    money = 1000;
-    Print("What is the name of player #", num, "? ");
-    name = ReadLine();
-  }
-
-  void Hit(BJDeck deck) {
-    int card;
-    card = deck.DealCard();
-    Print(name, " was dealt a ", card, ".\n");
-    total = total + card;
-    numcards = numcards + 1;
-    if (card == 11) aces = aces + 1;
-    while ((total > 21) && (aces > 0)) {
-      total = total - 10;
-      aces = aces - 1;
-    }
-  }
-
-  bool DoubleDown(BJDeck deck) {
-    int result;
-    if ((total != 10) && (total != 11)) return false;
-    if (GetYesOrNo("Would you like to double down?")) {
-      bet = bet * 2;
-      Hit(deck);
-      Print(name, ", your total is ", total, ".\n");
-      return true;
-    }
-    return false;
-  }
-
-  void TakeTurn(BJDeck deck) {
-    bool stillGoing;
-
-    Print("\n", name, "'s turn.\n");
-    total = 0;
-    aces = 0;
-    numcards = 0;
-    Hit(deck);
-    Hit(deck);
-    if (!DoubleDown(deck)) {
-      stillGoing = true;
-      while (total <= 21 && stillGoing) {
-        Print(name, ", your total is ", total, ".\n");
-        stillGoing = GetYesOrNo("Would you like a hit?");
-        if (stillGoing) Hit(deck);
-      }
-    }
-    if (total > 21) Print(name, " busts with the big ", total, "!\n");
-    else Print(name, " stays at ", total, ".\n");
-  }
-
-  bool HasMoney() { return money > 0; }
-
-  void PrintMoney() {
-    Print(name, ", you have $", money, ".\n");
-  }
-
-  void PlaceBet() {
-    bet = 0;
-    PrintMoney();
-    while ((bet <= 0) || (bet > money)) {
-      Print("How much would you like to bet? ");
-      bet = ReadInteger();
-    }
-  }
-
-  int GetTotal() { return total;}
-
-  void Resolve(int dealer) {
-    int win; int lose;
-    win = 0; lose = 0;
-    if ((total == 21) && (numcards == 2)) win = 2;
-    else if (total > 21) lose = 1;
-    else if (dealer > 21) win = 1;
-    else if (total > dealer) win = 1;
-    else if (dealer > total) lose = 1;
-    if (win >= 1) Print(name, ", you won $", bet, ".\n");
-    else if (lose >= 1) Print(name, ", you lost $", bet, ".\n");
-    else Print(name, ", you push!\n");
-    win = win * bet;
-    lose = lose * bet;
-    money = money + win - lose;
-  }
-}
-
-class Dealer extends Player {
-
-  void Init(int id) {
-    total = 0;
-    aces = 0;
-    numcards = 0;
-    name = "Dealer";
-  }
-
-  void TakeTurn(BJDeck deck) {
-    Print("\n", name, "'s turn.\n");
-    while (total <= 16) {
-      Hit(deck);
-    }
-    if (total > 21) Print(name, " busts with the big ", total, "!\n");
-    else Print(name, " stays at ", total, ".\n");
-  }
-}
-
-
-
-class House {
-  Player[] players;
-  Dealer dealer;
-  BJDeck deck;
-
-
-  void SetupGame() {
-    Print("\nWelcome to CS143 BlackJack!\n");
-    Print("---------------------------\n");
-    gRnd = new Random;
-    Print("Please enter a random number seed: ");
-    gRnd.Init(ReadInteger());
-
-    deck = new BJDeck;
-    dealer = new Dealer;
-    deck.Init();
-    deck.Shuffle();
-  }
-
-  void SetupPlayers() {
-    int i;
-    int numPlayers;
-    Print("How many players do we have today? ");
-    numPlayers = ReadInteger();
-    players = NewArray(numPlayers, Player);
-    for (i = 0; i < players.length(); i = i + 1) {
-      players[i] = new Player;
-      players[i].Init(i+1);
-    }
-  }
-
-  void TakeAllBets() {
-    int i;
-    Print("\nFirst, let's take bets.\n");
-    for (i = 0; i < players.length(); i = i + 1)
-      if (players[i].HasMoney()) players[i].PlaceBet();
-  }
-
-  void TakeAllTurns() {
-    int i;
-    for (i = 0; i < players.length(); i = i + 1)
-      if (players[i].HasMoney()) players[i].TakeTurn(deck);
-  }
-
-  void ResolveAllPlayers() {
-    int i;
-
-    Print("\nTime to resolve bets.\n");
-    for (i = 0; i < players.length(); i = i + 1)
-      if (players[i].HasMoney())
-        players[i].Resolve(dealer.GetTotal());
-  }
-
-  void PrintAllMoney() {
-    int i;
-
-    for (i = 0; i < players.length(); i = i + 1)
-      players[i].PrintMoney();
-
-  }
-
-  void PlayOneGame() {
-    if (deck.NumCardsRemaining() < 26) deck.Shuffle();
-    TakeAllBets();
-    Print("\nDealer starts. ");
-    dealer.Init(0);
-    dealer.Hit(deck);
-    TakeAllTurns();
-    dealer.TakeTurn(deck);
-    ResolveAllPlayers();
-  }
-
-}
-
-bool GetYesOrNo(string prompt)
-{
-   string answer;
-   Print(prompt, " (y/n) ");
-   answer = ReadLine();
-   return (answer == "y" || answer == "Y");
-}
-
-void main() {
-  bool keepPlaying;
-  House house;
-  keepPlaying = true;
-  house = new House;
-  house.SetupGame();
-  house.SetupPlayers();
-  while (keepPlaying) {
-    house.PlayOneGame();
-    keepPlaying = GetYesOrNo("\nDo you want to play another hand?");
-  }
-  house.PrintAllMoney();
-  Print("Thank you for playing...come again soon.\n");
-  Print("\nCS143 BlackJack Copyright (c) 1999 by Peter Mork.\n");
-  Print("(2001 mods by jdz)\n");
-}
-"""
-
-decaf = r"""
-int main()	{
-	while(ReadInteger()){
-		Print("ok");
-	}
-	Print("done");
-}
-"""
-
 if __name__ == '__main__':
-    pass
     decaf = ""
     while True:
         try:
             decaf += input() + "\n"
-            # print(input())
-
         except:
             break
-    # decaf = ""
-    # with open("theirtests/string_comparison.d") as f:
-    #     decaf = ''.join(f.readlines())
     print(cgen(decaf))
-    # decaf = ""
-    # while True:
-    #     try:
-    #         decaf += input()
-    #     except:
-    #         break
-    # print(cgen(decaf))
