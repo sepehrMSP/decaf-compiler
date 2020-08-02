@@ -2142,10 +2142,13 @@ class CodeGenerator(Interpreter):
                 while function_name[-1] != '_local':
                     function_name.pop()
                 function_name.pop()
-                this_label = '/'.join(function_name).replace('/', '_') + '_this'
+                # this_label = '/'.join(function_name).replace('/', '_') + '_this'
                 code = '.text\n'
-                code += '\tlw $t0, {}\n'.format(this_label)
-                code += '\taddi $t1, $t0, {}\n'.format((1 + index) * 8)
+                # code += '\tlw $t0, {}\n'.format(this_label)
+                # code += '\taddi $t1, $t0, {}\n'.format((1 + index) * 8)
+                code += '\tlw $t0, 0($fp)\n'
+                code += '\tlw $t0, 0($t0)\n'
+                code += '\taddi $t1, $t0, -{}\n'.format(index * 8 + 8)
                 code += '\tsub $sp, $sp, 8\n'
                 code += '\tsw $t1, 0($sp)\n'
                 self.expr_types.append(deepcopy(class_obj.find_var_type(var_name)))
@@ -2381,44 +2384,49 @@ int main() {
 }
 """
 decaf = r"""
-class c{
-    void f(int a,int b){
-        Print(a,b);
-    }
-    void g(int a,int b){
-        Print(a);
-        Print(b);
-    }
+class d {
+	int a;
+	double b;
+
+	int get_a(){
+	    return a;
+	}
+
+	double get_b(){
+	    return b;
+	}
+
+	void set_a(int x){
+	    a = x;
+	}
+
+	void set_b(double y) {
+	    b = y;
+	}
+
 }
 
-class d extends c{
-    void f(int a,int b){
-        Print("here");
-        Print(a);
-        Print(2.3);
-        Print(b);
-    }
-}
 
-int main(){
-    c obj;
-    obj=new d;
-    Print("first");
-    obj.f(5,4);
-    Print("second");
+int main() {
+	d obj;
+	obj = new d;
+	obj.set_a(10);
+	obj.set_b(2.5);
+	Print(obj.get_a());
+	Print(obj.get_b());
 }
 """
 
 if __name__ == '__main__':
-    pass
-    decaf = ""
-    while True:
-        try:
-            decaf += input() + "\n"
-            # print(input())
-
-        except:
-            break
+    # pass
+    # decaf = ""
+    # while True:
+    #     try:
+    #         decaf += input() + "\n"
+    #         print(input())
+        #
+        # except:
+        #     break
     # decaf = ""
     # with open("theirtests/string_comparison.d") as f:
     #     decaf = ''.join(f.readlines())
