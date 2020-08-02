@@ -1053,6 +1053,15 @@ class CodeGenerator(Interpreter):
     def if_stmt(self, tree):
         code = '# if starts here:\n'
         code += self.visit(tree.children[0])
+
+        then_label = cnt()
+        else_label = cnt()
+
+        """
+        if (true)
+            a = b;
+        """
+
         then_code = self.visit(tree.children[1])
         else_code = '' if len(tree.children) == 2 else self.visit(tree.children[2])
         if len(tree.children) == 2:
@@ -1063,19 +1072,25 @@ class CodeGenerator(Interpreter):
                     addi $sp, $sp, 8
                     beq $a0, 0, end_stmt_{then}
                     j  start_stmt_{then}
-                """.format(then=self.stmt_labels[-1])
+                """.format(then=then_label)
             )
+            code += '\tstart_stmt_{}:\n'.format(then_label)
             code += then_code
+            code += '\tend_stmt_{}:\n'.format(then_label)
         else:
             code += tab("""
                 .text\t\t\t\t# IfElse
                     lw $a0, 0($sp)
                     addi $sp, $sp, 8
                     beq $a0, 0, start_stmt_{els}
-                """.format(els=self.stmt_labels[-1]))
+                """.format(els=else_label))
+            code += '\tstart_stmt_{}:\n'.format(then_label)
             code += then_code
-            code += tab("j end_stmt_{els}".format(els=self.stmt_labels[-1]))
+            code += '\tend_stmt_{}:\n'.format(then_label)
+            code += tab("j end_stmt_{els}".format(els=else_label))
+            code += '\tstart_stmt_{}:\n'.format(else_label)
             code += else_code
+            code += '\tend_stmt_{}:\n'.format(else_label)
         return code
 
     def while_stmt(self, tree):
@@ -2278,18 +2293,22 @@ void main() {
 """
 
 if __name__ == '__main__':
+    # decaf = ""
+    # while True:
+    #     try:
+    #         decaf += input() + "\n"
+    #         # print(input())
+    #
+    #     except:
+    #         break
     decaf = ""
-    while True:
-        try:
-            decaf += input() + "\n"
-            # print(input())
-
-        except:
-            break
+    with open("theirtests/string_comparison.d") as f:
+        decaf = ''.join(f.readlines())
+    print(cgen(decaf))
     # decaf = ""
     # while True:
     #     try:
     #         decaf += input()
     #     except:
     #         break
-    print(cgen(decaf))
+    # print(cgen(decaf))
