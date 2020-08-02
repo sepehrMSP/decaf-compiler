@@ -4,7 +4,7 @@ from lark import Lark, Tree, Token
 from lark.visitors import Interpreter
 
 from symbol_table_creation_attemp import symbol_table, text, just_class, set_inheritance, ClassTreeSetter, \
-    class_type_objects, class_table, Function
+    class_type_objects, class_table, Function, ImplicitThis
 from symbol_table_creation_attemp import symbol_table_objects, function_objects, \
     function_table, grammar, SymbolTableMaker, Type
 
@@ -797,8 +797,8 @@ class CodeGenerator(Interpreter):
         code += '\tsyscall\n'
         code += '\tlw $t0, {}\n'.format(class_name + '_vtable')
         code += '\tsw $t0, 0($v0)\n'
-        code += '\tsw $v0, 0($sp)\n'
         code += '\taddi $sp, $sp, -8\n'
+        code += '\tsw $v0, 0($sp)\n'
         return code
 
     def function_decl(self, tree):
@@ -837,6 +837,7 @@ class CodeGenerator(Interpreter):
                 '\tfalse: .asciiz "false"\n'
                 '\tpconst10000: .double 10000.0\n'
                 '\tnw: .asciiz "\\n"\n'
+                '\tsign_double: .asciiz "-"\n'
                 '\t__const_0_5__: .double 0.5\n'
             )
             code += cast_cgen()
@@ -1347,12 +1348,28 @@ class CodeGenerator(Interpreter):
         for child in tree.children[0].children:
             code += self.visit(child)
             t = self.expr_types[-1]
+            self.expr_types.pop()
             code += '.text\n'
             if t.name == 'double':
                 code += tab("""
+                
+                
                     .text
                         l.d $f6, 0($sp)
                         addi $sp, $sp, 8 
+                
+                    .text
+                        li.d $f8, 0.0
+                        c.le.d $f6, $f8
+                        bc1f __double_le__p__{sign_cnt}
+                        # Print -
+                            li $v0, 4
+                            la $a0, sign_double
+                            syscall\t\t\t\t#Print sign double\n
+                        ##
+                        neg.d $f6, $f6
+                        __double_le__p__{sign_cnt}:
+                
                 
                 	.text
                         l.d  $f0, root_print_double___x
@@ -1378,7 +1395,7 @@ class CodeGenerator(Interpreter):
                         l.d  $f0, 0($sp)
                         addi $sp, $sp, 8
                         s.d  $f0, root_print_double___x
-                """)
+                """.format(sign_cnt=cnt()))
                 # code += tab("""
                 #     l.d $f12, 0($sp)
                 #     addi $sp, $sp, 8
@@ -1542,7 +1559,10 @@ class CodeGenerator(Interpreter):
         code = '.text\n'
         function_name = tree._meta[0]
         if tree._meta[1]:
+            expr = tree._meta[1]
+            tmp = self.visit(expr)
             class_type = self.expr_types[-1]
+            self.expr_types.pop()
             function_scope = 'root/__class__' + class_type.name + '/' + function_name
             function = class_type_objects[class_table[class_type.name]].find_function(name=function_name)
         else:
@@ -1551,7 +1571,15 @@ class CodeGenerator(Interpreter):
 
         # push formal parameter
         for formal in function.formals:
-            formal_name = (function_scope + "/" + formal[0]).replace("/", "_")
+            exact_name = function_scope
+            if tree._meta[1]:
+                tmp = self.visit(tree._meta[1])
+                class_type = self.expr_types[-1]
+                self.expr_types.pop()
+                for funct in class_type_objects[class_table[class_type.name]].functions:
+                    if funct.name == function_name:
+                        exact_name = funct.exact_name
+            formal_name = (exact_name + "/" + formal[0]).replace("/", "_")
             formal_type = formal[1]
             if formal_type.name == 'double' and formal_type.dimension == 0:
                 code += '\tl.d  $f0, {}\n'.format(formal_name)
@@ -1564,14 +1592,24 @@ class CodeGenerator(Interpreter):
 
         # set actual parameters to formal parameters
         if tree._meta[1]:
+            exact_name = function_scope
+            if tree._meta[1]:
+                tmp = self.visit(tree._meta[1])
+                class_type = self.expr_types[-1]
+                self.expr_types.pop()
+                for funct in class_type_objects[class_table[class_type.name]].functions:
+                    if funct.name == function_name:
+                        exact_name = funct.exact_name
+            formal_name = (exact_name + "/" + function.formals[0][0]).replace("/", "_")
             # set 'this'
             # todo is it really a pointer or it's just a name?
             expr = tree._meta[1]
             code += self.visit(expr)
-            formal_name = function.formals[0][0]
+            # formal_name = function.formals[0][0]
             code += '.text\n'
             code += '\tlw $v0, 0($sp)\n'  # we don't use type because we are sure that it's class
-            code += '\tsw $v0, {}\n'.format((function_scope + "/" + formal_name).replace("/", "_"))
+            # code += '\tsw $v0, {}\n'.format((function_scope + "/" + formal_name).replace("/", "_"))
+            code += '\tsw $v0, {}\n'.format(formal_name)
             code += '\taddi $sp, $sp, 8\n'
             self.expr_types.pop()
             actual_counter = 1
@@ -1592,25 +1630,50 @@ class CodeGenerator(Interpreter):
                 code += '\tsw   $v0, {}\n'.format((function_scope + "/" + formal_name).replace("/", "_"))
                 code += '\taddi $sp, $sp, 8\n\n'
             actual_counter += 1
-            self.expr_types.pop() # todo check
+            self.expr_types.pop() # todo check f(double, double) + g(double, double) f: int g: int
 
         code += '.text\n'
         code += '\taddi $sp, $sp, -8\n'
         code += '\tsw   $ra, 0($sp)\n'
-        label_name = function.exact_name
-        code += '\tjal {}\n'.format(label_name.replace('/', '_'))
+
+        if tree._meta[1]: # E1.ident(E1, expr, expr, ...)
+            expr = tree._meta[1]
+            code += self.visit(expr)
+            class_type = self.expr_types[-1]
+            self.expr_types.pop()
+            index = class_type_objects[class_table[class_type.name]].find_function_index(function_name)
+            code += '.text\n'
+            code += '\tlw $t0, 0($sp)\n'
+            code += '\taddi $sp, $sp, 8\n'
+            code += '\tlw $t0, 0($t0)\n'
+            code += '\taddi $t0, $t0, {}\n'.format(4 * index)
+            code += '\tlw $t0, 0($t0)\n'
+            code += '\tjalr $t0\n'
+        else:
+            label_name = function.exact_name
+            code += '\tjal {}\n'.format(label_name.replace('/', '_'))
+
         if function.return_type.name == 'double' and function.return_type.dimension == 0:
             code += '\tl.d   $f30, 0($sp)\n'
             code += '\taddi $sp, $sp, 8\n'
         elif function.return_type.name != 'void':
             code += '\tlw   $t8, 0($sp)\n'
             code += '\taddi $sp, $sp, 8\n'
+
         code += '\tlw   $ra, 0($sp)\n'
         code += '\taddi $sp, $sp, 8\n\n'
 
         # pop formal parameters
         for formal in reversed(function.formals):
-            formal_name = (function_scope + "/" + formal[0]).replace("/", "_")
+            exact_name = function_scope
+            if tree._meta[1]:
+                tmp = self.visit(tree._meta[1])
+                class_type = self.expr_types[-1]
+                self.expr_types.pop()
+                for funct in class_type_objects[class_table[class_type.name]].functions:
+                    if funct.name == function_name:
+                        exact_name = funct.exact_name
+            formal_name = (exact_name + "/" + formal[0]).replace("/", "_")
             formal_type = formal[1]
             if formal_type.name == 'double' and formal_type.dimension == 0:
                 code += '\tl.d  $f0, 0($sp)\n'
@@ -1931,16 +1994,31 @@ class CodeGenerator(Interpreter):
         var_name = tree.children[0].value
         while (var_scope, var_name) not in symbol_table:
             var_scope = pop_scope(var_scope)
-            # inja :D chon ta'rif nashode, while tamum nemishe; dombale moteghayyere dorost migardam dg. be scope asli kar nadaram. mannnnnnn kari lazem nist bokonim. code ghalat nemidan ke. Re Dg:)) tarif nakardam y ro
+                # inja :D chon ta'rif nashode, while tamum nemishe; dombale moteghayyere dorost migardam dg. be scope asli kar nadaram. mannnnnnn kari lazem nist bokonim. code ghalat nemidan ke. Re Dg:)) tarif nakardam y ro
+        if '__class__' in var_scope.split('/')[-1]:
+            class_name = var_scope.split('/')[-1][9:]
+            class_obj = class_type_objects[class_table[class_name]]
+            index = class_obj.find_var_index(var_name)
+            if index >= 0:
+                function_name = deepcopy(self.current_scope).split('/')
+                while function_name[-1] != '_local':
+                    function_name.pop()
+                function_name.pop()
+                this_label = '/'.join(function_name).replace('/', '_') + '_this'
+                code = '.text\n'
+                code += '\tlw $t0, {}\n'.format(this_label)
+                code += '\taddi $t1, $t0, {}\n'.format((1 + index) * 8)
+                code += '\tsub $sp, $sp, 8\n'
+                code += '\tsw $t1, 0($sp)\n'
+                self.expr_types.append(deepcopy(class_obj.find_var_type(var_name)))
+                return code
         label_name = var_scope.replace('/', '_') + '_' + var_name
         code = '.text\n'
         code += '\tla $t0, {}\n'.format(label_name)
         code += '\tsub $sp, $sp, 8\n'
         code += '\tsw $t0, 0($sp)\n\n'
         typ = symbol_table_objects[symbol_table[var_scope, var_name]].type
-        new_type = Type(name=typ.name, meta=typ._meta)
-        new_type.dimension = typ.dimension
-        self.expr_types.append(new_type)
+        self.expr_types.append(deepcopy(typ))
         return code
 
     def subscript(self, tree):
@@ -2041,363 +2119,126 @@ class CodeGenerator(Interpreter):
 
 def cgen(decaf):
     decaf = tab("""
-        
+    
     """) + decaf
     # decaf = decaf.replace('.length()', '[-2]')
     parser = Lark(grammar, parser="lalr")
     parse_tree = parser.parse(decaf)
     SymbolTableMaker().visit(parse_tree)
+    ImplicitThis().visit(parse_tree)
+    # print(symbol_table)
     return CodeGenerator().visit(parse_tree)
 
 
 decaf = r"""
-int f(int x, int y, bool z, double a){
-    if(x == 1 && y == 2 && z == true && a > 2.5){
-        Print("ok");
-        x = 10;
-        y = 100;
-        z = false;
-        a = 1.5123;
-        return 0;
-    }
-    Print("not ok");
+int g() {
     return 0;
 }
-
-int main()  {
-    int x ;
-    bool y;
-    double aa;
-    x = 1;
-    y = true;
-    aa = 10.2;
-    f(x, 2, y, 10.2);
-    Print(x);
-    if(y){
-        Print("true");
+void f() {
+    Print("Dammit");
+}
+class X extends Person {
+    void f() {
+        Print("is this right?");
     }
-    Print(aa);
+}
+class Y extends Person {
+    void call_f() {
+        // f();
+        this.f();
+        Print("Aw?");
+    }
+}
+class Person {
+    string name;
+    int age;
+
+    void f() {
+        Print("f!");
+    }
+    void setName(string new_name) {
+        name = new_name;
+        this.f();
+        f();
+    }
+    void setAge(int new_age) {
+        age = new_age;
+    }
+    void print() {
+        Print("Name: ", name, " Age: ", age);
+    }
+}
+int main() {
+    Person p;
+    Y y;
+    string name;
+    int age;
+    name = ReadLine();
+    age = ReadInteger();
+    p = new Y;
+    p.setName(name);
+    p.setAge(age);
+    p.print();
+    y = new Y;
+    y.call_f();
+}
+"""
+
+decaf = """
+int f() {
+    return 2;
+}
+int g() {
+    return 3;
+}
+class X {
+    int f() {
+        return 5;
+    }
+
+    int func() {
+        return ((f()) * g());
+    }
+}
+class Y {
+    int g() {
+        return 7;
+    }
+
+    int func() {
+        return (f() * (g()));
+    }
+}
+int main() {
+    X x;
+    Y y;
+    x = new X;
+    y = new Y;
+    Print(x.func());
+    Print(y.func());
+}
+"""
+
+decaf = """
+double[] f() {
+    return NewArray(5, double);
+}
+int main() {
+    double[][] arr;
+    arr = NewArray(6, double[]);
+    arr[4] = f();
+    arr[2] = f();
+    arr[4][2] = 4.0 - 2.0;
+    arr[2][4] = 2.0 - 4.0;
+    Print(arr[4][2], arr[2][4]);
 }
 """
 
 if __name__ == '__main__':
     decaf = ""
-
-    # while Tree:
-    #     try:
-    #         decaf += input()
-    #     except:
-    #         break
-    # print(cg)
-    print(cgen("""
-
-	int[] array;
-	int[] tempArray;
-
-	void merge(int s1, int s2, int e1, int e2)
-	{
-		int i;
-		int j;
-		int k;
-		int curlen;
-		int it;
-		int newIt;
-		int loopI;
-
-		j = s2;
-		k = 0;
-		curlen = e2 - s1 + 1;
-		it = s1;
-		loopI = 11;
-
-		for (i = s1; i<e1+1; i=i+1){
-			if(j > e2){
-				loopI = i;
-				break;
-			}
-			if(array[i] < array[j]){
-				tempArray[k] = array[i];
-				k = k + 1;
-			}
-			else{
-				tempArray[k] = array[j];
-				k = k + 1;
-				j = j + 1;
-				i = i - 1;
-			}
-		}
-
-		if(loopI <= e1)
-		{
-			for (newIt = loopI; newIt<e1+1; newIt = newIt + 1){
-				tempArray[k] = array[newIt];
-				k = k + 1;
-			}
-		}
-
-		if(j <= e2)
-		{
-			for (newIt = j; newIt<e2+1; newIt = newIt + 1){
-				tempArray[k] = array[newIt];
-				k = k + 1;
-			}
-		}
-
-		for (k = 0; k<curlen; k=k+1) {
-			array[it] = tempArray[k];
-			it = it + 1;
-		}
-
-	}
-
-	void mergesort(int start, int end){
-
-		if(start < end){
-			int mid;
-			mid = start + (end - start)/2;
-			mergesort(start,mid);
-			mergesort(mid+1,end);
-			merge(start,mid+1,mid,end);
-
-		}
-	}
-
-	void main(){
-         int i;
-		//initializing array
-
-		array = NewArray(10, int);
-		tempArray = NewArray(10, int);
-
-		for (i = 0; i<10; i=i+1){
-			array[i] = 10 - i;
-		}
-
-		mergesort(0,9);
-
-
-		for (i = 0;  i<10; i=i+1) {
-			Print(array[i]);
-		}
-	}
-    """))
-    exit(0)
-    (print(cgen("""
-    class Person{
-    
-    }
-
-    int main(){
-        f();
-        Print(1);
-        f();
-        Print(2);
-
-    }
-
-
-
-    """)))
-    exit(0)
-    # print(cgen("""
-    #
-    # int main() {
-    #     int t;
-    #     int i;
-    #     string s;
-    #     bool found;
-    #     t = 0;
-    #     s = ReadLine();
-    #     found = false;
-    # 	for (i = 1; i < 10; i = i+1){
-    # 		if (s[i] == s[i-1]){
-    # 		    t = t+1;
-    # 		}
-    # 		else{
-    # 		    t = 0;
-    # 		}
-    # 		if (t == 6){
-    # 		    Print("YES");
-    # 		    found = true;
-    # 		    break;
-    # 		}
-    # 	}
-    # 	if(!found){
-    #         Print("NO");
-    #     }
-    # }
-    #     """))
-    #
-    #     exit(0)
-    #     (cgen("""
-    #         int main(){
-    #
-    #         NewArray(5, double[][]);
-    #         NewArray(5, int);
-    #         NewArray(5, bool[]);
-    #         for(i=0; i<10; i=i+1){
-    #         }
-    #     }
-    # """))
-    # exit(0)
-    # print(cgen("""
-    # int main(){
-    #     while(true){
-    #         if(ReadInteger() == 2){
-    #             Print(2);
-    #             break;
-    #         }
-    #         Print(1);
-    #     }
-    #     while(true){
-    #         while(true){
-    #             if(ReadInteger() == 2){
-    #                 Print(4);
-    #                 break;
-    #             }
-    #             Print(3);
-    #         }
-    #         while(true){
-    #             if (false){
-    #             }else{
-    #                 break;
-    #             }
-    #             Print("holy");
-    #         }
-    #         break;
-    #     }
-    #     Print("goody goody");
-    # }
-    # """))
-    # print(cgen(decaf))
-    # exit(0)
-
-    # (print(cgen("""
-    # int main()  {
-    #     int [] x;
-    #     double[] d;
-    #     x = NewArray(5, int);
-    #     d = NewArray(3, double);
-    #     d[0] = 1.1;
-    #     d[1] = 2.3;
-    #     d[2] = 5.6;
-    #     Print(d[0], d[1], d[2]);
-    # }
-    #     """)))
-    #     exit(0)
-    #     print(cgen("""
-    #
-    #     int main() {
-    #         int t;
-    #         int i;
-    #         string s;
-    #         bool found;
-    #         t = 0;
-    #         s = ReadLine();
-    #         found = false;
-    #     	for (i = 1; i < 10; i = i+1){
-    #     		if (s[i] == s[i-1]){
-    #     		    t = t+1;
-    #     		}
-    #     		else{
-    #     		    t = 0;
-    #     		}
-    #     		if (t == 6){
-    #     		    Print("YES");
-    #     		    found = true;
-    #     		    break;
-    #     		}
-    #     	}
-    #     	if(!found){
-    #             Print("NO");
-    #         }
-    #     }
-    #         """))
-    #
-    #         exit(0)
-    #         (cgen("""
-    #             int main(){
-    #
-    #             NewArray(5, double[][]);
-    #             NewArray(5, int);
-    #             NewArray(5, bool[]);
-    #             for(i=0; i<10; i=i+1){
-    #             }
-    #         }
-    #     """))
-    #     exit(0)
-    #     print(cgen("""
-    #     int main(){
-    #         while(true){
-    #             if(ReadInteger() == 2){
-    #                 Print(2);
-    #                 break;
-    #             }
-    #             Print(1);
-    #         }
-    #         while(true){
-    #             while(true){
-    #                 if(ReadInteger() == 2){
-    #                     Print(4);
-    #                     break;
-    #                 }
-    #                 Print(3);
-    #             }
-    #             while(true){
-    #                 if (false){
-    #                 }else{
-    #                     break;
-    #                 }
-    #                 Print("holy");
-    #             }
-    #             break;
-    #         }
-    #         Print("goody goody");
-    #     }
-    #     """))
-    #     print(cgen(decaf))
-    #     exit(0)
-    #
-    parser = Lark(grammar, parser="lalr")
-    parse_tree = parser.parse(text=decaf)
-    SymbolTableMaker().visit(parse_tree)
-    ClassTreeSetter().visit(parse_tree)
-    set_inheritance()
-    print(CodeGenerator().visit(parse_tree))
-    pass
-
-"""
-power(i){
-    int x ;
-    x = -5;
-    x = i;
-    if (i > 0) {
-        int i;
-        power(i-1)
-    }
-    if i == 0:
-        :return
-    print(x)
-    :return
-}
-
-power(3) //jal
-
-power/i = 2
-power/local/x = 2
-power/local/1/i
-
-stack_mips[?,ra,?|,3,ra,3]
-stack_local_params =[x,x,x,i] //when enter a statement push per each declaration
-                                //
-stack_local_params_cnt =[1,1,2,0] //when new call push 
-                                //when new statement +1
-console:
-1
-2
-"""
-
-"""
-Tree(function_decl, [Token(IDENT, 'sort'), Tree(formals, [Tree(variable, [Tree(type, [Tree(type, [Token(TYPE, 'int')])]), Token(IDENT, 'items')])]), Tree(stmt_block, [Tree(variable_decl, [Tree(variable, [Tree(type, [Token(TYPE, 'int')]), Token(IDENT, 'i')])]), Tree(variable_decl, [Tree(variable, [Tree(type, [Token(TYPE, 'int')]), Token(IDENT, 'j')])]), Tree(variable_decl, [Tree(variable, [Tree(type, [Token(TYPE, 'int')]), Token(IDENT, 'n')])]), Tree(stmt, [Tree(ass, [Tree(var_addr, [Token(IDENT, 'n')]), Tree(expr, [Tree(expr8, [Tree(expr1, [Tree(expr2, [Tree(expr3, [Tree(expr4, [Tree(expr5, [Tree(expr6, [Tree(val, [Tree(subscript, [Tree(val, [Tree(var_addr, [Token(IDENT, 'items')])]), Tree(expr, [Tree(expr8, [Tree(expr1, [Tree(expr2, [Tree(expr3, [Tree(expr4, [Tree(expr5, [Tree(neg, [Tree(expr6, [Tree(expr7, [Tree(const_int, [Token(INT, '2')])])])])])])])])])])])])])])])])])])])])])])]), Tree(stmt, [Tree(for_stmt, [Tree(ass, [Tree(var_addr, [Token(IDENT, 'i')]), Tree(expr, [Tree(expr8, [Tree(expr1, [Tree(expr2, [Tree(expr3, [Tree(expr4, [Tree(expr5, [Tree(expr6, [Tree(expr7, [Tree(const_int, [Token(INT, '0')])])])])])])])])])])]), Tree(expr, [Tree(expr8, [Tree(expr1, [Tree(expr2, [Tree(lt, [Tree(expr3, [Tree(expr4, [Tree(expr5, [Tree(expr6, [Tree(val, [Tree(var_addr, [Token(IDENT, 'i')])])])])])]), Tree(sub, [Tree(expr4, [Tree(expr5, [Tree(expr6, [Tree(val, [Tree(var_addr, [Token(IDENT, 'n')])])])])]), Tree(expr5, [Tree(expr6, [Tree(expr7, [Tree(const_int, [Token(INT, '1')])])])])])])])])])]), Tree(ass, [Tree(var_addr, [Token(IDENT, 'i')]), Tree(expr, [Tree(expr8, [Tree(expr1, [Tree(expr2, [Tree(expr3, [Tree(add, [Tree(expr4, [Tree(expr5, [Tree(expr6, [Tree(val, [Tree(var_addr, [Token(IDENT, 'i')])])])])]), Tree(expr5, [Tree(expr6, [Tree(expr7, [Tree(const_int, [Token(INT, '1')])])])])])])])])])])]), Tree(stmt, [Tree(stmt_block, [])])])])])])
-
-"""
+    while True:
+        try:
+            decaf += input()
+        except:
+            break
+    print(cgen(decaf))

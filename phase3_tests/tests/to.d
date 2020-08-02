@@ -13,5 +13,5 @@ int main(){
     Print(itod(10));
     Print(itod(5)/2.5);
     Print(itod(5)/4.0);
-    Print(  dtoi(itod(btoi(true)) + 2.3) );
+    Print( dtoi(itod(btoi(true)) + 2.3) );
 }
