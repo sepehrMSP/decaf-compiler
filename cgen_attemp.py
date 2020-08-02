@@ -1564,6 +1564,54 @@ class CodeGenerator(Interpreter):
             actuals._meta = [name, None]
             return self.visit(actuals)
 
+    def method(self, tree):
+        code = '.text\n'
+        code += '\taddi $sp, $sp, -8\n'
+        code += '\tsw $fp, 0($sp)\n'
+        code += '\taddi $sp, $sp, -8\n'
+        code += '\tsw $ra, 0($sp)\n'
+        code += '\taddi $fp, $sp, -8\n'
+
+        code += self.visit(tree.children[0])
+        for ch in tree.children[2].children:
+            code += self.visit(ch)
+
+        code += self.visit(tree.children[0])
+        class_type = self.expr_types.pop()
+        function_name = tree.children[1].value
+        index = class_type_objects[class_table[class_type.name]].find_function_index(function_name)
+        code += '.text\t\t\t# method call\n'
+        code += '\tlw $t0, 0($sp)\n'
+        code += '\taddi $sp, $sp, 8\n'
+        code += '\tlw $t0, 0($t0)\n'
+        code += '\taddi $t0, $t0, {}\n'.format(4 * index)
+        code += '\tlw $t0, 0($t0)\n'
+        code += '\tjalr $t0\n'
+
+        code += '.text\n'
+        function = class_type_objects[class_table[class_type.name]].functions[index]
+        if function.return_type.name == 'double' and function.return_type.dimension == 0:
+            code += '\tl.d   $f30, 0($sp)\n'
+            code += '\taddi $sp, $sp, 8\n'
+        elif function.return_type.name != 'void':
+            code += '\tlw   $t8, 0($sp)\n'
+            code += '\taddi $sp, $sp, 8\n'
+        code += '\taddi $sp, $sp, {}\n'.format(len(tree.children[2].children) * 8 + 8)
+        for i in range(len(tree.children[2].children)):
+            self.expr_types.pop()
+        code += '\tlw $ra, 0($sp)\n'
+        code += '\taddi $sp, $sp, 8\n'
+        code += '\tlw $fp, 0($sp)\n'
+        code += '\taddi $sp, $sp, 8\n'
+        if function.return_type.name == 'double' and function.return_type.dimension == 0:
+            code += '\taddi $sp, $sp, -8\n'
+            code += '\ts.d   $f30, 0($sp)\n'
+        elif function.return_type.name != 'void':
+            code += '\taddi $sp, $sp, -8\n'
+            code += '\tsw   $t8, 0($sp)\n'
+        self.expr_types.append(deepcopy(function.return_type))
+        return code
+
     def actuals(self, tree):
         code = '.text\n'
         function_name = tree._meta[0]
@@ -2036,6 +2084,16 @@ class CodeGenerator(Interpreter):
                 code += '\tsw $t1, 0($sp)\n'
                 self.expr_types.append(deepcopy(class_obj.find_var_type(var_name)))
                 return code
+        if len(var_scope.split('/')) == 3 and '__class__' in var_scope.split('/')[1]:
+            class_name = var_scope.split('/')[1][9:]
+            function = class_type_objects[class_table[class_name]].find_function(var_scope.split('/')[-1])
+            formal_type, index = function.find_formal(var_name)
+            code = '.text\n'
+            code += '\taddi $t0, $fp, -{}\n'.format(index * 8)
+            code += '\tsub $sp, $sp, 8\n'
+            code += '\tsw $t0, 0($sp)\n'
+            self.expr_types.append(deepcopy(formal_type[1]))
+            return code
         label_name = var_scope.replace('/', '_') + '_' + var_name
         code = '.text\n'
         code += '\tla $t0, {}\n'.format(label_name)
@@ -2152,6 +2210,8 @@ def cgen(decaf):
     ClassTreeSetter().visit(parse_tree)
     set_inheritance()
     ImplicitThis().visit(parse_tree)
+    # print(class_type_objects[1].functions[0].exact_name)
+    # print(class_type_objects[1].functions[1].exact_name)
     return CodeGenerator().visit(parse_tree)
 
 
@@ -2256,329 +2316,40 @@ int main() {
         Print("NO");
 }
 """
-
 decaf = r"""
-
-class Random {
-
-  int seed;
-
-  void Init(int seedVal) {
-    seed = seedVal;
-  }
-
-  int GenRandom() {
-    seed = (15625 * (seed % 10000) + 22221) % 65536;
-    return seed;
-  }
-
-  int RndInt(int max) {
-    return (this.GenRandom() % max);
-  }
-
+class c{
+    void f(int a,int b){
+        Print(a,b);
+    }
+    void g(int a,int b){
+        Print(a);
+        Print(b);
+    }
 }
 
-Random gRnd;
-
-class Deck {
-
-  int current;
-  int[] cards;
-
-  void Init() {
-    cards = NewArray(52, int);
-  }
-
-  void Shuffle() {
-    for (current = 0; current < 52; current = current + 1) {
-      cards[current] = (current + 1) % 13;
+class d extends c{
+    void f(int a,int b){
+        Print("here");
+        Print(a);
+        Print(2.3);
+        Print(b);
     }
-    while (current > 0) {
-      int r;
-      int temp;
-      r = gRnd.RndInt(current);
-      current = current - 1;
-      temp = cards[current];
-      cards[current] = cards[r];
-      cards[r] = temp;
-    }
-  }
-
-  int GetCard() {
-    int result;
-    if (current >= 52) return 0;
-    result = cards[current];
-    current = current + 1;
-    return result;
-  }
 }
 
-class BJDeck {
-
-  Deck[] decks;
-  int numdealt;
-
-  void Init() {
-    int i;
-    decks = NewArray(8, Deck);
-    for (i = 0; i < 8; i = i + 1) {
-      decks[i] = new Deck;
-      decks[i].Init();
-    }
-  }
-
-  int DealCard() {
-    int c;
-    c = 0;
-    if (numdealt >= 8*52) return 11;
-    while (c == 0) {
-      int d;
-      d = gRnd.RndInt(8);
-      c = decks[d].GetCard();
-    }
-    if (c > 10) c = 10;
-    else if (c == 1) c = 11;
-    numdealt = numdealt + 1;
-    return c;
-  }
-
-  void Shuffle() {
-    int i;
-
-    Print("Shuffling...");
-    for (i = 0; i < 8; i = i + 1)
-      decks[i].Shuffle();
-
-    numdealt = 0;
-    Print("done.\n");
-  }
-
-  int NumCardsRemaining()
-  {
-    return 8*52 - numdealt;
-  }
-}
-
-class Player {
-  int total;
-  int aces;
-  int numcards;
-  int bet;
-  int money;
-  string name;
-
-  void Init(int num) {
-    money = 1000;
-    Print("What is the name of player #", num, "? ");
-    name = ReadLine();
-  }
-
-  void Hit(BJDeck deck) {
-    int card;
-    card = deck.DealCard();
-    Print(name, " was dealt a ", card, ".\n");
-    total = total + card;
-    numcards = numcards + 1;
-    if (card == 11) aces = aces + 1;
-    while ((total > 21) && (aces > 0)) {
-      total = total - 10;
-      aces = aces - 1;
-    }
-  }
-
-  bool DoubleDown(BJDeck deck) {
-    int result;
-    if ((total != 10) && (total != 11)) return false;
-    if (GetYesOrNo("Would you like to double down?")) {
-      bet = bet * 2;
-      this.Hit(deck);
-      Print(name, ", your total is ", total, ".\n");
-      return true;
-    }
-    return false;
-  }
-
-  void TakeTurn(BJDeck deck) {
-    bool stillGoing;
-
-    Print("\n", name, "'s turn.\n");
-    total = 0;
-    aces = 0;
-    numcards = 0;
-    this.Hit(deck);
-    this.Hit(deck);
-    if (!DoubleDown(deck)) {
-      stillGoing = true;
-      while (total <= 21 && stillGoing) {
-        Print(name, ", your total is ", total, ".\n");
-        stillGoing = GetYesOrNo("Would you like a hit?");
-        if (stillGoing) this.Hit(deck);
-      }
-    }
-    if (total > 21) Print(name, " busts with the big ", total, "!\n");
-    else Print(name, " stays at ", total, ".\n");
-  }
-
-  bool HasMoney() { return money > 0; }
-
-  void PrintMoney() {
-    Print(name, ", you have $", money, ".\n");
-  }
-
-  void PlaceBet() {
-    bet = 0;
-    this.PrintMoney();
-    while ((bet <= 0) || (bet > money)) {
-      Print("How much would you like to bet? ");
-      bet = ReadInteger();
-    }
-  }
-
-  int GetTotal() { return total;}
-
-  void Resolve(int dealer) {
-    int win; int lose;
-    win = 0; lose = 0;
-    if ((total == 21) && (numcards == 2)) win = 2;
-    else if (total > 21) lose = 1;
-    else if (dealer > 21) win = 1;
-    else if (total > dealer) win = 1;
-    else if (dealer > total) lose = 1;
-    if (win >= 1) Print(name, ", you won $", bet, ".\n");
-    else if (lose >= 1) Print(name, ", you lost $", bet, ".\n");
-    else Print(name, ", you push!\n");
-    win = win * bet;
-    lose = lose * bet;
-    money = money + win - lose;
-  }
-}
-
-class Dealer extends Player {
-
-  void Init(int id) {
-    total = 0;
-    aces = 0;
-    numcards = 0;
-    name = "Dealer";
-  }
-
-  void TakeTurn(BJDeck deck) {
-    Print("\n", name, "'s turn.\n");
-    while (total <= 16) {
-      this.Hit(deck);
-    }
-    if (total > 21) Print(name, " busts with the big ", total, "!\n");
-    else Print(name, " stays at ", total, ".\n");
-  }
-}
-
-
-
-class House {
-  Player[] players;
-  Dealer dealer;
-  BJDeck deck;
-
-
-  void SetupGame() {
-    Print("\nWelcome to CS143 BlackJack!\n");
-    Print("---------------------------\n");
-    gRnd = new Random;
-    Print("Please enter a random number seed: ");
-    gRnd.Init(ReadInteger());
-
-    deck = new BJDeck;
-    dealer = new Dealer;
-    deck.Init();
-    deck.Shuffle();
-  }
-
-  void SetupPlayers() {
-    int i;
-    int numPlayers;
-    Print("How many players do we have today? ");
-    numPlayers = ReadInteger();
-    players = NewArray(numPlayers, Player);
-    for (i = 0; i < players.length(); i = i + 1) {
-      players[i] = new Player;
-      players[i].Init(i+1);
-    }
-  }
-
-  void TakeAllBets() {
-    int i;
-    Print("\nFirst, let's take bets.\n");
-    for (i = 0; i < players.length(); i = i + 1)
-      if (players[i].HasMoney()) players[i].PlaceBet();
-  }
-
-  void TakeAllTurns() {
-    int i;
-    for (i = 0; i < players.length(); i = i + 1)
-      if (players[i].HasMoney()) players[i].TakeTurn(deck);
-  }
-
-  void ResolveAllPlayers() {
-    int i;
-
-    Print("\nTime to resolve bets.\n");
-    for (i = 0; i < players.length(); i = i + 1)
-      if (players[i].HasMoney())
-        players[i].Resolve(dealer.GetTotal());
-  }
-
-  void PrintAllMoney() {
-    int i;
-
-    for (i = 0; i < players.length(); i = i + 1)
-      players[i].PrintMoney();
-
-  }
-
-  void PlayOneGame() {
-    if (deck.NumCardsRemaining() < 26) deck.Shuffle();
-    this.TakeAllBets();
-    Print("\nDealer starts. ");
-    dealer.Init(0);
-    dealer.Hit(deck);
-    this.TakeAllTurns();
-    dealer.TakeTurn(deck);
-    this.ResolveAllPlayers();
-  }
-
-}
-
-bool GetYesOrNo(string prompt)
-{
-   string answer;
-   Print(prompt, " (y/n) ");
-   answer = ReadLine();
-   return (answer == "y" || answer == "Y");
-}
-
-void main() {
-  bool keepPlaying;
-  House house;
-  keepPlaying = true;
-  house = new House;
-  house.SetupGame();
-  house.SetupPlayers();
-  while (keepPlaying) {
-    house.PlayOneGame();
-    keepPlaying = GetYesOrNo("\nDo you want to play another hand?");
-  }
-  house.PrintAllMoney();
-  Print("Thank you for playing...come again soon.\n");
-  Print("\nCS143 BlackJack Copyright (c) 1999 by Peter Mork.\n");
-  Print("(2001 mods by jdz)\n");
+int main(){
+    c obj;
+    obj=new d;
+    Print("first");
+    obj.f(5,4);
+    Print("second");
 }
 """
 
 if __name__ == '__main__':
-    # decaf = ""
-    # while True:
-    #     try:
-    #         decaf += input()
-    #     except:
-    #         break
+    decaf = ""
+    while True:
+        try:
+            decaf += input()
+        except:
+            break
     print(cgen(decaf))

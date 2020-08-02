@@ -33,7 +33,7 @@ grammar = """
     expr6 : "-" expr6 -> neg | "!" expr6 -> not_expr | expr7
     expr7 : constant | "ReadInteger" "(" ")" -> read_integer | "ReadLine" "(" ")" -> read_line | "new" IDENT -> class_inst | "NewArray" "(" expr "," type ")" -> new_array | "(" expr ")" | l_value -> val | call
     l_value : IDENT -> var_addr |  expr7 "." IDENT -> var_access | expr7 "[" expr "]" -> subscript
-    call : IDENT  "(" actuals ")" |  expr7  "."  IDENT  "(" actuals ")" 
+    call : IDENT  "(" actuals ")" |  expr7  "."  IDENT  "(" actuals ")" -> method
     actuals :  expr (","expr)* |  
     constant : INT -> const_int | DOUBLE -> const_double | DOUBLE_SCI -> const_double | BOOL -> const_bool |  STRING -> const_str | "null" -> null
 
@@ -141,6 +141,14 @@ class Function:
     def set_formals(self, formals):
         self.formals = formals
         return self
+
+    def find_formal(self, name: str):
+        counter = 0
+        for formal in self.formals:
+            if formal[0] == name:
+                return formal, counter
+            counter += 1
+        raise ChildProcessError("We're doomed")
 
 
 class SymbolTableObject:
