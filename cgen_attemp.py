@@ -1456,14 +1456,14 @@ class CodeGenerator(Interpreter):
                     """.format(cnt=cnt())
                 )
             # '\n' at the end of print
-            code += tab(
-                """
-                # Print new line
-                    li $v0, 4
-                    la $a0, nw
-                    syscall\t\t\t\t#Print new line\n
-                ##
-                """)
+        code += tab(
+            """
+            # Print new line
+                li $v0, 4
+                la $a0, nw
+                syscall\t\t\t\t#Print new line\n
+            ##
+            """)
         return code
 
     def const_int(self, tree):
