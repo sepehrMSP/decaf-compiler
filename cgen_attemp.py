@@ -1295,22 +1295,31 @@ class CodeGenerator(Interpreter):
                 # addi $a0, $a3, 0
 
                 beq $t0, 0, e_read_{label_id}
+                bne $t0, 10, ten_{ten}
+                li $t2, 0
+                sb $t2, 0($a0)
+                ten_{ten}:
+                
+                bne $t0, 13, thirt_{thirt}
+                li $t2, 0
+                sb $t2, 0($a0)
+                thirt_{thirt}:
                 
                 
                 addi $a0, $a0, 1
                 j read_{label_id}
             e_read_{label_id}:
-                # lb $t2, 1($a0)
-                li $t2, 0
-                sb $t2, -2($a0)
-                sb $t2, -1($a0)
+                # # lb $t2, 1($a0)
+                # li $t2, 0
+                # sb $t2, -1($a0)
+
             
             # li $v0, 10
             # lw $a0, 0($sp)
             # syscall
 
         ##
-        """.format(label_id=cnt()))
+        """.format(label_id=cnt(), ten=cnt(), thirt=cnt()))
         self.expr_types.append(Type(Types.STRING))
         return code
 
