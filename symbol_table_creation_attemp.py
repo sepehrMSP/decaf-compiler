@@ -629,6 +629,111 @@ class ImplicitThis(Interpreter):
                 this = Tree(data='val', children=[Tree(data='var_addr', children=[Token(type_='IDENT', value='this')])])
                 tree.children = [this] + copy
 
+    def ass(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
+    def or_bool(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
+    def and_bool(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
+    def eq(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
+    def ne(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
+    def lt(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
+    def le(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
+    def gt(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
+    def ge(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
+    def add(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
+    def sub(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
+    def mul(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
+    def div(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
+    def mod(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
+    def neg(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
+    def not_expr(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
+    def new_array(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
+    def l_value(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
+    def val(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
+    def var_access(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
+    def subscript(self, tree):
+        for child in tree.children:
+            child._meta = tree._meta
+            self.visit(child)
+
 
 just_class = """class Person{
     double name;

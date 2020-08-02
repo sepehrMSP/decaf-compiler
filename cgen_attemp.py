@@ -2109,6 +2109,7 @@ def cgen(decaf):
     parser = Lark(grammar, parser="lalr")
     parse_tree = parser.parse(decaf)
     SymbolTableMaker().visit(parse_tree)
+    ImplicitThis().visit(parse_tree)
     # print(symbol_table)
     return CodeGenerator().visit(parse_tree)
 
@@ -2177,6 +2178,45 @@ int main() {
     p.print();
     y = new Y;
     y.call_f();
+}
+"""
+
+decaf = """
+int f() {
+    return 2;
+}
+
+int g() {
+    return 3;
+}
+
+class X {
+    int f() {
+        return 5;
+    }
+    
+    int func() {
+        return ((f()) * g());
+    }
+}
+
+class Y {
+    int g() {
+        return 7;
+    }
+    
+    int func() {
+        return (f() * (g()));
+    }
+}
+
+int main() {
+    X x;
+    Y y;
+    x = new X;
+    y = new Y;
+    Print(x.func());
+    Print(y.func());
 }
 """
 
