@@ -1781,66 +1781,66 @@ class CodeGenerator(Interpreter):
 
 
 def cgen(decaf):
-    decaf = tab("""
-            int ReadInteger(){
-                /*
-                
-                \\n| 10
-                \\r| 13
-                +  | 43
-                -  | 45
-                x  | 120
-                X  | 88
-                0  | 48
-                9  | 57
-                A  | 65
-                F  | 70
-                a  | 97
-                f  | 102
-                
-                */
-                int res;
-                int inp;
-                int sign;
-                bool hex;
-                hex = false;
-                sign = 1;
-                res = 0;
-                
-                while(true){
-                    inp = ReadChar();
-                    if (inp == 10){
-                        break;
-                    }
-                    if (inp != 43 && inp != 13){
-                        if (inp == 45){
-                            sign = -1;
-                        }else{
-                            if (inp == 120 || inp == 88){
-                                hex = true;
-                            }
-                            else{
-                                if(!hex){
-                                    res = res * 10 + inp - 48;
-                                }else{
-                                    if(inp <= 60){
-                                        inp = inp - 48;
-                                    }else{
-                                        if(inp <= 75){
-                                            inp = inp - 65 + 10;
-                                        }else{
-                                            inp = inp - 97 + 10;
-                                        }
-                                    }
-                                    res = res * 16 + inp;
-                                }
-                            }
-                        }
-                    }
-                }
-            return res * sign;
-        }
-    """) + decaf
+    # decaf = tab("""
+    #         int ReadInteger(){
+    #             /*
+    #
+    #             \\n| 10
+    #             \\r| 13
+    #             +  | 43
+    #             -  | 45
+    #             x  | 120
+    #             X  | 88
+    #             0  | 48
+    #             9  | 57
+    #             A  | 65
+    #             F  | 70
+    #             a  | 97
+    #             f  | 102
+    #
+    #             */
+    #             int res;
+    #             int inp;
+    #             int sign;
+    #             bool hex;
+    #             hex = false;
+    #             sign = 1;
+    #             res = 0;
+    #
+    #             while(true){
+    #                 inp = ReadChar();
+    #                 if (inp == 10){
+    #                     break;
+    #                 }
+    #                 if (inp != 43 && inp != 13){
+    #                     if (inp == 45){
+    #                         sign = -1;
+    #                     }else{
+    #                         if (inp == 120 || inp == 88){
+    #                             hex = true;
+    #                         }
+    #                         else{
+    #                             if(!hex){
+    #                                 res = res * 10 + inp - 48;
+    #                             }else{
+    #                                 if(inp <= 60){
+    #                                     inp = inp - 48;
+    #                                 }else{
+    #                                     if(inp <= 75){
+    #                                         inp = inp - 65 + 10;
+    #                                     }else{
+    #                                         inp = inp - 97 + 10;
+    #                                     }
+    #                                 }
+    #                                 res = res * 16 + inp;
+    #                             }
+    #                         }
+    #                     }
+    #                 }
+    #             }
+    #         return res * sign;
+    #     }
+    # """) + decaf
     parser = Lark(grammar, parser="lalr")
     parse_tree = parser.parse(decaf)
     SymbolTableMaker().visit(parse_tree)
