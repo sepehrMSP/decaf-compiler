@@ -83,23 +83,23 @@ def cast_cgen():
     code += tab(
         """
         #DTOI
-        root_dtoi:
+        root_dtoi_:
         .data
         .align 2
-        root_dtoi_dval: .space 8
+        root_dtoi__dval: .space 8
         .text
             li $t0, 1
             sub $sp, $sp, 8
             sw $t0, 0($sp)
 
-            la $t0, root_dtoi_dval
+            la $t0, root_dtoi__dval
             sub $sp, $sp, 8
             sw $t0, 0($sp)
             lw $t0, 0($sp)
             l.d $f0, 0($t0)
 
 
-            li.d $f6, 0.49999999 # round to nearest integer
+            li.d $f6, 0.5 # round to nearest integer
             add.d $f0, $f0, $f6
 
             cvt.w.d $f0,$f0
@@ -137,7 +137,7 @@ def cast_cgen():
             l.d $f0, 0($t0)
 
 
-            # li.d $f6, 0.49999999 # round to nearest integer
+            # li.d $f6, 0.5 # round to nearest integer
             # add.d $f0, $f0, $f6
 
             cvt.w.d $f0,$f0
@@ -1781,6 +1781,13 @@ class CodeGenerator(Interpreter):
 
 
 def cgen(decaf):
+    decaf = tab("""
+        int dtoi(double x){
+            if(x >= 0)
+                return dtoi_(x);
+            return -dtoi_(-x);
+        }
+    """) + decaf
     # decaf = tab("""
     #         int ReadInteger(){
     #             /*

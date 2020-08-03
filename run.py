@@ -20,8 +20,8 @@ if __name__ == '__main__':
         symbol_table_creation_attemp.parent_classes.clear()
         symbol_table_creation_attemp.init()
 
-        if file.endswith(".decaf"):
-            test = file[:-6]
+        if file.endswith(".d"):
+            test = file[:-2]
             if ('black' in test or 'balck' in test):
                 continue
             # if 'sort' not in test:
@@ -52,11 +52,11 @@ if __name__ == '__main__':
                 res = ''.join(f.readlines())
             try:
                 with open(out) as f:
-                    f.readline()
-                    f.readline()
-                    f.readline()
-                    f.readline()
-                    f.readline()
+                    # f.readline()
+                    # f.readline()
+                    # f.readline()
+                    # f.readline()
+                    # f.readline()
                     cor = ''.join(f.readlines())
             except:
                 cor = ''

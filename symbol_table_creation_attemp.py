@@ -204,14 +204,14 @@ def init():
     function_table['itod'] = 0
 
     function_objects.append(
-        Function(name='dtoi', exact_name='root/dtoi').set_return_type(
+        Function(name='dtoi_', exact_name='root/dtoi_').set_return_type(
             Type('int')
         ).set_formals(
             [['dval', Type('double')]]
         )
     )
 
-    function_table['dtoi'] = 1
+    function_table['dtoi_'] = 1
 
     function_objects.append(
         Function(name='itob', exact_name='root/itob').set_return_type(
