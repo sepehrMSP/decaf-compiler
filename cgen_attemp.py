@@ -1783,6 +1783,22 @@ class CodeGenerator(Interpreter):
 def cgen(decaf):
     decaf = tab("""
             int ReadInteger(){
+                /*
+                
+                \\n| 10
+                \\r| 13
+                +  | 43
+                -  | 45
+                x  | 120
+                X  | 88
+                0  | 48
+                9  | 57
+                A  | 65
+                F  | 70
+                a  | 97
+                f  | 102
+                
+                */
                 int res;
                 int inp;
                 int sign;
@@ -1807,7 +1823,7 @@ def cgen(decaf):
                                 if(!hex){
                                     res = res * 10 + inp - 48;
                                 }else{
-                                    if(inp <= 50){
+                                    if(inp <= 60){
                                         inp = inp - 48;
                                     }else{
                                         if(inp <= 75){
