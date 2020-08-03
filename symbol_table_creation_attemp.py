@@ -31,7 +31,7 @@ grammar = """
     expr4 : expr4 "+" expr5 -> add | expr4 "-" expr5 -> sub | expr5
     expr5 : expr5 "*" expr6 -> mul | expr5 "/" expr6 -> div | expr5 "%" expr6 -> mod | expr6
     expr6 : "-" expr6 -> neg | "!" expr6 -> not_expr | expr7
-    expr7 : constant | "ReadInteger" "(" ")" -> read_integer | "ReadLine" "(" ")" -> read_line | "new" IDENT -> class_inst | "NewArray" "(" expr "," type ")" -> new_array | "(" expr ")" | l_value -> val | call
+    expr7 : constant | "ReadChar" "(" ")" -> read_char | "ReadLine" "(" ")" -> read_line | "new" IDENT -> class_inst | "NewArray" "(" expr "," type ")" -> new_array | "(" expr ")" | l_value -> val | call
     l_value : IDENT -> var_addr |  expr7 "." IDENT -> var_access | expr7 "[" expr "]" -> subscript
     call : IDENT  "(" actuals ")" |  expr7  "."  IDENT  "(" actuals ")" -> method
     actuals :  expr (","expr)* |  
@@ -43,7 +43,7 @@ grammar = """
     BOOL : /((true)|(false))(xabc1235ll)*/
     TYPE : "int" | "double" | "bool" | "string"
     STRING : /"[^"\\n]*"/
-    IDENT :  /(?!((true)|(false)|(void)|(int)|(double)|(bool)|(string)|(class)|(interface)|(null)|(extends)|(implements)|(for)|(while)|(if)|(else)|(return)|(break)|(new)|(NewArray)|(Print)|(ReadInteger)|(ReadLine))([^_a-zA-Z0-9]|$))[a-zA-Z][_a-zA-Z0-9]*/
+    IDENT :  /(?!((true)|(false)|(void)|(int)|(double)|(bool)|(string)|(class)|(interface)|(null)|(extends)|(implements)|(for)|(while)|(if)|(else)|(return)|(break)|(new)|(NewArray)|(Print)|(ReadChar)|(ReadLine))([^_a-zA-Z0-9]|$))[a-zA-Z][_a-zA-Z0-9]*/
     INLINE_COMMENT : "//" /[^\\n]*/ "\\n"
     MULTILINE_COMMENT : "/*" /(\\n|.)*?/ "*/"
     %import common.WS -> WHITESPACE

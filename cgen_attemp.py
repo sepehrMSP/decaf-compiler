@@ -826,6 +826,18 @@ class CodeGenerator(Interpreter):
         self.expr_types.append(Type(Types.INT))
         return code
 
+    def read_char(self, tree):
+        code = tab("""
+             .text\t\t\t\t # Read Integer
+                 li $v0, 12           #read_char
+                 syscall             #ReadChar
+                 sub $sp, $sp, 8
+                 sw $v0, 0($sp)
+             ##
+             """)
+        self.expr_types.append(Type(Types.INT))
+        return code
+
     def new_array(self, tree):
         code = ''
         code += ''.join(self.visit_children(tree))
@@ -1770,7 +1782,48 @@ class CodeGenerator(Interpreter):
 
 def cgen(decaf):
     decaf = tab("""
-    
+            int ReadInteger(){
+                int res;
+                int inp;
+                int sign;
+                bool hex;
+                hex = false;
+                sign = 1;
+                res = 0;
+                
+                while(true){
+                    inp = ReadChar();
+                    if (inp == 10){
+                        break;
+                    }
+                    if (inp != 43 && inp != 13){
+                        if (inp == 45){
+                            sign = -1;
+                        }else{
+                            if (inp == 120 || inp == 88){
+                                hex = true;
+                            }
+                            else{
+                                if(!hex){
+                                    res = res * 10 + inp - 48;
+                                }else{
+                                    if(inp <= 50){
+                                        inp = inp - 48;
+                                    }else{
+                                        if(inp <= 75){
+                                            inp = inp - 65 + 10;
+                                        }else{
+                                            inp = inp - 97 + 10;
+                                        }
+                                    }
+                                    res = res * 16 + inp;
+                                }
+                            }
+                        }
+                    }
+                }
+            return res * sign;
+        }
     """) + decaf
     parser = Lark(grammar, parser="lalr")
     parse_tree = parser.parse(decaf)
@@ -1789,3 +1842,4 @@ if __name__ == '__main__':
         except:
             break
     print(cgen(decaf))
+
