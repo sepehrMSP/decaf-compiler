@@ -23,7 +23,7 @@ if __name__ == '__main__':
         if file.endswith(".d"):
             test = file[:-2]
 
-            if ('black' in test or 'balck' in test):
+            if not('black' in test or 'balck' in test):
                 continue
             # if 'sort' not in test:
             #     continue
