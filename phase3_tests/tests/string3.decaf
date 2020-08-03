@@ -1,0 +1,7 @@
+int main()
+{
+    string s;
+    s = "not";
+    Print(s != "something else");
+    Print(s != "not");
+}

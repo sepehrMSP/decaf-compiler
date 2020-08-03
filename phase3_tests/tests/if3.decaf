@@ -1,0 +1,9 @@
+int main() {
+  if (true)
+    if (false)
+      Print(1);
+    else 
+      Print(2);
+  else
+    Print(3);
+}

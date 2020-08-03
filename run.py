@@ -20,8 +20,8 @@ if __name__ == '__main__':
         symbol_table_creation_attemp.parent_classes.clear()
         symbol_table_creation_attemp.init()
 
-        if file.endswith(".d"):
-            test = file[:-2]
+        if file.endswith(".decaf"):
+            test = file[:-6]
             if ('black' in test or 'balck' in test):
                 continue
             # if 'sort' not in test:
@@ -43,7 +43,7 @@ if __name__ == '__main__':
                 inp = 'phase3_tests/tests/heapsort.in'
             os.system('spim -a -f "{}" < {} > "tmp"'.format(asm, inp))
             # print(os.system('diff {} tmp'.format(out)))
-            with open ("tmp", "r") as f:
+            with open("tmp", "r") as f:
                 f.readline()
                 f.readline()
                 f.readline()
@@ -52,20 +52,30 @@ if __name__ == '__main__':
                 res = ''.join(f.readlines())
             try:
                 with open(out) as f:
+                    f.readline()
+                    f.readline()
+                    f.readline()
+                    f.readline()
+                    f.readline()
                     cor = ''.join(f.readlines())
             except:
                 cor = ''
+            # print(out)
             # print(res)
             # print()
             # print(cor)
+            print('_'*10)
             if res == cor:
                 print('Accepted')
                 acc += 1
             else:
                 # print(res.count('\n'))
+                print(out)
+                print('your output:\n')
                 print(res)
-                print()
-                # print(cor)
+                print('_'*10)
+                print('judge output:\n')
+                print(cor)
                 # print(cor.count('\n'))
 
                 print('Wrong')
