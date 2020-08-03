@@ -51,6 +51,41 @@ def cnt():
 
 def cast_cgen():
     code = ''
+
+    code += tab("""
+            .text
+            root_ReadChar__:
+            .text
+            start_rstmt_65:
+            start_rstmt_66:
+            .text
+            
+                li $v0, 12           #read_char
+                syscall             #ReadChar
+                sub $sp, $sp, 8
+                sw $v0, 0($sp)
+            
+                
+            
+                lw   $t8, 0($sp)
+                addi $sp, $sp, 8
+                addi $sp, $sp, -8
+                sw   $t8, 0($sp)
+                jr   $ra
+            
+            end_rstmt_66:
+            start_rstmt_67:
+                lw   $t8, 0($sp)
+                addi $sp, $sp, 8
+                addi $sp, $sp, -8
+                sw   $t8, 0($sp)
+                jr   $ra
+            
+            end_rstmt_67:
+            end_rstmt_65:
+    """)
+
+
     code += tab(""" # ITOD
              .data
                  .align 2
@@ -815,14 +850,26 @@ class CodeGenerator(Interpreter):
         return code
 
     def read_integer(self, tree):
+        # code = tab("""
+        #     .text\t\t\t\t # Read Integer
+        #         li $v0, 5           #read_integer
+        #         syscall             #ReadInteger()
+        #         sub $sp, $sp, 8
+        #         sw $v0, 0($sp)
+        #     ##
+        #     """)
         code = tab("""
-            .text\t\t\t\t # Read Integer
-                li $v0, 5           #read_integer
-                syscall             #ReadInteger()
-                sub $sp, $sp, 8
-                sw $v0, 0($sp)
-            ##
-            """)
+        	addi $sp, $sp, -8
+            sw   $ra, 0($sp)
+            jal root_ReadInteger__
+            lw   $t8, 0($sp)
+            addi $sp, $sp, 8
+            lw   $ra, 0($sp)
+            addi $sp, $sp, 8
+        
+            addi $sp, $sp, -8
+            sw   $t8, 0($sp)
+        """)
         self.expr_types.append(Type(Types.INT))
         return code
 
@@ -1783,71 +1830,69 @@ class CodeGenerator(Interpreter):
 def cgen(decaf):
     decaf = tab("""
         int dtoi(double x){
-            if(x >= 0)
+            if(x >= 0.0)
                 return dtoi_(x);
-            return -dtoi_(-x);
+            return -dtoi_(-x-0.00000000001);
         }
+        int ReadInteger__(){
+            /*
+
+            \\n| 10
+            \\r| 13
+            +  | 43
+            -  | 45
+            x  | 120
+            X  | 88
+            0  | 48
+            9  | 57
+            A  | 65
+            F  | 70
+            a  | 97
+            f  | 102
+
+            */
+            int res;
+            int inp;
+            int sign;
+            bool hex;
+            hex = false;
+            sign = 1;
+            res = 0;
+
+            while(true){
+                inp = ReadChar__();
+                if (inp == 10){
+                    break;
+                }
+                if (inp != 43 && inp != 13){
+                    if (inp == 45){
+                        sign = -1;
+                    }else{
+                        if (inp == 120 || inp == 88){
+                            hex = true;
+                        }
+                        else{
+                            if(!hex){
+                                res = res * 10 + inp - 48;
+                            }else{
+                                if(inp <= 60){
+                                    inp = inp - 48;
+                                }else{
+                                    if(inp <= 75){
+                                        inp = inp - 65 + 10;
+                                    }else{
+                                        inp = inp - 97 + 10;
+                                    }
+                                }
+                                res = res * 16 + inp;
+                            }
+                        }
+                    }
+                }
+            }
+        return res * sign;
+    }
     """) + decaf
-    # decaf = tab("""
-    #         int ReadInteger(){
-    #             /*
-    #
-    #             \\n| 10
-    #             \\r| 13
-    #             +  | 43
-    #             -  | 45
-    #             x  | 120
-    #             X  | 88
-    #             0  | 48
-    #             9  | 57
-    #             A  | 65
-    #             F  | 70
-    #             a  | 97
-    #             f  | 102
-    #
-    #             */
-    #             int res;
-    #             int inp;
-    #             int sign;
-    #             bool hex;
-    #             hex = false;
-    #             sign = 1;
-    #             res = 0;
-    #
-    #             while(true){
-    #                 inp = ReadChar();
-    #                 if (inp == 10){
-    #                     break;
-    #                 }
-    #                 if (inp != 43 && inp != 13){
-    #                     if (inp == 45){
-    #                         sign = -1;
-    #                     }else{
-    #                         if (inp == 120 || inp == 88){
-    #                             hex = true;
-    #                         }
-    #                         else{
-    #                             if(!hex){
-    #                                 res = res * 10 + inp - 48;
-    #                             }else{
-    #                                 if(inp <= 60){
-    #                                     inp = inp - 48;
-    #                                 }else{
-    #                                     if(inp <= 75){
-    #                                         inp = inp - 65 + 10;
-    #                                     }else{
-    #                                         inp = inp - 97 + 10;
-    #                                     }
-    #                                 }
-    #                                 res = res * 16 + inp;
-    #                             }
-    #                         }
-    #                     }
-    #                 }
-    #             }
-    #         return res * sign;
-    #     }
-    # """) + decaf
     parser = Lark(grammar, parser="lalr")
     parse_tree = parser.parse(decaf)
     SymbolTableMaker().visit(parse_tree)
@@ -1865,4 +1910,9 @@ if __name__ == '__main__':
         except:
             break
     print(cgen(decaf))
+    # print(cgen("""
+    # int main(){
+    #     -0.5 < 0.0;
+    # }
+    # """))
 

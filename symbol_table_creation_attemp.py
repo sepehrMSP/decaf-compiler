@@ -243,6 +243,16 @@ def init():
 
     function_table['ceil__'] = 4
 
+    function_objects.append(
+        Function(name='ReadChar__', exact_name='root/ReadChar__').set_return_type(
+            Type('int')
+        ).set_formals(
+            []
+        )
+    )
+
+    function_table['ReadChar__'] = 5
+
     # function_objects.append(
     #     Function(name='print_double__', exact_name='root/print_double__').set_return_type(
     #         Type('void')
