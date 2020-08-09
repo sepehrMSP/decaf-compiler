@@ -16,10 +16,8 @@ jobs:
   build:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
-        working-directory: decaf-compiler
+    env:
+      working-directory: ./phase3_tests
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -36,4 +34,5 @@ jobs:
         echo Add other actions to build,
         echo test, and deploy your project.
     - name: Run test script
-      run: sh phase3_tests/run.sh
+      run: sh run.sh
+      working-directory: ${{working-directory}}
