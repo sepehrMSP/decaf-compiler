@@ -56,4 +56,4 @@ jobs:
       run: |
         cd phase3_tests
         chmod +x run.sh
-        ./run.sh
+        ./run.sh | tail -n 1 | awk '{print $3}'
