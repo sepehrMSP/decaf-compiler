@@ -33,6 +33,8 @@ jobs:
       run: |
         echo Add other actions to build,
         echo test, and deploy your project.
-    - name: Run test script
-      run: sh run.sh
-      working-directory: ${{working-directory}}
+    - name: check directory
+      run: ls -l
+#     - name: Run test script
+#       run: sh run.sh
+#       working-directory: ${{working-directory}}
