@@ -35,6 +35,9 @@ jobs:
         echo test, and deploy your project.
     - name: check directory
       run: ls -l
-#     - name: Run test script
-#       run: sh run.sh
-#       working-directory: ${{working-directory}}
+      
+    - name: Run test script
+      run: |
+        cd phase3_tests
+        chmod +x run.sh
+        ./run.sh
