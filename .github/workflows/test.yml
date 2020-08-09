@@ -35,6 +35,10 @@ jobs:
         python -m pip install --upgrade pip
         pip install lark-parser --upgrade
         python3 cgen_attemp.py
+    - name: Install Spim simulator
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y spim
 
     # Runs a single command using the runners shell
     - name: Run a one-line script
