@@ -1,3 +1,4 @@
+[![CI Actions Status](https://github.com/sepehrMSP/decaf-compiler/workflows/CI/badge.svg)](https://github.com/sepehrMSP/decaf-compiler/actions)
 # Decaf Compiler with Lark
 This project is a minimal Decaf compiler to MIPS using Lark library. we use Lark to make and traverse pars tree with our grammar.
 In this project, we implement single Inheritance and polymorphisme. all of class field accesses are protected. Also note that we don't support Error Handling for now!
