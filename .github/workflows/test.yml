@@ -51,8 +51,6 @@ jobs:
         echo test, and deploy your project.
     - name: check directory
       run: ls -l
-    - name: implicit fail
-      run: throw
       
     - name: Run test script
       run: |
