@@ -1828,7 +1828,6 @@ class CodeGenerator(Interpreter):
 
 
 def cgen(decaf):
-    return "";
     decaf = tab("""
         int dtoi(double x){
             if(x >= 0.0)
