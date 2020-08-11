@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python_verssion: [2.7, 3.5, 3.6, 3.7, 3.8]
+        python_verssion: [3.5, 3.6, 3.7, 3.8]
     env:
       working-directory: ./phase3_tests
 
